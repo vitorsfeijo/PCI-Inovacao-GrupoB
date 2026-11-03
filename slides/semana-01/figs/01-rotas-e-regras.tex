@@ -1,0 +1,26 @@
+\documentclass[tikz,border=3pt,11pt]{standalone}
+\input{estilo.tex}
+\begin{document}
+\begin{tikzpicture}
+  \path[use as bounding box] (-.2,-3.1) rectangle (14,1.1);
+  \node[anchor=west,text=red,font=\small\bfseries] at (0,.72) {Não atende à regra};
+  \node[anchor=west,text=green,font=\small\bfseries] at (0,-1.48) {Atende à regra de prioridade};
+  \foreach \y/\first/\second in {0/B/A,-2.2/A/B}{
+    \node[stop,draw=muted,fill=light!45] (u\first) at (.65,\y) {US};
+    \node[stop,draw=blue,fill=blue!7] (f\first) at (4.4,\y) {\first};
+    \node[stop,draw=blue,fill=blue!7] (s\first) at (8.15,\y) {\second};
+    \node[stop,draw=muted,fill=light!45] (v\first) at (11.9,\y) {US};
+    \draw[flow] (u\first) -- (f\first);
+    \draw[flow] (f\first) -- (s\first);
+    \draw[flow] (s\first) -- (v\first);
+    \node[label] at (.65,\y-.72) {Unidade};
+    \node[label] at (11.9,\y-.72) {Retorno};
+  }
+  \node[label] at (4.4,-.72) {Visita B};
+  \node[label,text=red] at (8.15,-.72) {A deveria vir antes};
+  \node[label,text=green] at (4.4,-2.92) {A vem primeiro};
+  \node[label] at (8.15,-2.92) {Visita B};
+  \node[text=red,font=\LARGE] at (13.25,0) {$\times$};
+  \node[text=green,font=\large\bfseries] at (13.25,-2.2) {OK};
+\end{tikzpicture}
+\end{document}
