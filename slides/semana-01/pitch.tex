@@ -2,10 +2,12 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[brazilian]{babel}
-\usepackage{graphicx,array}
+\usepackage{graphicx,array,tikz}
+\usetikzlibrary{arrows.meta,positioning}
 \usetheme{Singapore}
 
 % Figuras independentes em figs/. Recompilar tudo: ./compilar.ps1
+% Versão anterior (antes da reestruturação problema/solução): versao-anterior/
 \definecolor{ink}{HTML}{202124}
 \definecolor{muted}{HTML}{666666}
 \definecolor{blue}{RGB}{30,80,160}
@@ -16,132 +18,181 @@
 \setbeamercolor{structure}{fg=blue}
 \setbeamersize{text margin left=8mm,text margin right=8mm}
 \setbeamertemplate{navigation symbols}{}
+\setbeamerfont{framesubtitle}{size=\large}
 \setbeamertemplate{footline}[frame number]
-\newcommand{\bigtext}[1]{{\fontsize{24.88}{30}\selectfont #1\par}}
+\newcommand{\bigtext}[1]{{\fontsize{17.28}{23}\selectfont #1\par}}
+\newcommand{\muted}[1]{{\small\color{muted}#1\par}}
+\newcommand{\caixa}[2]{%
+  \begin{tikzpicture}
+    \node[draw=blue!40,fill=blue!5,rounded corners=3pt,text width=#1,inner sep=8pt,align=left] {#2};
+  \end{tikzpicture}}
 
-\title[Visitas domiciliares]{Planejamento de visitas domiciliares}
-\subtitle{Rotas que consideram as regras do atendimento}
+\title[Visitas domiciliares]{Planejamento do turno de visitas do ACS}
 \author[Grupo C]{Luis Junior \and Manuela Dalmonte \and Vítor Feijó}
 \date{INF99003 -- Ciclo 3 -- Grupo C\\Semana 1 | Pitch}
 \hypersetup{pdfauthor={Luis Junior; Manuela Dalmonte; Vítor Feijó}}
 
 \begin{document}
 
-% 1 — Apresentar a base que será discutida, sem antecipar a inovação.
+% 1 — Capa: o subtítulo já resume a solução.
 \begin{frame}[c]
   \titlepage
 \end{frame}
 
 \section{Problema}
-% 2 — Ilustração conceitual, sem apresentar distância ou resultado inventado.
-\begin{frame}{Uma rota precisa respeitar as prioridades}
-  \vspace{5mm}
-  \centering
-  \includegraphics[width=\textwidth]{figs/01-rotas-e-regras.pdf}
-\end{frame}
-
-\section{Projeto-base}
-% 3 — Restrições representadas no projeto, em linguagem operacional.
-\begin{frame}{Regras e restrições do planejamento}
-  \begin{columns}[T]
-    \column{.30\textwidth}
-    {\large\color{blue}Prioridades\par}
-    \vspace{5mm}
+% 2 — Cenário concreto: o público se reconhece antes de qualquer técnica.
+\begin{frame}{Um turno de visitas do ACS}
+  \begin{columns}[T,onlytextwidth]
+    \column{.48\textwidth}
     \centering
-    Prioridade e atraso orientam a seleção e a ordem das visitas.
-    \column{.30\textwidth}
-    {\large\color{blue}Condições\par}
+    {\large\color{blue}Turno de 4 horas\par}
+    \vspace{4mm}
+    \textbf{Pessoa idosa} -- aferir pressão e medir glicemia capilar\par
+    \vspace{3mm}
+    \textbf{Criança} -- peso, altura e caderneta de vacinação\par
+    \vspace{3mm}
+    \textbf{Adulto} -- visita em atraso\par
     \vspace{5mm}
-    Habilitação, equipamento e assistência profissional necessários ao atendimento.
-    \column{.30\textwidth}
-    {\large\color{blue}Recursos\par}
-    \vspace{5mm}
-    Insumos e disponibilidade de assistência ao longo do turno.
+    \muted{Cenário ilustrativo.}
+    \column{.48\textwidth}
+    \centering
+    {\large\color{blue}Antes de sair, o ACS decide\par}
+    \vspace{4mm}
+    \caixa{.80\textwidth}{\centering\large Quem visitar primeiro?}\par
+    \vspace{2mm}
+    \caixa{.80\textwidth}{\centering\large O que levar? Dá para todas as visitas?}\par
+    \vspace{2mm}
+    \caixa{.80\textwidth}{\centering\large Quem precisa ir junto, e quando?}\par
   \end{columns}
-  \vspace{7mm}
-  {\large Uma decisão em uma visita pode afetar as seguintes.\par}
 \end{frame}
 
-% 4 — O roteirizador propõe a ordem; o planejador verifica ações/recursos.
-\begin{frame}{Construção do plano de visitas}
+% 4 — O problema numa frase + consequências (hipóteses a confirmar).
+\begin{frame}[c]{O problema}
+  \framesubtitle{Organizar o turno não é só escolher a rota:}
   \centering
-  \includegraphics[width=\textwidth]{figs/02-planejamento-com-regras.pdf}
-  \vspace{20mm}
-  {\large\parbox{\textwidth}{\centering O resultado combina a ordem das visitas\\e as ações necessárias em cada parada.}\par}
+  \bigtext{cada visita depende de \textcolor{blue}{prioridade},\\
+  \textcolor{blue}{material} e \textcolor{blue}{acompanhamento},\\
+  e o que acontece numa casa afeta as seguintes.}
+  \vspace{8mm}
 \end{frame}
 
-\section{Na prática}
-% 5 — Exemplo didático de consumo e reposição, baseado nas ações do modelo.
-\begin{frame}{A reposição de material faz parte do plano}
+\section{Solução}
+% 5 — A solução numa frase, com entradas e saída.
+\begin{frame}[t]{A solução proposta}
+  \vspace{8mm}
   \centering
-  {\large Três visitas, uma unidade de material consumida em cada uma.\par}
+  \bigtext{Um assistente que monta o \textcolor{blue}{roteiro do turno}.}
+  \vspace{10mm}
+  \centering
+  \begin{tikzpicture}[
+      box/.style={draw=blue!40,fill=blue!5,rounded corners=3pt,align=center,
+        minimum height=20mm,text width=28mm},
+      saida/.style={draw=blue,fill=blue!12,rounded corners=3pt,align=center,
+        minimum height=20mm,text width=34mm,font=\large\bfseries},
+      seta/.style={-{Stealth[length=3mm]},line width=1.2pt,draw=blue}]
+    \node[box] (a) {Famílias, prioridades\\e atrasos};
+    \node[box,right=3mm of a] (b) {Materiais e\\equipamentos};
+    \node[box,right=3mm of b] (c) {Formação do ACS\\e agenda da equipe};
+    \node[saida,right=8mm of c] (d) {Roteiro do turno\\[1mm]\normalfont\normalsize paradas, tarefas\\e alertas};
+    \draw[seta] (c) -- (d);
+  \end{tikzpicture}
+\end{frame}
+
+% 6 — O resultado vem antes do mecanismo: é o que interessa ao público.
+\begin{frame}{O que o ACS recebe}
+  \begin{columns}[T,onlytextwidth]
+    \column{.60\textwidth}
+    \caixa{.92\textwidth}{%
+      \textbf{Parada 1 -- Paciente 07} (pessoa idosa)\\[1mm]
+      {\small $\square$ Acionar o enfermeiro\quad $\square$ Pressão\\
+      $\square$ Glicemia capilar\quad $\square$ Registrar}\\[4mm]
+      \textbf{Parada 2 -- Paciente 06} (criança)\\[1mm]
+      {\small $\square$ Acionar o enfermeiro\quad $\square$ Peso e altura\\
+      $\square$ Vacinação\quad $\square$ Registrar}}
+    \column{.34\textwidth}
+    {\large\color{blue}Resumo do turno\par}
+    \vspace{3mm}
+    {\Large 6 visitas\par}
+    \vspace{2mm}
+    266 min estimados\\
+    240 min disponíveis\par
+    \vspace{4mm}
+    {\color{red}\textbf{Alerta:} o turno não cabe\\(26 min a mais)\par}
+  \end{columns}
+\end{frame}
+
+% 7 — Como funciona, em linguagem de rotina.
+\begin{frame}{Como o roteiro é montado}
+  \centering
+  \makebox[\textwidth]{\includegraphics[width=1.1\textwidth]{figs/02-planejamento-com-regras.pdf}}
+  \vspace{6mm}
+\end{frame}
+
+\section{Exemplos}
+% 8 — Exemplo didático de consumo e reposição.
+\begin{frame}{Exemplo: a volta à unidade entra no plano}
+  \centering
+  {\large Três visitas com glicemia capilar; cada uma usa uma fita.\par}
   \vspace{6mm}
   \includegraphics[width=\textwidth]{figs/03-reposicao-no-plano.pdf}
-  \vspace{6mm}
-  {\large\parbox{\textwidth}{\centering O planejamento inclui a passagem pela unidade\\para viabilizar as próximas visitas.}\par}
 \end{frame}
 
-% 6 — Diagnósticos que já existem no projeto; não são propostas de inovação.
-\begin{frame}{Nem todo impedimento se resolve com outra rota}
-  \renewcommand{\arraystretch}{1.2}
-  \begin{tabular}{@{}m{.43\textwidth}@{\hspace{8mm}}m{.49\textwidth}@{}}
-    {\large\color{blue}Situação identificada} & {\large\color{blue}Consequência para o plano}\\[5mm]
-    Visitas fora da ordem de prioridade & Testar outra sequência de visitas.\\[6mm]
-    Falta de uma condição exigida para o atendimento & Trocar a ordem não supre essa condição.\\[6mm]
-    Assistência disponível insuficiente para as visitas previstas & Rever recursos ou visitas com a equipe.
+% 9 — Diagnósticos existentes no projeto, em linguagem concreta.
+\begin{frame}{Quando mudar a ordem não resolve, o sistema diz por quê}
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{@{}m{.45\textwidth}@{\hspace{8mm}}m{.47\textwidth}@{}}
+    {\large\color{blue}Situação} & {\large\color{blue}O que o sistema faz}\\[5mm]
+    Visita prioritária ficou para depois & Tenta outra ordem das casas.\\[6mm]
+    ACS sem os requisitos para a visita
+      & Avisa que nenhuma ordem resolve:\newline falta uma condição.\\[6mm]
+    Mais visitas no mesmo horário\newline do que enfermeiros no turno
+      & Avisa: a decisão volta para a equipe.
   \end{tabular}\par
+  \vspace{6mm}
+  \muted{O sistema não inventa recursos: aponta o limite para a equipe decidir.}
 \end{frame}
 
-% 7 — Regras sintéticas do domínio estendido, sem apresentá-las como normas.
-\begin{frame}{Novas regras passam a fazer parte do planejamento}
-  {\large O grupo testou a inclusão de três regras hipotéticas:\par}
-  \vspace{7mm}
-  \begin{columns}[T]
-    \column{.30\textwidth}
-    {\large\color{blue}Higienização\par}
-    \vspace{4mm}
-    Consumo e reposição de solução alcoólica.
-    \column{.30\textwidth}
-    {\large\color{blue}Proteção\par}
-    \vspace{4mm}
-    Disponibilidade de máscaras para visitas sinalizadas.
-    \column{.30\textwidth}
-    {\large\color{blue}Descarte\par}
-    \vspace{4mm}
-    Capacidade do coletor e troca na unidade.
-  \end{columns}
-  \vspace{9mm}
-  {\large As novas condições foram consideradas\\sem alterar o mecanismo de busca.\par}
-\end{frame}
-
-% 8 — Valores e exemplo extraídos da saída já salva pelo Grupo B.
-\begin{frame}{O resultado é um roteiro de trabalho}
+% 10 — Regras sintéticas do domínio estendido (+ um exemplo ilustrativo), como convite.
+\newcommand{\regra}[2]{\caixa{.82\textwidth}{{\large\color{blue}#1\par}\vspace{2mm}#2}}
+\begin{frame}{As regras da equipe podem entrar no plano}
   \begin{columns}[T,onlytextwidth]
-    \column{.41\textwidth}
-    {\large\color{blue}Exemplo simulado do projeto\par}
+    \column{.48\textwidth}
+    \centering
+    \regra{Higienização}{Álcool em gel consumido e reposto ao longo do turno.}\par
     \vspace{5mm}
-    {\Large 6 visitas\par}
-    \vspace{3mm}
-    266 minutos estimados\par
-    240 minutos disponíveis\par
-    \vspace{4mm}
-    {\large\color{red}Alerta: 26 minutos a mais\par}
-    \column{.53\textwidth}
-    {\large\color{blue}Trecho resumido do roteiro\par}
+    \regra{Descarte}{Coletor com capacidade limitada, trocado na unidade.}
+    \column{.48\textwidth}
+    \centering
+    \regra{Proteção}{Máscaras para visitas sinalizadas.\\\phantom{x}}\par
     \vspace{5mm}
-    \textbf{Parada 2 -- Paciente 03}\par
-    \vspace{4mm}
-    Passar na unidade antes da visita para repor material.\par
-    \vspace{5mm}
-    Lista de tarefas por atendimento\par
-    \vspace{3mm}
-    Registro da visita no sistema
+    \regra{Vacinas}{Caixa térmica com tempo limitado fora da unidade.}
   \end{columns}
-  \vspace{8mm}
-  {\large A equipe recebe a sequência, as tarefas e os alertas do turno.\par}
 \end{frame}
 
-% 9 — Autoria do projeto original e responsabilidade pelo ciclo atual.
+\section{Próximos passos}
+% 11 — A escuta é o objetivo do encontro: deixar isso explícito.
+\begin{frame}{O que queremos aprender com vocês}
+  \vspace{3mm}
+  \begin{columns}[T,onlytextwidth]
+    \column{.31\textwidth}
+    \centering
+    {\Large\color{blue}1\par}
+    \vspace{3mm}
+    {\large Como o turno de visitas é organizado hoje?\par}
+    \column{.31\textwidth}
+    \centering
+    {\Large\color{blue}2\par}
+    \vspace{3mm}
+    {\large O que mais atrapalha uma visita planejada?\par}
+    \column{.31\textwidth}
+    \centering
+    {\Large\color{blue}3\par}
+    \vspace{3mm}
+    {\large O que tornaria um roteiro útil de verdade?\par}
+  \end{columns}
+\end{frame}
+
+% 12 — Autoria do projeto original e responsabilidade pelo ciclo atual.
 \begin{frame}{Encerramento e créditos}
   \centering
   {\large Obrigado pela participação!\par}
@@ -158,7 +209,7 @@
     Izadora Oliveira
     \column{.48\textwidth}
     \centering
-    {\large\color{blue}Apresentação e próximo ciclo\par}
+    {\large\color{blue}Apresentação e próximos passos\par}
     \vspace{2mm}
     \textbf{Grupo C -- Ciclo 3}\par
     \vspace{4mm}

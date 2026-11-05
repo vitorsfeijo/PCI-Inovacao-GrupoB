@@ -1,0 +1,22 @@
+\documentclass[tikz,border=3pt,11pt]{standalone}
+\input{estilo.tex}
+\begin{document}
+\begin{tikzpicture}
+  \path[use as bounding box] (-.2,-1.65) rectangle (14.2,2.5);
+  \node[anchor=west,text=blue,font=\large] at (.1,2.1)
+    {Material na saída: 1 unidade};
+  \foreach \x/\name/\title/\stock in {
+    1.4/A/{Visita A}/{Resta 0},
+    5.2/US/{Reposição}/{Estoque volta a 2},
+    9/B/{Visita B}/{Resta 1},
+    12.8/C/{Visita C}/{Resta 0}}{
+    \node[stop,draw=blue,fill=blue!7] (\name) at (\x,.4) {\name};
+    \node[font=\bfseries,text=blue,align=center] at (\x,1.2) {\title};
+    \node[label] at (\x,-.45) {\stock};
+  }
+  \draw[flow] (A) -- (US);
+  \draw[flow] (US) -- (B);
+  \draw[flow] (B) -- (C);
+  \node[label,text=blue] at (5.2,-1.2) {Passagem pela unidade};
+\end{tikzpicture}
+\end{document}

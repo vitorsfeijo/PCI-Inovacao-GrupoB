@@ -1,108 +1,104 @@
 # Roteiro de fala — aproximadamente 10 minutos
 
-Nove slides, com tempo para explicar os exemplos. As marcações somam 10 minutos e devem ser ajustadas após um ensaio; a conversa com os stakeholders acontece depois. As ressalvas ficam no roteiro, sem notas pequenas na projeção.
+São 11 slides organizados em **Problema → Solução → Exemplos → Próximos passos**. Os professores pediram que o problema e a solução ficassem claros, então os slides 2 a 4 precisam ser apresentados sem pressa. Ajustem os tempos depois de um ensaio. As ressalvas ficam aqui no roteiro, e não em notas pequenas na projeção. A versão anterior (9 slides) está em `versao-anterior/`.
 
 | Slide | Duração | Tempo acumulado |
 | --- | --- | --- |
-| 1. Apresentação | 30 s | 0:30 |
-| 2. Prioridades | 1 min | 1:30 |
-| 3. Regras e restrições | 1 min 15 s | 2:45 |
-| 4. Construção do plano | 1 min 15 s | 4:00 |
-| 5. Reposição de material | 1 min 30 s | 5:30 |
-| 6. Impedimentos | 1 min 15 s | 6:45 |
-| 7. Novas regras | 1 min 15 s | 8:00 |
-| 8. Roteiro de trabalho | 1 min 30 s | 9:30 |
-| 9. Encerramento | 30 s | 10:00 |
+| 1. Capa | 20 s | 0:20 |
+| 2. Um turno de visitas do ACS | 1 min 15 s | 1:35 |
+| 3. O problema | 1 min 15 s | 2:50 |
+| 4. A solução proposta | 1 min | 3:50 |
+| 5. O que o ACS recebe | 1 min 15 s | 5:05 |
+| 6. Como o roteiro é montado | 1 min | 6:05 |
+| 7. Exemplo: volta à unidade | 1 min | 7:05 |
+| 8. Quando mudar a ordem não resolve | 1 min | 8:05 |
+| 9. Regras da equipe | 45 s | 8:50 |
+| 10. O que queremos aprender | 50 s | 9:40 |
+| 11. Créditos | 20 s | 10:00 |
 
-## 1. Planejamento de visitas domiciliares
+## 1. Capa
 
-“Somos o Grupo C e vamos trabalhar sobre um projeto desenvolvido pelo Grupo B no ciclo anterior. Ele propõe apoiar a organização das visitas domiciliares dos agentes comunitários de saúde. O foco desta apresentação é como o planejamento considera regras, condições para o atendimento e recursos disponíveis. Vamos mostrar o funcionamento e alguns exemplos do que o protótipo já faz. A partir da conversa com vocês, vamos definir onde inovar no próximo ciclo.”
+“Somos o Grupo C. Vamos continuar um projeto que o Grupo B desenvolveu no ciclo anterior: um assistente para organizar o turno de visitas domiciliares do agente comunitário de saúde. Hoje queremos mostrar qual problema ele tenta resolver e como, e principalmente ouvir de vocês se esse problema é real.”
 
-## 2. Uma rota precisa respeitar as prioridades
+## 2. Um turno de visitas do ACS
 
-“Imaginem que a equipe tenha definido que a visita A precisa acontecer antes da visita B. Os dois roteiros passam pelas mesmas casas e retornam à unidade. Mas, na primeira sequência, B aparece antes de A, contrariando a regra de prioridade. Na segunda, a ordem atende à orientação.
+“Imaginem um turno de quatro horas. Na lista há uma pessoa idosa que precisa de aferição de pressão e glicemia capilar, uma criança para pesar, medir e conferir a caderneta de vacinação e um adulto com visita em atraso.
 
-Esse exemplo mostra por que a organização de um turno precisa considerar mais do que os endereços. O sistema precisa saber quais decisões são aceitáveis para aquele conjunto de visitas. Uma sequência pode parecer adequada no mapa e ainda assim não cumprir uma condição importante. É essa ligação entre a rota e as regras do atendimento que o projeto procura representar.”
+Antes de sair, o agente precisa decidir três coisas: quem visitar primeiro, o que levar (e se o material dá para todas as visitas), e quem precisa ir junto, e em qual momento.”
 
-**Condução:** apontar A e B nas duas sequências. A condição “A antes de B” precisa ser explicitada na fala, pois essa frase foi retirada do slide.
+**Condução:** deixar as três perguntas da direita no ar por um instante. O público deve se reconhecer na cena antes de qualquer técnica.
 
-**Ressalva:** exemplo fictício, sem cálculo de distância. Não dizer que a primeira rota é mais curta. A sequência de baixo atende à regra ilustrada, sem demonstrar a viabilidade integral de um atendimento. Não é uma recomendação clínica.
+**Ressalva:** o cenário é ilustrativo e foi baseado nos perfis do exemplo simulado do projeto (pessoa idosa, criança e adulto). Não é um caso real.
 
-## 3. Regras e restrições do planejamento
+**Gancho legal (o slide sobre a lei foi retirado):** se fizer sentido, comentar oralmente que, pela Lei 11.350/2006, art. 3º, § 4º, aferir pressão e medir glicemia capilar só são atribuição do ACS com curso técnico, equipamento disponível e assistência de profissional de nível superior da equipe. É isso que faz o “quem precisa ir junto” importar.
 
-“O projeto reúne três tipos de informação. Primeiro, as prioridades: quem está em atraso e quem deve ser visitado antes. Elas ajudam a selecionar as visitas e a organizar sua ordem.
+## 3. O problema
 
-Segundo, as condições necessárias para realizar as ações previstas. O modelo considera, por exemplo, habilitação, equipamento e assistência profissional. Uma ação só pode entrar no plano se suas condições forem atendidas.
+“Resumindo numa frase: organizar o turno não é só escolher a rota. Cada visita depende de prioridade, material e acompanhamento, e o que acontece numa casa afeta as seguintes.
 
-Terceiro, os recursos disponíveis. Alguns materiais são consumidos, e a disponibilidade de assistência também é limitada no modelo. Por isso, uma decisão numa residência pode afetar o que será possível fazer nas seguintes. O planejamento acompanha essas mudanças ao construir a sequência de ações. Essa é uma diferença importante em relação a olhar cada visita isoladamente.”
+O slide mostra só essa frase; os exemplos ficam na fala. Quando isso é feito de cabeça, imaginamos que podem acontecer coisas como: sair sem fitas suficientes e ter de voltar à unidade, chegar para um procedimento sem o profissional que precisa acompanhar, ou uma visita prioritária ficar para o fim do turno.
 
-**Ressalva:** são condições representadas pelo protótipo acadêmico. Regras e parâmetros precisam ser conferidos com a equipe antes do uso real. Quantidades de insumos e janelas de assistência são parâmetros escolhidos pelo projeto, não exigências normativas. Não interpretar o orçamento de tempo como garantia rígida: o slide 8 evidencia essa limitação.
+São hipóteses nossas. Queremos confirmar com vocês se isso acontece na prática.”
 
-## 4. Construção do plano de visitas
+**Condução:** ler a frase do problema devagar. É a frase que os professores pediram para ficar clara. Dizer explicitamente que as consequências são hipóteses.
 
-“O funcionamento pode ser acompanhado em quatro etapas. Primeiro, o sistema seleciona as visitas usando as informações disponíveis. Depois propõe uma ordem para percorrer as casas. A terceira etapa busca uma sequência de ações que permita realizar os atendimentos, considerando as regras e os recursos.
+## 4. A solução proposta
 
-Quando aquela ordem não permite um plano, o projeto já tem uma opção de voltar à etapa anterior e tentar outra rota. É o retorno indicado pela seta no alto. Quando encontra um plano, transforma o resultado num roteiro com as paradas e o que fazer em cada uma.
+“A solução proposta é um assistente que monta o roteiro do turno. Ou seja: quem visitar, em que ordem, o que levar e o que fazer em cada casa, respeitando prioridades, materiais e acompanhamento profissional.
 
-Assim, o planejamento envolve tanto a ordem das visitas quanto as ações necessárias durante o turno. Nos próximos exemplos, vamos detalhar uma reposição de material e situações em que simplesmente mudar a ordem não resolve o problema.”
+Ele recebe três tipos de informação: as famílias com suas prioridades e atrasos, os materiais e equipamentos, e a formação do agente junto com a agenda da equipe. E devolve um roteiro.”
 
-**Condução:** percorrer as quatro etapas e depois indicar a seta de retorno. As tentativas acontecem na preparação do plano; não apresentar isso como acompanhamento e replanejamento durante a execução real do turno.
+**Condução:** o slide mostra só “um assistente que monta o roteiro do turno”; o detalhamento vem na fala e deve espelhar a frase do problema do slide anterior.
 
-**Se perguntarem pela implementação:** o roteirizador propõe a ordem; o planejador lógico trabalha sobre essa ordem. A opção --realimentar conecta as etapas. Não é uma busca única que garante a melhor rota global. Há limites de tempo e de tentativas: não encontrar um plano não prova que todas as alternativas sejam inviáveis.
+## 5. O que o ACS recebe
 
-## 5. A reposição de material faz parte do plano
+“Este é o resultado, num exemplo simulado gerado pelo protótipo. À esquerda estão duas paradas: uma pessoa idosa, com acionamento do enfermeiro, pressão e glicemia capilar, e uma criança, com peso, altura e vacinação. Cada item é para marcar quando for feito.
 
-“Neste exemplo, temos três visitas, A, B e C, e cada uma consome uma unidade de um material. O agente sai com apenas uma unidade. Depois da visita A, o estoque chega a zero. Se o roteiro apenas mandasse seguir para B, não haveria material para a ação prevista.
+À direita está o resumo: seis visitas, com 266 minutos estimados para 240 disponíveis. O sistema avisa que o turno não cabe. Em vez de esconder o problema, ele mostra o problema para a equipe decidir.”
 
-No modelo do projeto, existe a possibilidade de passar pela unidade para repor esse material. O planejamento pode incluir essa ação na sequência. Aqui, após a reposição, o estoque volta a duas unidades: uma será consumida em B e outra em C.
+**Fonte dos valores:** PCI-Saude-GroupB/apresentacao/3/roteiro-do-turno.txt. No slide, a segunda parada mostrada é a da criança (Paciente 06), que na saída original é a parada 3; a parada 2 original (Paciente 03, com reposição de fitas) foi omitida para simplificar. As tarefas foram abreviadas (por exemplo, “Pressão” no lugar de “Aferir pressão arterial”), e os números não foram alterados. “Registrar a visita no sistema” é uma tarefa listada na saída e não indica integração com nenhum sistema assistencial.
 
-O ponto é que a passagem pela unidade deixa de ser apenas um endereço no mapa: ela tem uma função no plano, pois modifica os recursos disponíveis para as próximas visitas. O sistema precisa relacionar o consumo numa parada com as condições exigidas nas demais. Esse exemplo ajuda a visualizar por que planejar ações e recursos junto com a rota pode ser útil.”
+**Ressalva:** não é medição em campo. O roteiro ainda precisaria de revisão da equipe antes de ser usado.
 
-**Condução:** acompanhar o estoque 1 → 0 → 2 → 1 → 0. Pausar em “zero” antes de indicar a reposição. O retorno final à unidade foi omitido do desenho para destacar essa parte do turno.
+## 6. Como o roteiro é montado
 
-**Ressalva:** ilustração didática das ações de consumo e reposição já existentes. As quantidades não são resultado experimental nem regra clínica. O exemplo abstrai outras condições, como assistência, habilitação e tempo. Não afirmar que uma reposição torna qualquer turno viável ou que o protótipo sempre escolhe o melhor momento global para realizá-la.
+“Por dentro, são quatro etapas. O sistema seleciona as visitas pela prioridade, propõe uma ordem das casas, confere se cada procedimento é possível naquela ordem, considerando material, formação e enfermeiro, e entrega o roteiro. Se a ordem não funciona, ele tenta outra.”
 
-## 6. Nem todo impedimento se resolve com outra rota
+**Se perguntarem pela implementação:** o roteirizador propõe a ordem e o planejador lógico (PDDL) confere as ações. A opção `--realimentar` liga as duas etapas. Há limites de tempo e de tentativas, então não encontrar um plano não prova que nenhuma alternativa funcione.
 
-“A possibilidade de testar outras rotas não significa insistir em novas sequências para qualquer problema. O projeto diferencia algumas situações.
+## 7. Exemplo: a volta à unidade entra no plano
 
-Se uma visita aparece antes de outra que deveria ter prioridade, mudar a ordem pode resolver aquele conflito. Já a falta de uma condição exigida para um atendimento não desaparece porque as casas foram reordenadas. O mesmo ocorre quando a disponibilidade de assistência considerada pelo modelo é insuficiente para as visitas previstas.
+“Três visitas com glicemia capilar, e cada uma usa uma fita. O agente sai com uma só. Depois da visita A, sobra zero. O roteiro inclui a volta à unidade para repor antes da visita B, em vez de o agente descobrir o problema na porta da casa.”
 
-Nesses casos, o resultado indica uma limitação dos dados ou dos recursos fornecidos ao planejamento. Isso pode apoiar uma avaliação da equipe sobre o que precisa mudar. Rever recursos ou atendimentos é uma decisão operacional da equipe; o sistema não cria recursos nem deve escolher sozinho como contornar uma condição necessária.”
+**Condução:** acompanhar o estoque 1 → 0 → 2 → 1 → 0.
 
-**Ressalva:** realimentacao.py verifica previamente falta de habilitação/equipamento e insuficiência das janelas de assistência para as visitas condicionadas. São diagnósticos específicos, não uma explicação completa de toda falha possível. Esgotar tentativas ou tempo de busca é diferente de comprovar impossibilidade. A revisão de recursos e atendimentos é uma consequência para discussão humana, não uma funcionalidade automática demonstrada.
+**Ressalva:** as quantidades são didáticas e não são normativas. O exemplo deixa de lado outras condições, como enfermeiro e tempo.
 
-## 7. Novas regras passam a fazer parte do planejamento
+## 8. Quando mudar a ordem não resolve, o sistema diz por quê
 
-“Outra parte interessante foi testar o comportamento do sistema quando as regras mudam. O grupo criou uma versão experimental com três regras hipotéticas adicionais: consumo de solução alcoólica para higienização, disponibilidade de máscaras para determinadas visitas e capacidade limitada de um coletor, com troca na unidade.
+“Nem tudo se resolve trocando a ordem. Se uma visita prioritária ficou para depois, outra ordem resolve. Mas se o agente não tem os requisitos para a visita, como o curso técnico ou o glicosímetro para medir glicemia, nenhuma ordem resolve: falta uma condição, e o sistema diz isso. O mesmo vale quando há mais visitas no mesmo horário do que enfermeiros no turno para acompanhá-las. O sistema não inventa recursos. Ele aponta o limite, e a decisão volta para a equipe.”
 
-Cada uma acrescenta uma condição ou um recurso que precisa ser acompanhado ao longo do turno. Não basta olhar a quantidade inicial: o planejamento precisa considerar o que será consumido e quando será necessária uma reposição.
+**Ressalva:** realimentacao.py verifica antes falta de habilitação ou equipamento e insuficiência das janelas de supervisão. São diagnósticos específicos, não uma explicação de qualquer falha possível.
 
-Nos testes, o mecanismo de busca continuou o mesmo, mas passou a usar essas novas regras descritas no modelo. A possibilidade de incorporar condições diferentes é uma característica relevante para a continuidade do projeto. Isso ainda exige modelagem e avaliação técnica: não significa que qualquer regra possa ser cadastrada automaticamente ou que todas as regras da rotina já estejam representadas.”
+## 9. As regras da equipe podem entrar no plano
 
-**Ressalva:** os três protocolos são explicitamente sintéticos no projeto. Não apresentá-los como norma, recomendação assistencial ou configuração pronta para uso. O E10 sustenta a adaptação às novas regras sem alteração do código de busca. Não demonstra menor tempo de deslocamento, benefício clínico ou superioridade universal. Mais regras também aumentam a dificuldade da busca. A inovação do Grupo C ainda não está definida.
+“O grupo do ciclo anterior testou acrescentar regras de exemplo ao planejamento: álcool em gel, que é consumido e reposto; máscaras para visitas sinalizadas; e um coletor de descarte com capacidade limitada. O roteiro passou a respeitá-las. Uma quarta regra poderia ser a caixa térmica das vacinas, que tem tempo limitado fora da unidade. São regras criadas para teste, não normas. Quais regras da rotina de vocês estão faltando aqui?”
 
-## 8. O resultado é um roteiro de trabalho
+**Condução:** o slide mostra só os quatro quadros; o contexto e a pergunta ficam na fala.
 
-“A saída do projeto é uma lista de paradas com as tarefas de cada visita, os tempos estimados e indicações de reposição. Este é um exemplo simulado que o próprio grupo salvou. Ele contém seis visitas, com duração estimada de 266 minutos para um orçamento de 240 minutos. O sistema mostra um alerta de 26 minutos a mais.
+**Ressalva:** Higienização, Proteção e Descarte são os três protocolos sintéticos do dominio-estendido.pddl; o E10 mostra a adaptação sem mudar o código de busca, mas não mostra ganho clínico nem de tempo. **Vacinas é um exemplo apenas ilustrativo, que não foi modelado nem testado**: não dizer que o sistema já trata essa regra. Incluir uma regra ainda exige trabalho de modelagem.
 
-Isso é importante para interpretar o resultado: produzir uma sequência de ações não significa que todos os limites operacionais estejam resolvidos. Esse roteiro ainda precisaria ser revisto pela equipe antes de ser usado. O exemplo não representa uma medição em campo.
+## 10. O que queremos aprender com vocês
 
-À direita está um resumo da segunda parada, em que o roteiro indica passar na unidade antes da visita para repor material. A saída completa também organiza as tarefas por atendimento e o registro da visita. Assim, a equipe recebe algo que pode inspecionar e discutir. A adequação desse formato à rotina e a utilidade dos alertas são aspectos que ainda precisam de validação com profissionais.”
+“Para fechar, três perguntas. Como o turno de visitas é organizado hoje? O que mais atrapalha uma visita planejada? E o que tornaria um roteiro como esse útil de verdade? É a partir desta conversa que vamos definir a inovação do Grupo C neste ciclo.”
 
-**Condução:** mostrar primeiro o resumo do turno, depois o excedente e, por último, o trecho da parada. O foco é a informação entregue ao agente.
+**Condução:** deixar este slide projetado durante a conversa. Anotar as situações, como a equipe resolve hoje e o que indicaria que uma melhoria foi útil. Não pedir nomes nem dados identificáveis de pacientes.
 
-**Fonte dos valores:** PCI-Saude-GroupB/apresentacao/3/roteiro-do-turno.txt: seis visitas, 266 minutos estimados, orçamento de 240 e excedente de 26. A segunda parada é “Paciente 03” e inclui reposição de fitas de glicemia. O slide resume a instrução para “material” e omite os procedimentos, sem modificar os números. “Registro da visita no sistema” é uma tarefa indicada na saída; não afirmar que o protótipo possui integração automática com um sistema assistencial.
+## 11. Encerramento e créditos
 
-## 9. Encerramento e créditos
+“O projeto original é do Grupo B. Nós, do Grupo C, vamos levá-lo adiante. Obrigado!”
 
-“O projeto mostra como prioridades, condições e recursos podem participar da construção de um plano de visitas. Essa é a base que vamos aproveitar no próximo ciclo. O trabalho original é do Grupo B; nós, do Grupo C, vamos definir a inovação a partir do que aprendermos com vocês. Obrigado pela participação. Agora podemos conversar sobre como esses exemplos se aproximam, ou se afastam, da rotina de trabalho de vocês.”
-
-Créditos completos: projeto original de Gabriel Pieruccini Knopp, Arthur Andrade da Silva e Izadora Candotti de Oliveira; apresentação e próximo ciclo por Luis Henrique Caselani Macedo Junior, Manuela Cristina Zen Dalmonte e Vítor Santana Feijó. Nos slides, os nomes estão abreviados.
-
-## Conversa após a apresentação
-
-Sem projetar um questionário, pedir exemplos de situações reais em que regras, prioridades ou recursos afetam a organização das visitas. Se necessário, retomar um exemplo apresentado. Anotar a situação, como a equipe resolve hoje e o que indicaria que uma melhoria foi útil. Não solicitar nomes ou dados identificáveis de pacientes. O objetivo é definir o recorte de inovação depois da escuta.
+Créditos completos: projeto original de Gabriel Pieruccini Knopp, Arthur Andrade da Silva e Izadora Candotti de Oliveira. Apresentação e próximo ciclo por Luis Henrique Caselani Macedo Junior, Manuela Cristina Zen Dalmonte e Vítor Santana Feijó.
 
 ## Base factual e rastreabilidade
 
@@ -110,17 +106,12 @@ Caminhos relativos à raiz do repositório.
 
 | Conteúdo | Fonte interna |
 | --- | --- |
-| Grupo apresentador e objetivo do ciclo | README.md |
-| Autoria e estrutura do projeto-base | PCI-Saude-GroupB/README.md |
-| Seleção, prioridade, atraso e estimativa de tempo | PCI-Saude-GroupB/acsplan/selecao/politica.py |
-| Precedências | PCI-Saude-GroupB/acsplan/geo/roteirizador.py |
+| Lei 11.350/2006, art. 3º § 4º, e modelagem das condições | PCI-Saude-GroupB/projeto/PROJETO-CICLO2.md |
+| Seleção, prioridade, atraso | PCI-Saude-GroupB/acsplan/selecao/politica.py |
 | Condições, consumo e reposição | PCI-Saude-GroupB/acsplan/logica/dominios/dominio-legal.pddl |
 | Regras hipotéticas | PCI-Saude-GroupB/acsplan/logica/dominios/dominio-estendido.pddl |
 | Outras rotas e diagnósticos | PCI-Saude-GroupB/acsplan/logica/realimentacao.py e cli.py |
-| Novas regras e limites da evidência | PCI-Saude-GroupB/docs/05-analise-e-conclusoes.md, especialmente E7, E9 e E10 |
-| Escopo e limites | PCI-Saude-GroupB/docs/06-veredito-sobre-planning.md |
-| Saída em paradas, tarefas, reposições e alertas | PCI-Saude-GroupB/acsplan/saida/roteiro.py |
-| Exemplo de saída do slide 8 | PCI-Saude-GroupB/apresentacao/3/roteiro-do-turno.txt |
+| Novas regras e limites da evidência | PCI-Saude-GroupB/docs/05-analise-e-conclusoes.md (E7, E9, E10) |
+| Exemplo de saída (slides 2 e 5) | PCI-Saude-GroupB/apresentacao/3/roteiro-do-turno.txt |
 
-As conclusões consolidadas foram priorizadas sobre as expectativas do documento inicial. Não foram transpostos números da apresentação visual de referência, que trata de outro trabalho. Os exemplos das figuras são didáticos, não medições experimentais. A inovação permanece aberta para definição após o encontro com os stakeholders.
-
+As consequências citadas na fala do slide 3 são hipóteses a validar com os stakeholders, não achados. Os exemplos das figuras são didáticos.

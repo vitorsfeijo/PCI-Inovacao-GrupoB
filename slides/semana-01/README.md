@@ -1,11 +1,12 @@
 # Pitch para stakeholders — semana 1
 
-Apresentação de **9 slides, para cerca de 10 minutos**, incluindo o encerramento com créditos. O foco é o planejamento de visitas com regras e restrições no projeto do Grupo B, aprofundado com reposição de material, diagnóstico de impedimentos, inclusão de novas regras e um exemplo de roteiro do turno. **A inovação do Grupo C será definida depois da escuta**, e não é antecipada neste pitch. A conversa com os stakeholders pode ocorrer após a apresentação, sem um slide de perguntas.
+Apresentação de **11 slides, para cerca de 10 minutos**, organizada em **Problema → Solução → Exemplos → Próximos passos**. O problema (slides 2–3) e a solução (slides 4–5) aparecem explicitamente, cada um numa frase, antes de qualquer detalhe técnico. O pitch termina com perguntas aos stakeholders; **a inovação do Grupo C será definida depois da escuta**.
 
 - `pitch.tex`: fonte principal Beamer, 16:9, tema Singapore e cores da referência fornecida.
 - `pitch.pdf`: apresentação compilada.
 - `figs/`: fontes LaTeX/TikZ e PDFs independentes das figuras.
 - `roteiro.md`: sugestão de fala e fontes internas que sustentam o conteúdo.
+- `versao-anterior/`: pitch de 9 slides (tex, pdf, roteiro e figuras) antes da reestruturação problema/solução.
 - `compilar.ps1`: compila as figuras antes do documento principal.
 
 ## Compilar

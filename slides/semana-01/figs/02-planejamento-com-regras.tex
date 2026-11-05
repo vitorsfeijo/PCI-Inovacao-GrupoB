@@ -6,16 +6,16 @@
   \foreach \x/\n/\title/\detail in {
     1.2/1/{Selecionar visitas}/{Prioridade, atraso\\e tempo disponível},
     5/2/{Propor uma rota}/{Ordem das casas\\e deslocamentos},
-    8.8/3/{Planejar as ações}/{Regras, condições\\e recursos},
-    12.6/4/{Entregar o roteiro}/{Visitas e ações\\passo a passo}}{
+    8.8/3/{Conferir as regras}/{Material, formação\\e enfermeiro},
+    12.6/4/{Entregar o roteiro}/{Paradas, tarefas\\e alertas}}{
     \node[circle,fill=blue!8,minimum size=9mm,text=blue,font=\large] (n\n) at (\x,.2) {\n};
     \node[align=center,font=\bfseries,text=blue] at (\x,1.25) {\title};
     \node[label,text width=3.05cm] at (\x,-.85) {\detail};
   }
   \draw[flow] (n1) -- (n2);
   \draw[flow] (n2) -- (n3);
-  \draw[flow] (n3) -- node[above,font=\small,text=ink] {plano encontrado} (n4);
+  \draw[flow] (n3) -- node[above,font=\small,text=ink] {tudo certo} (n4);
   \draw[flow] (8.8,1.62) -- (8.8,2.0) -- (5,2.0) -- (5,1.62);
-  \node[fill=white,inner sep=2pt,font=\small,text=blue] at (6.9,2) {Testar outra ordem};
+  \node[fill=white,inner sep=2pt,font=\small,text=blue] at (6.9,2) {Não deu? Tentar outra ordem};
 \end{tikzpicture}
 \end{document}
