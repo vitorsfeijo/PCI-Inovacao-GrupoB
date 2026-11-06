@@ -68,12 +68,21 @@
 
 % 4 — O problema numa frase + consequências (hipóteses a confirmar).
 \begin{frame}[c]{O problema}
-  \framesubtitle{Organizar o turno não é só escolher a rota:}
   \centering
-  \bigtext{cada visita depende de \textcolor{blue}{prioridade},\\
-  \textcolor{blue}{material} e \textcolor{blue}{acompanhamento},\\
-  e o que acontece numa casa afeta as seguintes.}
-  \vspace{8mm}
+  {\huge Organizar o turno não é só escolher a rota.\par}
+  \vspace{9mm}
+  {\Large Cada visita depende de\par}
+  \vspace{4mm}
+  \begin{tikzpicture}[
+      item/.style={draw=blue!40,fill=blue!5,rounded corners=3pt,align=center,
+        minimum height=12mm,text width=40mm,font=\large\color{blue}}]
+    \node[item] (a) {prioridade};
+    \node[item,right=5mm of a] (b) {material};
+    \node[item,right=5mm of b] (c) {acompanhamento};
+  \end{tikzpicture}\par
+  \vspace{9mm}
+  {\Large e o que acontece numa casa \textbf{afeta as seguintes}.\par}
+  \vspace{4mm}
 \end{frame}
 
 \section{Solução}
@@ -108,7 +117,8 @@
       $\square$ Glicemia capilar\quad $\square$ Registrar}\\[4mm]
       \textbf{Parada 2 -- Paciente 06} (criança)\\[1mm]
       {\small $\square$ Acionar o enfermeiro\quad $\square$ Peso e altura\\
-      $\square$ Vacinação\quad $\square$ Registrar}}
+      $\square$ Vacinação\quad $\square$ Registrar}\\[4mm]
+      {\color{gray}\textit{\ldots\ e mais 4 paradas}}}
     \column{.34\textwidth}
     {\large\color{blue}Resumo do turno\par}
     \vspace{3mm}
@@ -140,13 +150,14 @@
 % 9 — Diagnósticos existentes no projeto, em linguagem concreta.
 \begin{frame}{Quando mudar a ordem não resolve, o sistema diz por quê}
   \renewcommand{\arraystretch}{1.25}
-  \begin{tabular}{@{}m{.45\textwidth}@{\hspace{8mm}}m{.47\textwidth}@{}}
-    {\large\color{blue}Situação} & {\large\color{blue}O que o sistema faz}\\[5mm]
-    Visita prioritária ficou para depois & Tenta outra ordem das casas.\\[6mm]
+  \newcommand{\seta}{\tikz[baseline=-0.6ex]\draw[-{Stealth[length=2mm]},line width=0.6pt,color=ink] (0,0) -- (11.5mm,0);}
+  \begin{tabular}{@{}m{.40\textwidth}@{\hspace{4mm}}m{12mm}@{\hspace{6mm}}m{.44\textwidth}@{}}
+    {\large\color{blue}Situação} & & {\large\color{blue}O que o sistema faz}\\[5mm]
+    Visita prioritária ficou para depois & \seta & Tenta outra ordem das casas.\\[6mm]
     ACS sem os requisitos para a visita
-      & Avisa que nenhuma ordem resolve:\newline falta uma condição.\\[6mm]
+      & \seta & Avisa que nenhuma ordem resolve:\newline falta uma condição.\\[6mm]
     Mais visitas no mesmo horário\newline do que enfermeiros no turno
-      & Avisa: a decisão volta para a equipe.
+      & \seta & Avisa: a decisão volta para a equipe.
   \end{tabular}\par
   \vspace{6mm}
   \muted{O sistema não inventa recursos: aponta o limite para a equipe decidir.}
