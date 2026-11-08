@@ -5,8 +5,9 @@ Luis Henrique Caselani Macedo Junior · Manuela Cristina Zen Dalmonte · Vítor 
 
 Continuação do projeto do Grupo B do Ciclo 2, em [`../PCI-Saude-GroupB`](../PCI-Saude-GroupB).
 
-> **Estado:** etapas 1 a 3 concluídas. O compilador já gera domínio e problema
-> para os modelos A, B e C, com validação; as demais etapas estão na lista abaixo.
+> **Estado:** etapas 1 a 4 concluídas. O compilador gera domínio e problema
+> para os modelos A, B e C, com validação, e reproduz a higienização do domínio
+> estendido do Ciclo 2; as demais etapas estão na lista abaixo.
 
 ---
 
@@ -166,15 +167,46 @@ válidas que provavelmente não fazem o que se espera:
 
 **Teste de equivalência.** As regras sintéticas, escritas como modelos e
 compiladas sobre o domínio legal, precisam reproduzir o `dominio-estendido.pddl`
-escrito à mão pelo Grupo B do Ciclo 2:
+escrito à mão pelo Grupo B do Ciclo 2.
 
-1. **Na estrutura:** mesmas ações, precondições e efeitos.
-2. **No comportamento:** mesmos planos e custos nas instâncias dos experimentos.
+Enquanto só a higienização pode ser escrita com os modelos (A, B e C), a
+comparação é com a **projeção** do estendido: o estendido sem os elementos da
+máscara e do coletor. A projeção é mecânica, por nome de predicado: remove os
+predicados dessas regras, as ações que só existiam para elas, os literais que
+as mencionam nas demais ações e os parâmetros que ficam sem uso (como `?c` e
+`?c-1` da glicemia). Nada é editado à mão.
 
-No escopo inicial (A, B e C), o teste compara só as partes da higienização: as
-ações `higienizar-maos` e `repor-alcool`, as precondições nos cinco
-procedimentos e os efeitos em `mover` e `desviar-para-ubs`. A equivalência
-completa vem com D e E.
+Duas comparações:
+
+1. **Estrutura:** mesmos predicados e, em cada ação, os mesmos parâmetros,
+   precondições, efeitos e custo.
+2. **Comportamento:** em cada instância, o custo ótimo (A\* com h_max) é o mesmo
+   nos dois domínios, e o plano de cada um, executado no outro, é válido e tem
+   o mesmo custo.
+
+**Resultado:** estrutura igual, e 30 de 30 instâncias equivalentes (2 a 4
+pacientes, 5 sementes, com o álcool do exemplo e com álcool para só 2 casas,
+caso em que 11 planos precisam de reposição na UBS).
+
+**Controle negativo.** Para mostrar que o teste detecta diferenças, ele também
+roda com regras alteradas de propósito, que precisam ser acusadas:
+
+| Alteração | Estrutura | Comportamento (3 pacientes) |
+|---|---|---|
+| tirar `temperatura` de `exigido_antes_de` | acusa a precondição que falta | igual (ninguém precisa de temperatura) |
+| `desfeito_ao_sair = false` | acusa os efeitos em `mover` e `desviar-para-ubs` | 125 × 129 |
+| custo 3 em vez de 2 | acusa o custo | 132 × 129 |
+
+A primeira linha mostra por que as duas comparações existem: o comportamento
+só revela o erro quando a instância exercita aquela parte da regra; a
+estrutura revela sempre.
+
+```bash
+python -m testes.equivalencia          # relatório completo (cerca de 20 s)
+python -m unittest discover testes     # inclui a versão rápida do mesmo teste
+```
+
+A equivalência com o domínio estendido **completo** vem com os modelos D e E.
 
 ---
 
@@ -184,7 +216,7 @@ completa vem com D e E.
 2. [x] Geração dos fatos do problema a partir das regras, sobre o problema
        que o Ciclo 2 gera para o domínio legal.
 3. [x] Validação com mensagens em português.
-4. [ ] Teste de equivalência da higienização.
+4. [x] Teste de equivalência da higienização.
 5. [ ] Assistente interativo que gera o TOML.
 6. [ ] Modelos D e E e teste de equivalência completo.
 7. [ ] Integração com a linha de comando do `acsplan` e texto legível das
@@ -252,7 +284,9 @@ compilador/
 exemplos/
   higienizacao.toml   regra sintética da higienização, como no Ciclo 2
 testes/
-  test_compilador.py  leitura, validação, avisos, domínio e problema
+  test_compilador.py    leitura, validação, avisos, domínio e problema
+  equivalencia.py       projeção do estendido e comparação (também roda sozinho)
+  test_equivalencia.py  equivalência da higienização e controle negativo
 ```
 
 Para rodar os testes, dentro desta pasta:
