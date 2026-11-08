@@ -293,13 +293,45 @@ python -m unittest discover testes     # inclui uma versão rápida (cerca de 20
 6. [x] Modelos D e E e teste de equivalência completo.
 7. [x] Comando `planejar` (seleção, rota, regras, plano e roteiro) e texto
        legível das ações novas no roteiro do ACS, sem alterar o `acsplan`.
-8. [ ] Avaliação com regras que não existem no domínio estendido e, se
-       possível, com alguém que não programa.
+8. [ ] Avaliação com regras que não existem no domínio estendido:
+   1. [ ] Extensões: `quantidade` no consumo (um procedimento pode gastar
+          mais de uma unidade) e exigência por paciente num procedimento
+          (ex.: luvas só na glicemia de gestantes).
+   2. [ ] Planilha de avaliação: cópia da planilha de exemplo com as colunas
+          `exige_avental` e `suspeita_tuberculose`.
+   3. [ ] Sete regras novas, todas sintéticas: luvas na glicemia; desinfetar
+          o termômetro antes da temperatura; zerar a balança uma vez no turno;
+          avental para acamados; N95 para suspeita de tuberculose; luvas só na
+          glicemia de gestantes; um procedimento gastando 2 unidades de um
+          estoque que outro gasta 1.
+   4. [ ] Medições: se compila, se o roteiro mostra a tarefa certa, linhas de
+          TOML × linhas de PDDL geradas, quanto o turno cresce, e tempo de
+          planejamento com 0, 3, 5 e 8 regras ativas.
+   5. [ ] Teste com alguém que não programa: escrever 2 ou 3 regras pelo
+          assistente, medindo tempo e erros.
 
 ## Em aberto
 
 - **Usuário-alvo:** quem vai escrever as regras (enfermeiro, coordenação da
   UBS, gestão municipal)? Define o tom das perguntas e das mensagens.
+
+## Trabalhos futuros
+
+Duas classes de regra ficam fora deste ciclo. Nenhuma é impossível em PDDL;
+o que muda é o custo de implementar:
+
+- **Alternativas** ("higienizar as mãos *ou* usar luvas"). Em STRIPS, o "ou"
+  vira uma versão da ação para cada alternativa, como o Ciclo 2 já faz com as
+  três variantes de `iniciar-visita`. O custo é duplicar o procedimento no
+  domínio, e as cópias se multiplicam quando várias alternativas se combinam.
+- **Horário do dia** ("visitar gestantes pela manhã"). O planejador do Ciclo 2
+  aceita STRIPS com custos, e o custo acumulado não pode ser usado como
+  condição. Caminhos possíveis: um planejador temporal (PDDL 2.1/2.2, com
+  ações com duração e janelas de tempo); um relógio discreto no domínio, em
+  blocos de tempo, ao custo de um espaço de busca muito maior; ou tratar a
+  regra como ordem ("gestantes antes dos demais"), que o domínio sabe
+  verificar (como a urgência) mas que precisa ser produzida pelo
+  roteirizador, já que a rota chega pronta ao planejador.
 
 ## Como usar
 
