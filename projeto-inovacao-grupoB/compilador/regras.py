@@ -59,6 +59,9 @@ DESCRICAO_CAMPOS = {
     ("recurso", "capacidade"): "unidades por carga",
     ("recurso", "custo_reposicao"): "minutos para repor na UBS",
     ("recurso", "acao_reposicao"): "nome da ação de reposição",
+    ("recurso", "texto"): "como aparece no roteiro do ACS",
+    ("preparo", "texto"): "como aparece no roteiro do ACS",
+    ("exigencia", "texto"): "como aparece no roteiro do ACS",
     ("preparo", "nome"): "o que o ACS faz",
     ("preparo", "estado"): "o que passa a valer depois",
     ("preparo", "custo"): "minutos",
@@ -76,12 +79,16 @@ DESCRICAO_CAMPOS = {
 # Campos de cada modelo, na ordem em que aparecem: nome -> obrigatorio?
 CAMPOS = {
     "recurso": {"nome": True, "capacidade": True, "custo_reposicao": True,
-                "acao_reposicao": False},
+                "acao_reposicao": False, "texto": False},
     "preparo": {"nome": True, "estado": True, "custo": True, "consome": False,
-                "desfeito_ao_sair": False, "exigido_antes_de": False},
+                "desfeito_ao_sair": False, "exigido_antes_de": False, "texto": False},
     "consumo": {"procedimento": True, "recurso": True},
-    "exigencia": {"nome": True, "marca": True, "preparo": True, "custo": False},
+    "exigencia": {"nome": True, "marca": True, "preparo": True, "custo": False,
+                  "texto": False},
 }
+
+# Tamanho maximo do texto mostrado no roteiro.
+TEXTO_MAXIMO = 80
 
 # Custo padrao da conferencia de uma exigencia, em minutos.
 CUSTO_CONFERENCIA_PADRAO = 1
@@ -110,6 +117,7 @@ class Recurso:
     capacidade: int
     custo_reposicao: int
     nome_reposicao: str | None = None      # campo `acao_reposicao` no TOML
+    texto: str | None = None               # o que repor, no roteiro do ACS
 
     @property
     def predicado(self) -> str:
@@ -136,6 +144,7 @@ class Preparo:
     consome: str | None = None
     desfeito_ao_sair: bool = True
     exigido_antes_de: tuple[str, ...] = ()
+    texto: str | None = None               # tarefa, no roteiro do ACS
 
     @property
     def nomes_gerados(self) -> list[str]:
@@ -154,6 +163,7 @@ class Exigencia:
     marca: str
     preparo: str
     custo: int = CUSTO_CONFERENCIA_PADRAO
+    texto: str | None = None               # conferencia, no roteiro do ACS
 
     @property
     def predicado_conferencia(self) -> str:
@@ -231,6 +241,16 @@ def validar_booleano(valor: Any) -> str | None:
     return None
 
 
+def validar_texto(valor: Any) -> str | None:
+    if not isinstance(valor, str) or not valor.strip():
+        return f"deve ser um texto entre aspas, como \"Higienizar as mãos\". Recebido: {valor!r}"
+    if len(valor) > TEXTO_MAXIMO:
+        return f"deve ter no máximo {TEXTO_MAXIMO} caracteres (tem {len(valor)})"
+    if "\n" in valor:
+        return "deve caber em uma linha"
+    return None
+
+
 def validar_procedimento(valor: Any) -> str | None:
     if valor not in PROCEDIMENTOS:
         return (f"o procedimento {valor!r} não existe. "
@@ -277,6 +297,7 @@ VALIDADORES = {
     "desfeito_ao_sair": validar_booleano,
     "exigido_antes_de": validar_procedimentos,
     "procedimento": validar_procedimento,
+    "texto": validar_texto,
 }
 
 
@@ -393,16 +414,17 @@ def ler_regras(dados: dict) -> Regras:
 
     regras = Regras(
         recursos=tuple(Recurso(t["nome"], t["capacidade"], t["custo_reposicao"],
-                               t.get("acao_reposicao"))
+                               t.get("acao_reposicao"), t.get("texto"))
                        for t in validos["recurso"]),
         preparos=tuple(Preparo(t["nome"], t["estado"], t["custo"], t.get("consome"),
                                t.get("desfeito_ao_sair", True),
-                               tuple(t.get("exigido_antes_de", [])))
+                               tuple(t.get("exigido_antes_de", [])), t.get("texto"))
                        for t in validos["preparo"]),
         consumos=tuple(Consumo(t["procedimento"], t["recurso"])
                        for t in validos["consumo"]),
         exigencias=tuple(Exigencia(t["nome"], t["marca"], t["preparo"],
-                                   t.get("custo", CUSTO_CONFERENCIA_PADRAO))
+                                   t.get("custo", CUSTO_CONFERENCIA_PADRAO),
+                                   t.get("texto"))
                          for t in validos["exigencia"]),
     )
     _conferir_entre_si(regras, _declarados(blocos["recurso"]),
@@ -445,6 +467,8 @@ def regras_para_dados(regras: Regras) -> dict:
                   "custo_reposicao": r.custo_reposicao}
         if r.nome_reposicao:
             campos["acao_reposicao"] = r.nome_reposicao
+        if r.texto:
+            campos["texto"] = r.texto
         dados["recurso"].append(campos)
     for p in regras.preparos:
         campos = {"nome": p.nome, "estado": p.estado, "custo": p.custo}
@@ -452,12 +476,17 @@ def regras_para_dados(regras: Regras) -> dict:
             campos["consome"] = p.consome
         campos["desfeito_ao_sair"] = p.desfeito_ao_sair
         campos["exigido_antes_de"] = list(p.exigido_antes_de)
+        if p.texto:
+            campos["texto"] = p.texto
         dados["preparo"].append(campos)
     for c in regras.consumos:
         dados["consumo"].append({"procedimento": c.procedimento, "recurso": c.recurso})
     for e in regras.exigencias:
-        dados["exigencia"].append({"nome": e.nome, "marca": e.marca,
-                                   "preparo": e.preparo, "custo": e.custo})
+        campos = {"nome": e.nome, "marca": e.marca, "preparo": e.preparo,
+                  "custo": e.custo}
+        if e.texto:
+            campos["texto"] = e.texto
+        dados["exigencia"].append(campos)
     return {m: blocos for m, blocos in dados.items() if blocos}
 
 

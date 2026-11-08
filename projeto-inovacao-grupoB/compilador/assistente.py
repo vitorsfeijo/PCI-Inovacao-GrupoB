@@ -24,10 +24,11 @@ from typing import Callable
 
 from . import ciclo2
 from .dominio import compilar_dominio
+from .roteiro import legivel as roteiro_legivel
 from .regras import (CUSTO_CONFERENCIA_PADRAO, DESCRICAO_PROCEDIMENTOS,
                      PROCEDIMENTOS, ErroRegra, Exigencia, Recurso, Regras, avisos,
                      bloco_toml, carregar_regras, ler_regras, regras_para_dados,
-                     sugerir_nome, validar_inteiro, validar_nome)
+                     sugerir_nome, validar_inteiro, validar_nome, validar_texto)
 
 
 class Cancelado(Exception):
@@ -140,6 +141,17 @@ class Assistente:
                 continue
             return valor
 
+    def pedir_texto(self, pergunta: str, exemplo: str) -> str | None:
+        """Texto livre opcional. Vazio devolve None (o campo fica de fora)."""
+        while True:
+            resposta = self._ler(f"{pergunta} (Enter: \"{exemplo}\"): ")
+            if not resposta:
+                return None
+            problema = validar_texto(resposta)
+            if problema is None:
+                return resposta
+            self._erro(problema)
+
     def pedir_sim_nao(self, pergunta: str, padrao: bool) -> bool:
         opcoes = "[S/n]" if padrao else "[s/N]"
         while True:
@@ -213,6 +225,10 @@ class Assistente:
         campos = {"nome": nome, "capacidade": capacidade, "custo_reposicao": custo}
         if reposicao != padrao:
             campos["acao_reposicao"] = reposicao
+        texto = self.pedir_texto("No roteiro do ACS, o que repor na UBS",
+                                 nome.replace("-", " "))
+        if texto:
+            campos["texto"] = texto
         return campos
 
     def novo_preparo(self) -> dict:
@@ -240,6 +256,10 @@ class Assistente:
             "Sair da casa desfaz o preparo (precisa repetir na próxima casa)?",
             padrao=True)
         campos["exigido_antes_de"] = self.pedir_procedimentos()
+        texto = self.pedir_texto("Como a tarefa aparece no roteiro do ACS",
+                                 roteiro_legivel(nome))
+        if texto:
+            campos["texto"] = texto
         return campos
 
     def novo_consumo(self) -> dict | None:
@@ -277,7 +297,12 @@ class Assistente:
         preparo = self.pedir_opcao("Qual preparo é exigido?", [(p, p) for p in preparos])
         custo = self.pedir_inteiro("Quantos minutos leva a conferência", 0,
                                    padrao=CUSTO_CONFERENCIA_PADRAO)
-        return {"nome": nome, "marca": marca, "preparo": preparo, "custo": custo}
+        campos = {"nome": nome, "marca": marca, "preparo": preparo, "custo": custo}
+        texto = self.pedir_texto("Como a conferência aparece no roteiro do ACS",
+                                 f"Conferir {nome.replace('-', ' ')} antes de entrar")
+        if texto:
+            campos["texto"] = texto
+        return campos
 
     # ------------------------------------------------------------------
     #  fluxo principal

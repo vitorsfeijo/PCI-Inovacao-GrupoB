@@ -14,6 +14,7 @@
 nome = "alcool"
 capacidade = 6
 custo_reposicao = 3
+texto = "solução alcoólica"
 
 [[preparo]]
 nome = "higienizar-maos"
@@ -22,6 +23,7 @@ consome = "alcool"
 custo = 2
 desfeito_ao_sair = true
 exigido_antes_de = ["pressao", "glicemia", "temperatura", "medicacao", "antropometria"]
+texto = "Higienizar as mãos"
 
 # ---------------------------------------------------------------------------
 # 2. Protecao respiratoria: residencias sinalizadas exigem mascara vestida
@@ -32,6 +34,7 @@ exigido_antes_de = ["pressao", "glicemia", "temperatura", "medicacao", "antropom
 nome = "mascaras"
 capacidade = 2
 custo_reposicao = 3
+texto = "máscaras"
 
 [[preparo]]
 nome = "vestir-mascara"
@@ -39,12 +42,14 @@ estado = "mascara-vestida"
 consome = "mascaras"
 custo = 2
 desfeito_ao_sair = true
+texto = "Colocar máscara de proteção respiratória"
 
 [[exigencia]]
 nome = "protecao"
 marca = "exige-protecao-respiratoria"   # coluna exige_protecao_respiratoria
 preparo = "vestir-mascara"
 custo = 1
+texto = "Conferir a proteção antes de entrar"
 
 # ---------------------------------------------------------------------------
 # 3. Descarte de perfurocortante: cada glicemia ocupa uma posicao no
@@ -56,6 +61,7 @@ nome = "coletor"
 capacidade = 3
 custo_reposicao = 3
 acao_reposicao = "trocar-coletor"
+texto = "coletor de perfurocortante"
 
 [[consumo]]
 procedimento = "glicemia"

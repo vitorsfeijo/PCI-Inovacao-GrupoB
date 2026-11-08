@@ -9,6 +9,7 @@
 nome = "alcool"
 capacidade = 6          # doses por carga
 custo_reposicao = 3     # minutos para repor na UBS
+texto = "solução alcoólica"   # o que repor, no roteiro do ACS
 
 [[preparo]]
 nome = "higienizar-maos"
@@ -17,3 +18,4 @@ consome = "alcool"
 custo = 2                      # minutos
 desfeito_ao_sair = true
 exigido_antes_de = ["pressao", "glicemia", "temperatura", "medicacao", "antropometria"]
+texto = "Higienizar as mãos"   # tarefa, no roteiro do ACS

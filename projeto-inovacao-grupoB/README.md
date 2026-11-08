@@ -7,11 +7,12 @@ Continuação do projeto do Grupo B do Ciclo 2, em [`../PCI-Saude-GroupB`](../PC
 Esta pasta funciona sozinha: a parte do Ciclo 2 que o compilador usa está
 copiada, sem alterações, em [`acsplan/`](acsplan/LEIAME.md).
 
-> **Estado:** etapas 1 a 6 concluídas. Os cinco modelos (A a E) funcionam, e
+> **Estado:** etapas 1 a 7 concluídas. Os cinco modelos (A a E) funcionam, e
 > as três regras sintéticas do Ciclo 2, escritas como modelos, reproduzem o
 > domínio estendido **inteiro**: mesma estrutura e mesmo comportamento em 24 de
 > 24 instâncias. As regras podem ser escritas à mão ou pelo assistente
-> interativo. As demais etapas estão na lista abaixo.
+> interativo, e `python -m compilador planejar` vai da planilha de pacientes ao
+> roteiro do ACS com as regras aplicadas. Falta a avaliação (etapa 8).
 
 ---
 
@@ -143,6 +144,12 @@ custo = 1                      # opcional, padrão 1
 | exigencia | `marca` | sim | marca do paciente; vem da coluna de mesmo nome da planilha, com `_` no lugar de `-` |
 | exigencia | `preparo` | sim | preparo cujo estado é exigido para iniciar a visita |
 | exigencia | `custo` | não | minutos da conferência quando exigida (padrão 1; dispensada custa 0) |
+| recurso | `texto` | não | o que repor, como aparece no roteiro do ACS (padrão: o nome) |
+| preparo | `texto` | não | a tarefa, como aparece no roteiro (padrão: o nome, ex. "Higienizar maos") |
+| exigencia | `texto` | não | a conferência, como aparece no roteiro (padrão: "Conferir <nome> antes de entrar") |
+
+O `texto` é o único campo em que acentos e espaços são livres: ele não entra no
+PDDL, só no roteiro que o ACS recebe.
 
 Os nomes seguem a regra do PDDL: minúsculas, sem acento nem espaço, com hífen
 entre as palavras. O `estado` tem nome próprio porque não dá para derivá-lo do
@@ -284,8 +291,8 @@ python -m unittest discover testes     # inclui uma versão rápida (cerca de 20
 4. [x] Teste de equivalência da higienização.
 5. [x] Assistente interativo que gera o TOML.
 6. [x] Modelos D e E e teste de equivalência completo.
-7. [ ] Integração com a linha de comando do `acsplan` e texto legível das
-       ações novas no roteiro do ACS.
+7. [x] Comando `planejar` (seleção, rota, regras, plano e roteiro) e texto
+       legível das ações novas no roteiro do ACS, sem alterar o `acsplan`.
 8. [ ] Avaliação com regras que não existem no domínio estendido e, se
        possível, com alguém que não programa.
 
@@ -320,6 +327,8 @@ Quantos minutos leva para repor na UBS [3]:
 - Cada resposta é validada na hora; uma resposta inválida faz a mesma pergunta
   de novo. Nomes já usados pelo domínio ou por outra regra são recusados
   quando digitados.
+- Para recurso, preparo e exigência, o assistente pergunta também o texto que
+  aparece no roteiro do ACS; Enter aceita o nome da regra.
 - Recursos, preparos e procedimentos são escolhidos por número, numa lista
   com o nome legível de cada procedimento. Consumo e exigência só podem ser
   criados depois do recurso ou preparo a que se referem.
@@ -333,6 +342,61 @@ Quantos minutos leva para repor na UBS [3]:
 
 O arquivo gravado é um TOML comum, com um comentário explicando cada campo, e
 pode ser editado à mão depois.
+
+### Planejando o turno e gerando o roteiro do ACS
+
+```bash
+python -m compilador planejar exemplos/sinteticas-ciclo2.toml --orcamento 240
+```
+
+Faz o mesmo que o `acsplan roteiro` do Ciclo 2, com as regras aplicadas:
+seleciona quem entra no turno, define a rota, compila as regras, planeja e
+imprime o roteiro. Sem arquivo de regras, usa só o domínio legal. Um trecho,
+com uma instância que tem pacientes que exigem máscara
+(`--instancia-sintetica 4 2`):
+
+```
+  1. Paciente 03  (adulto)
+     início aprox.: 18 min de turno
+     [ ] Acionar o enfermeiro da equipe (acompanhamento obrigatório)
+     [ ] Colocar máscara de proteção respiratória
+     [ ] Conferir a proteção antes de entrar
+     [ ] Higienizar as mãos
+     [ ] Aferir pressão arterial
+     [ ] Aferir temperatura axilar
+     [ ] Encaminhar o paciente à unidade de referência
+     [ ] Registrar a visita no sistema
+```
+
+O texto das tarefas novas vem do campo `texto` de cada regra. O roteiro é
+adaptado do roteiro do Ciclo 2, mas fica em `compilador/roteiro.py`, porque o
+original tem os textos fixos no código e não mostraria ações criadas por
+regras novas. Os minutos vêm do custo de cada ação do plano, então o total bate
+com o custo do plano.
+
+Com a planilha de exemplo e `--orcamento 240`, o roteiro sai igual ao do
+`acsplan roteiro --dominio estendido` do Ciclo 2: as mesmas 6 visitas, na mesma
+ordem, com 262 minutos e o mesmo alerta de orçamento.
+
+| Opção | Padrão | O que faz |
+|---|---|---|
+| `--dados` | planilha de exemplo | pacientes em `.csv` ou `.json`, no formato do Ciclo 2 |
+| `--instancia-sintetica N SEMENTE` | — | microárea sorteada, em vez da planilha |
+| `--orcamento MIN`, `--max-pacientes`, `--sem-selecao` | — | seleção de quem entra no turno |
+| `--metodo`, `--distancias`, `--modal`, `--semente`, `--sem-precedencia` | como no Ciclo 2 | roteirização |
+| `--estrategia` | `astar-hadd` | busca: `astar-hmax` (ótimo, mais lento), `astar-hadd` ou `gbfs` |
+| `--limite S` | 60 | limite de tempo da busca |
+| `--salvar ARQUIVO` | — | grava o roteiro em vez de imprimir |
+| `--salvar-pddl PASTA` | — | grava o domínio e o problema compilados |
+| `--mostrar-plano` | — | lista o plano completo, ação por ação |
+
+O resumo de cada passo vai para a saída de erro e o roteiro para a saída
+padrão, então `... > roteiro.txt` grava só o roteiro. Quando não há roteiro, a
+mensagem diferencia o turno **provadamente** impossível (nenhuma sequência de
+ações cumpre as regras) da busca que só parou no limite de tempo, o que não
+prova nada.
+
+O assistente também pode ser chamado como `python -m compilador assistente`.
 
 ### Compilando
 
@@ -395,6 +459,8 @@ compilador/
   problema.py    acrescenta ao problema os fatos que as regras exigem (recursos, marcas)
   pddl.py        escreve a árvore (domínio ou problema) como PDDL legível
   ciclo2.py      caminhos e acesso à cópia do Ciclo 2 (acsplan/)
+  planejar.py    comando planejar: turno inteiro com as regras
+  roteiro.py     roteiro do ACS, com os textos das regras
   __main__.py    linha de comando
 acsplan/         cópia parcial, sem alterações, do pacote do Ciclo 2 (ver LEIAME.md)
 exemplos/
@@ -405,6 +471,7 @@ testes/
   equivalencia.py       comparações com o estendido (também roda sozinho)
   test_equivalencia.py  equivalência parcial e completa, controle negativo
   test_assistente.py    sessões do assistente com respostas programadas
+  test_planejar.py      roteiro e comando planejar
 ```
 
 Para rodar os testes, dentro desta pasta:

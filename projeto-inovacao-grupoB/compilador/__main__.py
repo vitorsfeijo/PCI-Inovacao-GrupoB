@@ -14,6 +14,11 @@ Linha de comando do compilador.
         --dados acsplan/dados/microarea_exemplo.csv
 
 Sem -o, o dominio e escrito na saida padrao.
+
+Outros comandos:
+
+    python -m compilador planejar regras.toml    # turno inteiro + roteiro do ACS
+    python -m compilador assistente regras.toml  # escreve regras por perguntas
 """
 
 from __future__ import annotations
@@ -38,17 +43,6 @@ def _ler_pddl(caminho: str) -> list:
         raise ErroRegra(f"o arquivo {caminho} não é um PDDL válido ({erro})") from None
 
 
-def _ler_dados(caminho: str) -> dict:
-    ciclo2.garantir_caminho()
-    from acsplan.dados import carregador
-    try:
-        return carregador.carregar(caminho)
-    except FileNotFoundError:
-        raise ErroRegra(f"o arquivo {caminho} não foi encontrado") from None
-    except Exception as erro:              # erros de formato do carregador do Ciclo 2
-        raise ErroRegra(f"não foi possível ler os dados de {caminho}: {erro}") from None
-
-
 def _relatar_erros(caminho: str, problemas: list[str]) -> None:
     if len(problemas) == 1:
         print(f"Não foi possível compilar {caminho}: {problemas[0]}", file=sys.stderr)
@@ -60,6 +54,14 @@ def _relatar_erros(caminho: str, problemas: list[str]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == "planejar":
+        from .planejar import main as planejar
+        return planejar(argv[1:])
+    if argv and argv[0] == "assistente":
+        from .assistente import main as assistente
+        return assistente(argv[1:])
+
     parser = argparse.ArgumentParser(
         prog="python -m compilador",
         description="Aplica regras escritas em TOML sobre o dominio PDDL do ACS.")
@@ -88,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.problema:
             marcados = None
             if regras.exigencias and args.dados:
-                marcados = marcas_dos_dados(_ler_dados(args.dados), regras)
+                marcados = marcas_dos_dados(ciclo2.ler_dados(args.dados), regras)
             elif regras.exigencias:
                 raise ErroRegra("as regras têm exigências por paciente; informe os "
                                 "dados dos pacientes com --dados planilha.csv")

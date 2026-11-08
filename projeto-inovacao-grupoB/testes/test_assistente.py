@@ -11,7 +11,7 @@ from pathlib import Path
 
 from compilador import ciclo2, compilar_dominio
 from compilador.assistente import main
-from compilador.regras import bloco_toml, carregar_regras, ler_regras, regras_para_toml
+from compilador.regras import carregar_regras, ler_regras, regras_para_toml
 
 EXEMPLO = Path(__file__).resolve().parents[1] / "exemplos" / "higienizacao.toml"
 SINTETICAS = EXEMPLO.with_name("sinteticas-ciclo2.toml")
@@ -40,6 +40,7 @@ SESSAO = [
     "seis", "0", "4",          # capacidade: texto, zero, valido
     "",                        # custo de reposicao: padrao 3
     "",                        # acao de reposicao: aceita repor-alcool-gel
+    "",                        # texto no roteiro: Enter (fica de fora)
     "2",                       # preparo
     "fitas",                   # nome ja usado pelo dominio
     "higienizar-maos",
@@ -49,6 +50,7 @@ SESSAO = [
     "2",                       # consome alcool-gel
     "",                        # desfeito ao sair: padrao sim
     "1,2,9", "1, 2, 3",        # procedimentos: invalido, valido
+    "Higienizar as mãos",      # texto no roteiro
     "5",                       # terminar
 ]
 
@@ -74,6 +76,8 @@ class TestAssistente(unittest.TestCase):
                          ("higienizar-maos", "maos-higienizadas", 2, "alcool-gel"))
         self.assertTrue(preparo.desfeito_ao_sair)
         self.assertEqual(preparo.exigido_antes_de, ("pressao", "glicemia", "temperatura"))
+        self.assertEqual(preparo.texto, "Higienizar as mãos")
+        self.assertIsNone(recurso.texto)
         # cada erro foi explicado
         self.assertIn('digite um número inteiro. Recebido: "seis"', saida)
         self.assertIn("deve ser maior ou igual a 1", saida)
@@ -85,19 +89,19 @@ class TestAssistente(unittest.TestCase):
         compilar_dominio(dominio, regras)
 
     def test_sugestao_recusada_pergunta_de_novo(self):
-        codigo, _ = rodar(self.arquivo, ["1", "Álcool", "n", "alcool", "2", "1", "", "5"])
+        codigo, _ = rodar(self.arquivo, ["1", "Álcool", "n", "alcool", "2", "1", "", "", "5"])
         self.assertEqual(codigo, 0)
         self.assertEqual(carregar_regras(str(self.arquivo)).recursos[0].nome, "alcool")
 
     def test_nome_derivado_em_conflito(self):
         # recurso "supervisao-ativa" colide com o predicado de mesmo nome
-        codigo, saida = rodar(self.arquivo, ["1", "supervisao-ativa", "alcool", "2", "1", "", "5"])
+        codigo, saida = rodar(self.arquivo, ["1", "supervisao-ativa", "alcool", "2", "1", "", "", "5"])
         self.assertEqual(codigo, 0)
         self.assertIn('"supervisao-ativa" já é usado pelo domínio', saida)
 
     def test_todos_os_procedimentos_e_sem_recurso(self):
         codigo, saida = rodar(self.arquivo, ["2", "lavar-maos", "maos-lavadas", "1",
-                                             "n", "todos", "5"])
+                                             "n", "todos", "", "5"])
         self.assertEqual(codigo, 0)
         self.assertIn("Nenhum recurso declarado ainda", saida)
         preparo, = carregar_regras(str(self.arquivo)).preparos
@@ -121,10 +125,10 @@ class TestAssistente(unittest.TestCase):
         original = EXEMPLO.read_text(encoding="utf-8")
         self.arquivo.write_text(original, encoding="utf-8")
         codigo, saida = rodar(self.arquivo, [
-            "1", "alcool", "mascaras", "2", "", "",      # "alcool" ja existe no arquivo
+            "1", "alcool", "mascaras", "2", "", "", "",  # "alcool" ja existe no arquivo
             "2", "vestir-mascara", "mascara-vestida", "2",
             "3",                                         # consome: 1 nenhum, 2 alcool, 3 mascaras
-            "", "1", "5"])
+            "", "1", "", "5"])
         self.assertEqual(codigo, 0)
         self.assertIn('"alcool" já é usado pelo recurso "alcool"', saida)
         texto = self.arquivo.read_text(encoding="utf-8")
@@ -145,21 +149,30 @@ class TestAssistente(unittest.TestCase):
     def test_recria_as_regras_sinteticas_do_ciclo2(self):
         """As tres regras do dominio estendido, inteiras, so respondendo perguntas."""
         codigo, saida = rodar(self.arquivo, [
-            "1", "alcool", "6", "3", "",                          # recurso
+            "1", "alcool", "6", "3", "", "solução alcoólica",     # recurso
             "2", "higienizar-maos", "maos-higienizadas", "2",     # preparo
-            "2", "", "1,2,3,4,5",                                 #   consome alcool
-            "1", "mascaras", "2", "3", "",                        # recurso
+            "2", "", "1,2,3,4,5", "Higienizar as mãos",           #   consome alcool
+            "1", "mascaras", "2", "3", "", "máscaras",            # recurso
             "2", "vestir-mascara", "mascara-vestida", "2",        # preparo
-            "3", "", "",                                          #   consome mascaras
+            "3", "", "", "Colocar máscara de proteção respiratória",
             "4", "protecao", "exige-protecao-respiratoria",       # exigencia
-            "2", "",                                              #   vestir-mascara, custo 1
+            "2", "", "Conferir a proteção antes de entrar",       #   vestir-mascara, custo 1
             "1", "coletor", "3", "3", "trocar-coletor",           # recurso
+            "coletor de perfurocortante",
             "3", "2", "3",                                        # consumo: glicemia, coletor
             "5"])
         self.assertEqual(codigo, 0, saida)
         self.assertEqual(carregar_regras(str(self.arquivo)),
                          carregar_regras(str(SINTETICAS)))
         self.assertNotIn("Aviso", saida)
+
+    def test_texto_longo_e_recusado(self):
+        codigo, saida = rodar(self.arquivo, ["1", "alcool", "2", "", "", "x" * 81,
+                                             "álcool em gel", "5"])
+        self.assertEqual(codigo, 0)
+        self.assertIn("no máximo 80 caracteres", saida)
+        self.assertEqual(carregar_regras(str(self.arquivo)).recursos[0].texto,
+                         "álcool em gel")
 
     def test_consumo_e_exigencia_exigem_declaracao_previa(self):
         codigo, saida = rodar(self.arquivo, ["3", "4", "5"])
@@ -169,7 +182,7 @@ class TestAssistente(unittest.TestCase):
         self.assertFalse(self.arquivo.exists())
 
     def test_consumo_repetido_nao_e_adicionado(self):
-        codigo, saida = rodar(self.arquivo, ["1", "coletor", "3", "", "",
+        codigo, saida = rodar(self.arquivo, ["1", "coletor", "3", "", "", "",
                                              "3", "2", "1", "3", "2", "1", "5"])
         self.assertEqual(codigo, 0)
         self.assertIn("esse consumo já foi declarado", saida)
@@ -178,8 +191,8 @@ class TestAssistente(unittest.TestCase):
     def test_nomes_gerados_pela_exigencia_sao_conferidos(self):
         # "protecao" gera "protecao-conferida"; com ela ja usada, recusa
         codigo, saida = rodar(self.arquivo, [
-            "2", "lavar", "protecao-conferida", "1", "n", "1",
-            "4", "protecao", "outra", "marca-x", "1", "", "5"])
+            "2", "lavar", "protecao-conferida", "1", "n", "1", "",
+            "4", "protecao", "outra", "marca-x", "1", "", "", "5"])
         self.assertEqual(codigo, 0, saida)
         self.assertIn('esse nome geraria "protecao-conferida", que já é usado '
                       'pelo preparo "lavar"', saida)
@@ -194,15 +207,7 @@ class TestEscritaToml(unittest.TestCase):
 
     def test_ida_e_volta(self):
         regras = carregar_regras(str(EXEMPLO))
-        r, = regras.recursos
-        p, = regras.preparos
-        texto = (bloco_toml("recurso", {"nome": r.nome, "capacidade": r.capacidade,
-                                        "custo_reposicao": r.custo_reposicao})
-                 + bloco_toml("preparo", {"nome": p.nome, "estado": p.estado,
-                                          "custo": p.custo, "consome": p.consome,
-                                          "desfeito_ao_sair": p.desfeito_ao_sair,
-                                          "exigido_antes_de": list(p.exigido_antes_de)}))
-        self.assertEqual(ler_regras(tomllib.loads(texto)), regras)
+        self.assertEqual(ler_regras(tomllib.loads(regras_para_toml(regras))), regras)
 
 
 if __name__ == "__main__":

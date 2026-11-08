@@ -37,3 +37,16 @@ def planejador():
     garantir_caminho()
     from acsplan.logica import planejador as modulo
     return modulo
+
+
+def ler_dados(caminho: str) -> dict:
+    """Le a planilha (.csv) ou o .json de pacientes com o carregador do Ciclo 2."""
+    from .regras import ErroRegra
+    garantir_caminho()
+    from acsplan.dados import carregador
+    try:
+        return carregador.carregar(caminho)
+    except FileNotFoundError:
+        raise ErroRegra(f"o arquivo {caminho} não foi encontrado") from None
+    except Exception as erro:              # erros de formato do carregador do Ciclo 2
+        raise ErroRegra(f"não foi possível ler os dados de {caminho}: {erro}") from None
