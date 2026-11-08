@@ -1,0 +1,19 @@
+# Regra SINTETICA da higienizacao das maos, a mesma do dominio estendido do
+# Ciclo 2. Nao e norma: existe para testar o compilador.
+#
+# Antes de cada procedimento do art. 3o par. 4o, o ACS higieniza as maos,
+# gastando uma dose de solucao alcoolica. A solucao so e reposta na UBS, e a
+# higienizacao deixa de valer quando o ACS sai da casa.
+
+[[recurso]]
+nome = "alcool"
+capacidade = 6          # doses por carga
+custo_reposicao = 3     # minutos para repor na UBS
+
+[[preparo]]
+nome = "higienizar-maos"
+estado = "maos-higienizadas"   # o que passa a valer depois do preparo
+consome = "alcool"
+custo = 2                      # minutos
+desfeito_ao_sair = true
+exigido_antes_de = ["pressao", "glicemia", "temperatura", "medicacao", "antropometria"]

@@ -5,8 +5,8 @@ Luis Henrique Caselani Macedo Junior · Manuela Cristina Zen Dalmonte · Vítor 
 
 Continuação do projeto do Grupo B do Ciclo 2, em [`../PCI-Saude-GroupB`](../PCI-Saude-GroupB).
 
-> **Estado:** em desenho. Este README registra o que já foi decidido; o código
-> ainda não existe.
+> **Estado:** etapa 1 concluída. O compilador já aplica os modelos A, B e C
+> sobre o domínio legal; as demais etapas estão na lista abaixo.
 
 ---
 
@@ -74,10 +74,10 @@ Como as regras sintéticas do Ciclo 2 se escrevem com eles:
 **Escopo inicial: modelos A, B e C**, suficientes para a higienização das mãos.
 D e E vêm depois que o primeiro ciclo estiver validado.
 
-## Formato do arquivo de regras (provisório)
+## Formato do arquivo de regras
 
 O pré-requisito (C) é escrito como um campo do preparo, porque sempre se refere
-a um preparo.
+a um preparo. Exemplo completo em [`exemplos/higienizacao.toml`](exemplos/higienizacao.toml).
 
 ```toml
 [[recurso]]
@@ -87,11 +87,28 @@ custo_reposicao = 3     # minutos para repor na UBS
 
 [[preparo]]
 nome = "higienizar-maos"
-consome = "alcool"      # opcional
-custo = 2               # minutos
-desfeito_ao_sair = true
+estado = "maos-higienizadas"   # o que passa a valer depois do preparo
+consome = "alcool"             # opcional
+custo = 2                      # minutos
+desfeito_ao_sair = true        # opcional, padrão true
 exigido_antes_de = ["pressao", "glicemia", "temperatura", "medicacao", "antropometria"]
 ```
+
+| Modelo | Campo | Obrigatório | Significado |
+|---|---|---|---|
+| recurso | `nome` | sim | nome do estoque; vira o predicado de nível |
+| recurso | `capacidade` | sim | unidades por carga (≥ 1) |
+| recurso | `custo_reposicao` | sim | minutos para repor na UBS (≥ 0) |
+| preparo | `nome` | sim | nome da ação que o ACS executa |
+| preparo | `estado` | sim | condição que passa a valer depois do preparo |
+| preparo | `custo` | sim | minutos (≥ 0) |
+| preparo | `consome` | não | recurso gasto a cada execução |
+| preparo | `desfeito_ao_sair` | não | se sair da casa desfaz o estado (padrão `true`) |
+| preparo | `exigido_antes_de` | não | procedimentos que só acontecem com o estado valendo |
+
+Os nomes seguem a regra do PDDL: minúsculas, sem acento nem espaço, com hífen
+entre as palavras. O `estado` tem nome próprio porque não dá para derivá-lo do
+nome da ação em português (`higienizar-maos` → `maos-higienizadas`).
 
 Os procedimentos aceitos formam uma lista fechada, ligada às ações do domínio
 legal, para que ninguém precise conhecer os nomes internos do PDDL:
@@ -135,7 +152,7 @@ completa vem com D e E.
 
 ## Etapas
 
-1. [ ] Compilador do domínio para os modelos A, B e C.
+1. [x] Compilador do domínio para os modelos A, B e C.
 2. [ ] Geração dos fatos do problema a partir das regras, substituindo o trecho
        fixo `if estendido:` do `gerador_problema.py`.
 3. [ ] Validação com mensagens em português.
@@ -154,6 +171,47 @@ completa vem com D e E.
 - **Integração com o código do Ciclo 2:** o compilador reaproveita o parser
   PDDL de `acsplan/logica/planejador.py`; falta decidir se o código final vive
   aqui ou dentro do `acsplan`.
+
+## Como usar
+
+Dentro desta pasta:
+
+```bash
+# imprime o domínio compilado
+python -m compilador exemplos/higienizacao.toml
+
+# grava em arquivo
+python -m compilador exemplos/higienizacao.toml -o dominio-com-regras.pddl
+
+# outro domínio de entrada ou outro nome para o domínio gerado
+python -m compilador regras.toml --dominio outro.pddl --nome meu-dominio
+```
+
+Por enquanto só o domínio é gerado. O arquivo de problema ainda precisa dos
+fatos iniciais dos recursos novos, como `(alcool n6)` e
+`(nivel-maximo-alcool n6)`; isso é a etapa 2.
+
+## Estrutura
+
+```
+compilador/
+  regras.py      leitura do TOML e conferência de cada campo
+  dominio.py     aplica os modelos sobre a árvore do domínio
+  pddl.py        escreve a árvore de volta como PDDL legível
+  ciclo2.py      caminhos e parser PDDL do Ciclo 2 (../PCI-Saude-GroupB)
+  __main__.py    linha de comando
+exemplos/
+  higienizacao.toml   regra sintética da higienização, como no Ciclo 2
+```
+
+## Observações
+
+- **Falha herdada do Ciclo 2.** A ação `retornar-a-rota` (voltar da UBS para a
+  casa) não desfaz nenhum estado. Por isso o planejador pode higienizar as mãos
+  na UBS e chegar à casa ainda com elas "higienizadas"; o mesmo vale para a
+  supervisão. O domínio estendido do Ciclo 2 tem exatamente esse comportamento,
+  e o compilador o reproduz de propósito, para que o teste de equivalência seja
+  possível. Corrigir é decidir se `retornar-a-rota` também é uma ação de saída.
 
 ## Requisitos
 
