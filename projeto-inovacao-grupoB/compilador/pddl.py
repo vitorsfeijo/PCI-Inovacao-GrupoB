@@ -49,9 +49,19 @@ def formatar(no: Any, recuo: int = 0) -> str:
 
 
 def _quebrar_palavras(palavras: list[str], recuo: int) -> str:
-    """Lista so de nomes (ex.: parametros tipados): quebra como texto corrido."""
-    linhas = ["(" + palavras[0]]
-    for palavra in palavras[1:]:
+    """Lista so de nomes (ex.: parametros tipados): quebra como texto corrido,
+    sem separar "?x - tipo"."""
+    unidades: list[str] = []
+    i = 0
+    while i < len(palavras):
+        if palavras[i] == "-" and unidades and i + 1 < len(palavras):
+            unidades[-1] += f" - {palavras[i + 1]}"
+            i += 2
+        else:
+            unidades.append(palavras[i])
+            i += 1
+    linhas = ["(" + unidades[0]]
+    for palavra in unidades[1:]:
         coluna = (recuo if len(linhas) == 1 else 0) + len(linhas[-1])
         if coluna + 1 + len(palavra) + 1 > LARGURA:
             linhas.append(" " * (recuo + 1) + palavra)

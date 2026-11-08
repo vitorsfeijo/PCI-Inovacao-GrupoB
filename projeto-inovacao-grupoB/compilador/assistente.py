@@ -175,15 +175,18 @@ class Assistente:
                 return opcoes[int(resposta) - 1][0]
             self._erro(f"digite um número de 1 a {len(opcoes)}")
 
-    def pedir_procedimentos(self) -> list[str]:
+    def pedir_procedimentos(self, *, obrigatorio: bool = False) -> list[str]:
         nomes = list(PROCEDIMENTOS)
         self.escrever("Antes de quais procedimentos o preparo é obrigatório?")
         for numero, nome in enumerate(nomes, start=1):
             self.escrever(f"  {numero}. {DESCRICAO_PROCEDIMENTOS[nome]}")
-        self.escrever("Digite os números separados por vírgula (ex.: 1,2,5), "
-                      "\"todos\", ou deixe vazio para nenhum.")
+        self.escrever("Digite os números separados por vírgula (ex.: 1,2,5) ou "
+                      "\"todos\"" + ("." if obrigatorio else ", ou deixe vazio para nenhum."))
         while True:
             resposta = self._ler("Procedimentos: ").lower().replace(" ", "")
+            if not resposta and obrigatorio:
+                self._erro("escolha pelo menos um procedimento")
+                continue
             if not resposta:
                 return []
             if resposta == "todos":
@@ -205,6 +208,10 @@ class Assistente:
     def _preparos_disponiveis(self) -> list[str]:
         return ([p.nome for p in self.existentes.preparos]
                 + [c["nome"] for m, c in self.blocos if m == "preparo"])
+
+    def _capacidades(self) -> dict[str, int]:
+        return ({r.nome: r.capacidade for r in self.existentes.recursos}
+                | {c["nome"]: c["capacidade"] for m, c in self.blocos if m == "recurso"})
 
     def _consumos_existentes(self) -> set[tuple[str, str]]:
         return ({(c.procedimento, c.recurso) for c in self.existentes.consumos}
@@ -276,25 +283,48 @@ class Assistente:
         if (procedimento, recurso) in self._consumos_existentes():
             self._erro("esse consumo já foi declarado; nada foi adicionado")
             return None
-        return {"procedimento": procedimento, "recurso": recurso}
+        capacidade = self._capacidades()[recurso]
+        while True:
+            quantidade = self.pedir_inteiro("Quantas unidades ele gasta a cada vez", 1,
+                                            padrao=1)
+            if quantidade <= capacidade:
+                break
+            self._erro(f"o recurso \"{recurso}\" só comporta {capacidade} por carga; "
+                       f"o procedimento nunca poderia ser feito")
+        campos = {"procedimento": procedimento, "recurso": recurso}
+        if quantidade != 1:
+            campos["quantidade"] = quantidade
+        return campos
 
     def nova_exigencia(self) -> dict | None:
-        self.escrever("\nNova EXIGÊNCIA: pacientes com uma marca só podem ter a "
-                      "visita iniciada depois de um preparo (ex.: máscara para "
-                      "quem exige proteção respiratória).")
+        self.escrever("\nNova EXIGÊNCIA: pacientes com uma marca exigem um preparo, "
+                      "para iniciar a visita (ex.: máscara para quem exige proteção "
+                      "respiratória) ou antes de certos procedimentos (ex.: luvas "
+                      "só na glicemia de gestantes).")
         preparos = self._preparos_disponiveis()
         if not preparos:
             self.escrever("(Nenhum preparo declarado ainda. Declare o preparo antes.)")
             return None
-        nome = self.pedir_nome("Nome curto da conferência feita na porta "
-                               "(ex.: protecao)", _nomes_de_exigencia)
-        self._reservar(_nomes_de_exigencia(nome), f"pela exigência \"{nome}\"")
+        quando = self.pedir_opcao("Quando o preparo é exigido desses pacientes?", [
+            ("visita", "para iniciar a visita (conferência na porta)"),
+            ("procedimentos", "antes de procedimentos específicos"),
+        ])
+        if quando == "visita":
+            nome = self.pedir_nome("Nome curto da conferência feita na porta "
+                                   "(ex.: protecao)", _nomes_de_exigencia)
+            self._reservar(_nomes_de_exigencia(nome), f"pela exigência \"{nome}\"")
+        else:
+            nome = self.pedir_nome("Nome curto da exigência (ex.: luvas-gestante)",
+                                   lambda n: [])
         self.escrever("A marca é a coluna da planilha de pacientes que diz quem precisa "
                       "do preparo, com hífen no lugar de _ (ex.: a coluna "
                       "exige_protecao_respiratoria vira exige-protecao-respiratoria).")
         marca = self.pedir_nome("Marca do paciente", lambda n: [n])
         self._reservar([marca], f"pela exigência \"{nome}\"")
         preparo = self.pedir_opcao("Qual preparo é exigido?", [(p, p) for p in preparos])
+        if quando == "procedimentos":
+            return {"nome": nome, "marca": marca, "preparo": preparo,
+                    "antes_de": self.pedir_procedimentos(obrigatorio=True)}
         custo = self.pedir_inteiro("Quantos minutos leva a conferência", 0,
                                    padrao=CUSTO_CONFERENCIA_PADRAO)
         campos = {"nome": nome, "marca": marca, "preparo": preparo, "custo": custo}

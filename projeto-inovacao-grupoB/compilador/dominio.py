@@ -17,16 +17,21 @@ alteracoes, sempre as mesmas para as mesmas entradas.
     Pre-requisito (modelo C)
         precondicao (E ?ag) nas acoes dos procedimentos listados
 
-    Consumo de R pelo procedimento P (modelo D)
-        parametros  ?R ?R-1 a mais em P
-        precondicao (R ?R) (prox ?R-1 ?R)
-        efeito      (not (R ?R)) (R ?R-1)
+    Consumo de k unidades de R pelo procedimento P (modelo D)
+        parametros  ?R ?R-1 ... ?R-k a mais em P
+        precondicao (R ?R) (prox ?R-1 ?R) ... (prox ?R-k ?R-(k-1))
+        efeito      (not (R ?R)) (R ?R-k)
 
     Exigencia X: pacientes com a marca M exigem o preparo Y (modelo E)
         predicados  (M ?p)  (X-conferida ?ag ?p)
         acoes       conferir-X-exigida: com M, exige o estado de Y
                     conferir-X-dispensada: sem M, custo zero
         precondicao (X-conferida ?ag ?p) nas tres variantes de iniciar-visita
+
+    Exigencia X com antes_de [P]: pacientes com M exigem Y no procedimento P
+        predicado   (M ?p)
+        acoes       P passa a valer so sem M; P-X (copia de P) exige M e o
+                    estado de Y no momento do procedimento
 
 As acoes e os nomes gerados seguem o padrao do dominio estendido do
 Ciclo 2, para que as regras sinteticas possam ser reproduzidas por ele.
@@ -170,8 +175,12 @@ def _conferir(arvore: list, regras: Regras) -> None:
         livre(e.nomes_gerados[1:], dono, set())
         if e.preparo not in nomes_preparos:
             erros.append(f"{dono}: não há preparo \"{e.preparo}\"")
-        for nome in ACOES_INICIO_VISITA:
-            acao_existe(nome, dono, "onde a conferência é exigida")
+        if e.no_inicio_da_visita:
+            for nome in ACOES_INICIO_VISITA:
+                acao_existe(nome, dono, "onde a conferência é exigida")
+        for procedimento in e.antes_de:
+            acao_existe(PROCEDIMENTOS[procedimento], dono,
+                        f"ligada ao procedimento \"{procedimento}\"")
     if erros:
         raise ErroRegra(erros)
 
@@ -213,19 +222,33 @@ def _variaveis(acao: list) -> set[str]:
     return {t for t in _campo(acao, ":parameters") if t.startswith("?")}
 
 
-def _aplicar_consumo(acao: list, recurso) -> None:
-    """O procedimento passa a gastar uma unidade do recurso (modelo D)."""
+def _aplicar_consumo(acao: list, recurso, quantidade: int = 1) -> None:
+    """
+    O procedimento passa a gastar `quantidade` unidades do recurso (modelo D).
+
+    Gastar k unidades e descer k niveis: o estoque esta em ?R, e
+    (prox ?R-1 ?R) (prox ?R-2 ?R-1) ... levam ate ?R-k, o novo nivel. So
+    usa o que o planejador do Ciclo 2 aceita (STRIPS), sem numeros.
+    """
     base = f"?{recurso.nome}"
-    sufixo, usadas = "", _variaveis(acao)
-    while f"{base}{sufixo}" in usadas or f"{base}{sufixo}-1" in usadas:
+    usadas = _variaveis(acao)
+    sufixo = ""
+
+    def nomes(s: str) -> list[str]:
+        return [f"{base}{s}"] + [f"{base}{s}-{i}" for i in range(1, quantidade + 1)]
+
+    while usadas & set(nomes(sufixo)):
         sufixo = str(int(sufixo or 1) + 1)
-    atual, anterior = f"{base}{sufixo}", f"{base}{sufixo}-1"
-    acao[acao.index(":parameters") + 1] = (_campo(acao, ":parameters")
-                                           + [atual, "-", "nivel", anterior, "-", "nivel"])
-    _acrescentar_precondicao(acao, [recurso.predicado, atual])
-    _acrescentar_precondicao(acao, ["prox", anterior, atual])
-    _acrescentar_efeito(acao, ["not", [recurso.predicado, atual]])
-    _acrescentar_efeito(acao, [recurso.predicado, anterior])
+    niveis = nomes(sufixo)                       # ?R, ?R-1, ..., ?R-k
+    parametros = _campo(acao, ":parameters")
+    for nivel in niveis:
+        parametros = parametros + [nivel, "-", "nivel"]
+    acao[acao.index(":parameters") + 1] = parametros
+    _acrescentar_precondicao(acao, [recurso.predicado, niveis[0]])
+    for maior, menor in zip(niveis, niveis[1:]):
+        _acrescentar_precondicao(acao, ["prox", menor, maior])
+    _acrescentar_efeito(acao, ["not", [recurso.predicado, niveis[0]]])
+    _acrescentar_efeito(acao, [recurso.predicado, niveis[-1]])
 
 
 def _acoes_conferencia(e, estado: str) -> list[list]:
@@ -290,11 +313,14 @@ def compilar_dominio(arvore: list, regras: Regras, *, nome: str | None = None) -
 
     # D. consumo em procedimento
     for c in regras.consumos:
-        _aplicar_consumo(acoes[PROCEDIMENTOS[c.procedimento]], recursos[c.recurso])
+        _aplicar_consumo(acoes[PROCEDIMENTOS[c.procedimento]], recursos[c.recurso],
+                         c.quantidade)
 
     # E. exigencia por paciente
     for e in regras.exigencias:
         predicados.append([e.marca, "?p", "-", "paciente"])
+        if not e.no_inicio_da_visita:
+            continue
         predicados.append([e.predicado_conferencia, "?ag", "-", "agente",
                            "?p", "-", "paciente"])
         novas_acoes.extend(_acoes_conferencia(e, preparos[e.preparo].estado))
@@ -306,4 +332,63 @@ def compilar_dominio(arvore: list, regras: Regras, *, nome: str | None = None) -
 
     posicao = _posicao_apos_ultima_acao(saida)
     saida[posicao:posicao] = novas_acoes
+
+    # E com antes_de: por ultimo, para que as versoes herdem pre-requisitos
+    # (C) e consumos (D) ja aplicados ao procedimento
+    versoes: dict[str, list[str]] = {}
+    for e in regras.exigencias:
+        for procedimento in e.antes_de:
+            base = PROCEDIMENTOS[procedimento]
+            nomes = versoes.setdefault(base, [base])
+            nomes.extend(_dividir_procedimento(saida, list(nomes), e,
+                                               preparos[e.preparo].estado))
     return saida
+
+
+def _dividir_procedimento(arvore: list, nomes: list[str], e, estado: str) -> list[str]:
+    """
+    Exigencia por paciente num procedimento (modelo E com `antes_de`).
+
+    Cada versao atual do procedimento (a original e as criadas por exigencias
+    anteriores) se divide em duas:
+
+        <versao>            so para pacientes SEM a marca
+        <versao>-<nome>     so para pacientes COM a marca, e com o estado do
+                            preparo valendo no momento do procedimento
+
+    Checar o estado no proprio procedimento, e nao numa conferencia feita
+    antes, fecha uma brecha: sair da casa (por exemplo, para repor material
+    na UBS) desfaz o preparo, e uma conferencia antiga continuaria valendo.
+    Com k exigencias no mesmo procedimento, surgem 2^k versoes dele.
+    Devolve os nomes das versoes novas.
+    """
+    novos = []
+    for nome in nomes:
+        indice = next(i for i, item in enumerate(arvore)
+                      if isinstance(item, list) and item[:2] == [":action", nome])
+        acao = arvore[indice]
+        paciente = _variavel_do_tipo(acao, "paciente")
+        agente = _variavel_do_tipo(acao, "agente")
+        com_marca = copy.deepcopy(acao)
+        com_marca[1] = f"{nome}-{e.nome}"
+        _acrescentar_precondicao(com_marca, [e.marca, paciente])
+        _acrescentar_precondicao(com_marca, [estado, agente])
+        _acrescentar_precondicao(acao, ["not", [e.marca, paciente]])
+        arvore.insert(indice + 1, com_marca)
+        novos.append(com_marca[1])
+    return novos
+
+
+def versoes_de_procedimentos(regras: Regras) -> dict[str, str]:
+    """
+    Nome de cada versao criada por exigencias com `antes_de` -> acao original.
+    Segue a mesma ordem de `compilar_dominio`; o roteiro usa para mostrar
+    todas as versoes com o texto do procedimento original.
+    """
+    versoes: dict[str, list[str]] = {}
+    for e in regras.exigencias:
+        for procedimento in e.antes_de:
+            base = PROCEDIMENTOS[procedimento]
+            nomes = versoes.setdefault(base, [base])
+            nomes.extend([f"{nome}-{e.nome}" for nome in list(nomes)])
+    return {nome: base for base, nomes in versoes.items() for nome in nomes if nome != base}

@@ -96,7 +96,8 @@ def main(argv: list[str] | None = None) -> int:
             dados = gerador.gerar(*args.instancia_sintetica)
             origem = "instância sintética n={} semente={}".format(*args.instancia_sintetica)
         else:
-            dados = ciclo2.ler_dados(args.dados)
+            dados = ciclo2.ler_dados(args.dados,
+                                     [e.campo_paciente for e in regras.exigencias])
             origem = args.dados
         dominio = compilar_dominio(ciclo2.planejador().ler_sexp(str(ciclo2.DOMINIO_LEGAL)),
                                    regras, nome=NOME_PADRAO)

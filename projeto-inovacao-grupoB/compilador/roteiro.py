@@ -22,6 +22,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from .dominio import versoes_de_procedimentos
 from .regras import Regras
 
 # Acoes do dominio legal que viram tarefa, e a ordem de trabalho de cada uma.
@@ -79,9 +80,14 @@ def legenda_para(regras: Regras) -> Legenda:
         ordem = ORDEM_PREPARO_DE_EXIGENCIA if p.nome in exigidos else ORDEM_PREPARO
         legenda.tarefas[p.nome] = (p.texto or legivel(p.nome), ordem)
     for e in regras.exigencias:
+        if not e.no_inicio_da_visita:
+            continue
         texto = e.texto or f"Conferir {e.nome.replace('-', ' ')} antes de entrar"
         legenda.tarefas[e.acao_exigida] = (texto, ORDEM_CONFERENCIA)
         legenda.ocultas.add(e.acao_dispensada)
+    # versoes de um procedimento (exigencias com antes_de) aparecem como ele
+    for versao, base in versoes_de_procedimentos(regras).items():
+        legenda.tarefas[versao] = legenda.tarefas[base]
 
     legenda.preparacao = ({"acionar-supervisao", DESVIO} | set(legenda.reposicoes)
                           | {p.nome for p in regras.preparos})

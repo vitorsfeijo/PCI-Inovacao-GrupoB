@@ -74,8 +74,8 @@ regras sintéticas, e cada uma delas se decompõe nas peças abaixo.
 | **A. Recurso** | existe um estoque de R, com capacidade N, reposto só na UBS | predicados de nível, ação `repor-R`, fatos iniciais |
 | **B. Preparo** | o ACS pode fazer Y, consumindo R; sair da casa desfaz Y | predicado, ação Y, `(not Y)` em `mover` e `desviar-para-ubs` |
 | **C. Pré-requisito** | os procedimentos P1, P2… exigem Y antes | precondição a mais nessas ações |
-| **D. Consumo** | o procedimento P gasta uma unidade de R | parâmetros, precondição e efeito a mais em P |
-| **E. Exigência por paciente** | pacientes marcados com M exigem Y para iniciar a visita | marca no paciente, ações de conferência, precondição no início da visita |
+| **D. Consumo** | o procedimento P gasta k unidades de R (padrão 1) | parâmetros, precondição e efeito a mais em P |
+| **E. Exigência por paciente** | pacientes marcados com M exigem Y para iniciar a visita, ou (com `antes_de`) antes de certos procedimentos | marca no paciente; na visita, ações de conferência; nos procedimentos, uma versão de cada procedimento para quem tem a marca |
 
 Como as regras sintéticas do Ciclo 2 se escrevem com eles:
 
@@ -139,7 +139,8 @@ custo = 1                      # opcional, padrão 1
 | preparo | `exigido_antes_de` | não | procedimentos que só acontecem com o estado valendo |
 | recurso | `acao_reposicao` | não | nome da ação de reposição (padrão `repor-<nome>`) |
 | consumo | `procedimento` | sim | procedimento que gasta o recurso |
-| consumo | `recurso` | sim | recurso gasto, uma unidade por execução |
+| consumo | `recurso` | sim | recurso gasto a cada execução |
+| consumo | `quantidade` | não | unidades gastas a cada execução (padrão 1; não pode passar da capacidade) |
 | exigencia | `nome` | sim | nome da conferência feita na porta; gera `<nome>-conferida`, `conferir-<nome>-exigida` e `conferir-<nome>-dispensada` |
 | exigencia | `marca` | sim | marca do paciente; vem da coluna de mesmo nome da planilha, com `_` no lugar de `-` |
 | exigencia | `preparo` | sim | preparo cujo estado é exigido para iniciar a visita |
@@ -147,6 +148,26 @@ custo = 1                      # opcional, padrão 1
 | recurso | `texto` | não | o que repor, como aparece no roteiro do ACS (padrão: o nome) |
 | preparo | `texto` | não | a tarefa, como aparece no roteiro (padrão: o nome, ex. "Higienizar maos") |
 | exigencia | `texto` | não | a conferência, como aparece no roteiro (padrão: "Conferir <nome> antes de entrar") |
+| exigencia | `antes_de` | não | procedimentos em que o preparo é exigido desses pacientes; sem ele, vale o início da visita. Com ele, `custo` e `texto` não se aplicam |
+
+**Exigência antes de um procedimento.** Por exemplo, luvas só na glicemia de
+gestantes:
+
+```toml
+[[exigencia]]
+nome = "luvas-gestante"
+marca = "gestante"
+preparo = "calcar-luvas"
+antes_de = ["glicemia"]
+```
+
+A glicemia vira duas ações: a original, só para quem **não** tem a marca, e
+`medir-glicemia-capilar-luvas-gestante`, que exige a marca e o preparo valendo
+**no momento** do procedimento. Uma conferência feita antes, como a da porta,
+teria uma brecha: sair da casa (para repor material na UBS, por exemplo)
+desfaz o preparo, e a conferência antiga continuaria valendo. Com k exigências
+no mesmo procedimento surgem 2^k versões dele; no roteiro, todas aparecem com
+o texto do procedimento original.
 
 O `texto` é o único campo em que acentos e espaços são livres: ele não entra no
 PDDL, só no roteiro que o ACS recebe.
@@ -294,7 +315,7 @@ python -m unittest discover testes     # inclui uma versão rápida (cerca de 20
 7. [x] Comando `planejar` (seleção, rota, regras, plano e roteiro) e texto
        legível das ações novas no roteiro do ACS, sem alterar o `acsplan`.
 8. [ ] Avaliação com regras que não existem no domínio estendido:
-   1. [ ] Extensões: `quantidade` no consumo (um procedimento pode gastar
+   1. [x] Extensões: `quantidade` no consumo (um procedimento pode gastar
           mais de uma unidade) e exigência por paciente num procedimento
           (ex.: luvas só na glicemia de gestantes).
    2. [ ] Planilha de avaliação: cópia da planilha de exemplo com as colunas
@@ -477,6 +498,13 @@ python -m compilador exemplos/sinteticas-ciclo2.toml -o dominio.pddl \
 Cada paciente marcado vira um fato `(exige-protecao-respiratoria pX)`. Sem
 `--dados`, o compilador recusa o problema e explica o que falta.
 
+Marcas novas pedem colunas novas na planilha (por exemplo, `gestante`, com
+sim/não). O leitor de CSV do Ciclo 2 **descarta** colunas que não conhece, o
+que faria a regra deixar de valer em silêncio; por isso o compilador relê da
+planilha as colunas usadas pelas exigências, sem alterar a cópia do Ciclo 2.
+Se a coluna de uma marca não existe nos dados, é erro, e não "ninguém
+marcado": quase sempre é um nome digitado errado.
+
 Quem usa o pipeline do Ciclo 2 em Python pode chamar
 `compilador.gerar_problema_com_regras(dados, roteamento, regras, caminho,
 nome_dominio=...)`, que gera o problema legal e aplica as regras de uma vez.
@@ -504,6 +532,7 @@ testes/
   test_equivalencia.py  equivalência parcial e completa, controle negativo
   test_assistente.py    sessões do assistente com respostas programadas
   test_planejar.py      roteiro e comando planejar
+  test_extensoes.py     quantidade no consumo e exigência antes de procedimento
 ```
 
 Para rodar os testes, dentro desta pasta:

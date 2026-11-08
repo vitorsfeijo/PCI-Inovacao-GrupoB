@@ -155,11 +155,11 @@ class TestAssistente(unittest.TestCase):
             "1", "mascaras", "2", "3", "", "máscaras",            # recurso
             "2", "vestir-mascara", "mascara-vestida", "2",        # preparo
             "3", "", "", "Colocar máscara de proteção respiratória",
-            "4", "protecao", "exige-protecao-respiratoria",       # exigencia
+            "4", "1", "protecao", "exige-protecao-respiratoria",  # exigencia na visita
             "2", "", "Conferir a proteção antes de entrar",       #   vestir-mascara, custo 1
             "1", "coletor", "3", "3", "trocar-coletor",           # recurso
             "coletor de perfurocortante",
-            "3", "2", "3",                                        # consumo: glicemia, coletor
+            "3", "2", "3", "",                                    # consumo: glicemia, coletor, 1
             "5"])
         self.assertEqual(codigo, 0, saida)
         self.assertEqual(carregar_regras(str(self.arquivo)),
@@ -183,7 +183,7 @@ class TestAssistente(unittest.TestCase):
 
     def test_consumo_repetido_nao_e_adicionado(self):
         codigo, saida = rodar(self.arquivo, ["1", "coletor", "3", "", "", "",
-                                             "3", "2", "1", "3", "2", "1", "5"])
+                                             "3", "2", "1", "", "3", "2", "1", "5"])
         self.assertEqual(codigo, 0)
         self.assertIn("esse consumo já foi declarado", saida)
         self.assertEqual(len(carregar_regras(str(self.arquivo)).consumos), 1)
@@ -192,11 +192,34 @@ class TestAssistente(unittest.TestCase):
         # "protecao" gera "protecao-conferida"; com ela ja usada, recusa
         codigo, saida = rodar(self.arquivo, [
             "2", "lavar", "protecao-conferida", "1", "n", "1", "",
-            "4", "protecao", "outra", "marca-x", "1", "", "", "5"])
+            "4", "1", "protecao", "outra", "marca-x", "1", "", "", "5"])
         self.assertEqual(codigo, 0, saida)
         self.assertIn('esse nome geraria "protecao-conferida", que já é usado '
                       'pelo preparo "lavar"', saida)
         self.assertEqual(carregar_regras(str(self.arquivo)).exigencias[0].nome, "outra")
+
+
+    def test_consumo_com_quantidade(self):
+        codigo, saida = rodar(self.arquivo, [
+            "1", "fitas-extra", "4", "", "", "",          # recurso com capacidade 4
+            "3", "2", "1", "5", "2", "5"])                # glicemia gasta 5 (recusado), 2
+        self.assertEqual(codigo, 0, saida)
+        self.assertIn("só comporta 4 por carga", saida)
+        self.assertEqual(carregar_regras(str(self.arquivo)).consumos[0].quantidade, 2)
+
+    def test_exigencia_antes_de_procedimento(self):
+        codigo, saida = rodar(self.arquivo, [
+            "1", "luvas", "3", "", "", "",                           # recurso
+            "2", "calcar-luvas", "luvas-calcadas", "1", "2", "", "", "",  # preparo
+            "4", "2", "luvas-gestante", "gestante", "1",            # exigencia por procedimento
+            "", "2",                                                 # nenhum (recusado), glicemia
+            "5"])
+        self.assertEqual(codigo, 0, saida)
+        self.assertIn("escolha pelo menos um procedimento", saida)
+        exigencia, = carregar_regras(str(self.arquivo)).exigencias
+        self.assertEqual(exigencia.antes_de, ("glicemia",))
+        self.assertFalse(exigencia.no_inicio_da_visita)
+        self.assertNotIn("custo", self.arquivo.read_text(encoding="utf-8").split("[[exigencia]]")[1])
 
 
 class TestEscritaToml(unittest.TestCase):

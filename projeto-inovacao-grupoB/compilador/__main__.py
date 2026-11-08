@@ -90,7 +90,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.problema:
             marcados = None
             if regras.exigencias and args.dados:
-                marcados = marcas_dos_dados(ciclo2.ler_dados(args.dados), regras)
+                dados = ciclo2.ler_dados(args.dados,
+                                         [e.campo_paciente for e in regras.exigencias])
+                marcados = marcas_dos_dados(dados, regras)
             elif regras.exigencias:
                 raise ErroRegra("as regras têm exigências por paciente; informe os "
                                 "dados dos pacientes com --dados planilha.csv")

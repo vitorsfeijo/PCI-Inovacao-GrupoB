@@ -144,7 +144,23 @@ def compilar_problema(arvore: list, regras: Regras, *, nome_dominio: str,
 
 
 def marcas_dos_dados(dados: dict, regras: Regras) -> dict[str, list[str]]:
-    """Quem tem cada marca, lido dos dados dos pacientes (formato do Ciclo 2)."""
+    """
+    Quem tem cada marca, lido dos dados dos pacientes (formato do Ciclo 2).
+
+    Uma marca sem coluna correspondente nos dados e erro, e nao "ninguem
+    marcado": quase sempre e um nome digitado errado, e a regra deixaria de
+    valer em silencio.
+    """
+    colunas = dados.get("_colunas_pacientes")
+    if colunas is None:
+        colunas = set().union(*(p.keys() for p in dados["pacientes"]))
+    faltando = [e for e in regras.exigencias if e.campo_paciente not in colunas]
+    if faltando:
+        raise ErroRegra([
+            f"exigência \"{e.nome}\": os dados dos pacientes não têm a coluna "
+            f"\"{e.campo_paciente}\" (da marca \"{e.marca}\"). Confira o nome da "
+            f"marca ou acrescente a coluna, com sim/não para cada paciente"
+            for e in faltando])
     return {e.marca: [p["id"] for p in dados["pacientes"] if p.get(e.campo_paciente)]
             for e in regras.exigencias}
 

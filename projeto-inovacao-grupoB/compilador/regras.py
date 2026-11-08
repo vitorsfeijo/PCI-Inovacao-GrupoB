@@ -9,7 +9,8 @@ Modelos suportados:
     C. pre-requisito, escrito como o campo `exigido_antes_de` do preparo
     D. [[consumo]]    um procedimento gasta uma unidade de um recurso
     E. [[exigencia]]  pacientes com uma marca so podem ter a visita iniciada
-                      com um preparo valendo
+                      (ou, com `antes_de`, certos procedimentos feitos) com
+                      um preparo valendo
 
 Validacao em tres niveis:
 
@@ -69,11 +70,13 @@ DESCRICAO_CAMPOS = {
     ("preparo", "desfeito_ao_sair"): "sair da casa desfaz o estado?",
     ("preparo", "exigido_antes_de"): "procedimentos que dependem do preparo",
     ("consumo", "procedimento"): "procedimento que gasta o recurso",
-    ("consumo", "recurso"): "recurso gasto, uma unidade por vez",
+    ("consumo", "recurso"): "recurso gasto a cada execução",
+    ("consumo", "quantidade"): "unidades gastas a cada execução",
     ("exigencia", "nome"): "nome da conferência feita na porta",
     ("exigencia", "marca"): "marca do paciente (coluna da planilha)",
     ("exigencia", "preparo"): "preparo exigido para iniciar a visita",
     ("exigencia", "custo"): "minutos da conferência",
+    ("exigencia", "antes_de"): "procedimentos que exigem o preparo nesses pacientes",
 }
 
 # Campos de cada modelo, na ordem em que aparecem: nome -> obrigatorio?
@@ -82,9 +85,9 @@ CAMPOS = {
                 "acao_reposicao": False, "texto": False},
     "preparo": {"nome": True, "estado": True, "custo": True, "consome": False,
                 "desfeito_ao_sair": False, "exigido_antes_de": False, "texto": False},
-    "consumo": {"procedimento": True, "recurso": True},
+    "consumo": {"procedimento": True, "recurso": True, "quantidade": False},
     "exigencia": {"nome": True, "marca": True, "preparo": True, "custo": False,
-                  "texto": False},
+                  "texto": False, "antes_de": False},
 }
 
 # Tamanho maximo do texto mostrado no roteiro.
@@ -155,6 +158,7 @@ class Preparo:
 class Consumo:
     procedimento: str
     recurso: str
+    quantidade: int = 1
 
 
 @dataclass(frozen=True)
@@ -164,6 +168,11 @@ class Exigencia:
     preparo: str
     custo: int = CUSTO_CONFERENCIA_PADRAO
     texto: str | None = None               # conferencia, no roteiro do ACS
+    antes_de: tuple[str, ...] = ()         # vazio: exigida no inicio da visita
+
+    @property
+    def no_inicio_da_visita(self) -> bool:
+        return not self.antes_de
 
     @property
     def predicado_conferencia(self) -> str:
@@ -184,6 +193,8 @@ class Exigencia:
 
     @property
     def nomes_gerados(self) -> list[str]:
+        if self.antes_de:   # variantes dos procedimentos, ex. medir-glicemia-capilar-luvas
+            return [self.marca] + [f"{PROCEDIMENTOS[p]}-{self.nome}" for p in self.antes_de]
         return [self.marca, self.predicado_conferencia, self.acao_exigida,
                 self.acao_dispensada]
 
@@ -251,6 +262,12 @@ def validar_texto(valor: Any) -> str | None:
     return None
 
 
+def validar_procedimentos_nao_vazio(valor: Any) -> str | None:
+    if isinstance(valor, list) and not valor:
+        return "deve ter pelo menos um procedimento (ou o campo deve ser omitido)"
+    return validar_procedimentos(valor)
+
+
 def validar_procedimento(valor: Any) -> str | None:
     if valor not in PROCEDIMENTOS:
         return (f"o procedimento {valor!r} não existe. "
@@ -292,10 +309,12 @@ VALIDADORES = {
     "marca": validar_nome,
     "preparo": validar_nome,
     "capacidade": lambda v: validar_inteiro(v, 1),
+    "quantidade": lambda v: validar_inteiro(v, 1),
     "custo_reposicao": lambda v: validar_inteiro(v, 0),
     "custo": lambda v: validar_inteiro(v, 0),
     "desfeito_ao_sair": validar_booleano,
     "exigido_antes_de": validar_procedimentos,
+    "antes_de": validar_procedimentos_nao_vazio,
     "procedimento": validar_procedimento,
     "texto": validar_texto,
 }
@@ -384,10 +403,15 @@ def _conferir_entre_si(regras: Regras, recursos_declarados: list[str],
         if p.consome is not None:
             recurso_existe(p.consome, f"preparo \"{p.nome}\"", "consome")
 
+    capacidades = {r.nome: r.capacidade for r in regras.recursos}
     pares: set[tuple[str, str]] = set()
     for c in regras.consumos:
         dono = f"consumo de \"{c.recurso}\" por \"{c.procedimento}\""
         recurso_existe(c.recurso, dono, "gasta")
+        if c.recurso in capacidades and c.quantidade > capacidades[c.recurso]:
+            erros.append(f"{dono}: gasta {c.quantidade} unidades, mas o recurso só "
+                         f"comporta {capacidades[c.recurso]} por carga; o procedimento "
+                         f"nunca poderia ser feito")
         if (c.procedimento, c.recurso) in pares:
             erros.append(f"{dono}: aparece mais de uma vez")
         pares.add((c.procedimento, c.recurso))
@@ -420,13 +444,21 @@ def ler_regras(dados: dict) -> Regras:
                                t.get("desfeito_ao_sair", True),
                                tuple(t.get("exigido_antes_de", [])), t.get("texto"))
                        for t in validos["preparo"]),
-        consumos=tuple(Consumo(t["procedimento"], t["recurso"])
+        consumos=tuple(Consumo(t["procedimento"], t["recurso"], t.get("quantidade", 1))
                        for t in validos["consumo"]),
         exigencias=tuple(Exigencia(t["nome"], t["marca"], t["preparo"],
                                    t.get("custo", CUSTO_CONFERENCIA_PADRAO),
-                                   t.get("texto"))
+                                   t.get("texto"), tuple(t.get("antes_de", [])))
                          for t in validos["exigencia"]),
     )
+    # custo e texto sao da conferencia na porta, que so existe no inicio da visita
+    for t in validos["exigencia"]:
+        if "antes_de" in t:
+            for campo in ("custo", "texto"):
+                if campo in t:
+                    erros.append(f"exigência \"{t['nome']}\": o campo '{campo}' só vale "
+                                 f"para exigências no início da visita (sem 'antes_de'); "
+                                 f"antes de um procedimento não há conferência na porta")
     _conferir_entre_si(regras, _declarados(blocos["recurso"]),
                        _declarados(blocos["preparo"]), erros)
     if erros:
@@ -480,12 +512,18 @@ def regras_para_dados(regras: Regras) -> dict:
             campos["texto"] = p.texto
         dados["preparo"].append(campos)
     for c in regras.consumos:
-        dados["consumo"].append({"procedimento": c.procedimento, "recurso": c.recurso})
+        campos = {"procedimento": c.procedimento, "recurso": c.recurso}
+        if c.quantidade != 1:
+            campos["quantidade"] = c.quantidade
+        dados["consumo"].append(campos)
     for e in regras.exigencias:
-        campos = {"nome": e.nome, "marca": e.marca, "preparo": e.preparo,
-                  "custo": e.custo}
-        if e.texto:
-            campos["texto"] = e.texto
+        campos = {"nome": e.nome, "marca": e.marca, "preparo": e.preparo}
+        if e.antes_de:
+            campos["antes_de"] = list(e.antes_de)
+        else:
+            campos["custo"] = e.custo
+            if e.texto:
+                campos["texto"] = e.texto
         dados["exigencia"].append(campos)
     return {m: blocos for m, blocos in dados.items() if blocos}
 
