@@ -4,6 +4,8 @@ Projeto em Ciência e Inovação (INF99003), Ciclo 3, Grupo B.
 Luis Henrique Caselani Macedo Junior · Manuela Cristina Zen Dalmonte · Vítor Santana Feijó
 
 Continuação do projeto do Grupo B do Ciclo 2, em [`../PCI-Saude-GroupB`](../PCI-Saude-GroupB).
+Esta pasta funciona sozinha: a parte do Ciclo 2 que o compilador usa está
+copiada, sem alterações, em [`acsplan/`](acsplan/LEIAME.md).
 
 > **Estado:** etapas 1 a 6 concluídas. Os cinco modelos (A a E) funcionam, e
 > as três regras sintéticas do Ciclo 2, escritas como modelos, reproduzem o
@@ -51,6 +53,12 @@ O `dominio-legal.pddl` do Ciclo 2 é **somente lido, nunca alterado**: as normas
 ficam travadas e as regras da equipe são aplicadas por cima. O mesmo vale para o
 código do Ciclo 2: o gerador de problema dele continua gerando o problema do
 domínio legal, e o compilador acrescenta o que as regras exigem.
+
+Para a pasta funcionar sozinha, o que o compilador usa do Ciclo 2 (domínios,
+parser e planejador, gerador de problema, roteirizador, seleção de pacientes e
+planilha de exemplo) está copiado em `acsplan/`, **sem nenhuma alteração**.
+O [`acsplan/LEIAME.md`](acsplan/LEIAME.md) lista o que foi copiado, o que
+ficou de fora e como conferir que a cópia continua idêntica ao original.
 
 ---
 
@@ -285,9 +293,6 @@ python -m unittest discover testes     # inclui uma versão rápida (cerca de 20
 
 - **Usuário-alvo:** quem vai escrever as regras (enfermeiro, coordenação da
   UBS, gestão municipal)? Define o tom das perguntas e das mensagens.
-- **Integração com o código do Ciclo 2:** o compilador reaproveita o parser
-  PDDL de `acsplan/logica/planejador.py`; falta decidir se o código final vive
-  aqui ou dentro do `acsplan`.
 
 ## Como usar
 
@@ -370,7 +375,7 @@ pacientes do Ciclo 2 (`.csv` ou `.json`), em `--dados`. A marca
 ```bash
 python -m compilador exemplos/sinteticas-ciclo2.toml -o dominio.pddl \
     --problema problema-legal.pddl --saida-problema problema.pddl \
-    --dados ../PCI-Saude-GroupB/acsplan/dados/microarea_exemplo.csv
+    --dados acsplan/dados/microarea_exemplo.csv
 ```
 
 Cada paciente marcado vira um fato `(exige-protecao-respiratoria pX)`. Sem
@@ -389,8 +394,9 @@ compilador/
   dominio.py     aplica os modelos sobre a árvore do domínio
   problema.py    acrescenta ao problema os fatos que as regras exigem (recursos, marcas)
   pddl.py        escreve a árvore (domínio ou problema) como PDDL legível
-  ciclo2.py      caminhos e parser PDDL do Ciclo 2 (../PCI-Saude-GroupB)
+  ciclo2.py      caminhos e acesso à cópia do Ciclo 2 (acsplan/)
   __main__.py    linha de comando
+acsplan/         cópia parcial, sem alterações, do pacote do Ciclo 2 (ver LEIAME.md)
 exemplos/
   higienizacao.toml       regra sintética da higienização, como no Ciclo 2
   sinteticas-ciclo2.toml  as três regras sintéticas, com os cinco modelos
@@ -419,4 +425,6 @@ python -m unittest discover testes
 ## Requisitos
 
 Python 3.11 ou superior (leitura de TOML com `tomllib`, da biblioteca padrão).
-O Ciclo 2 pedia 3.10+; o requisito sobe por causa do TOML.
+O Ciclo 2 pedia 3.10+; o requisito sobe por causa do TOML. Nenhuma dependência
+externa, e nenhuma dependência da pasta `PCI-Saude-GroupB`: todos os testes
+passam com esta pasta copiada sozinha para outro lugar.

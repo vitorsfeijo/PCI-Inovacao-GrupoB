@@ -1,8 +1,12 @@
 """
-Ponte para o codigo do Ciclo 2 (pasta PCI-Saude-GroupB na raiz do repositorio).
+Ponte para a base do Ciclo 2, copiada para dentro deste projeto.
 
-O compilador nao copia nada do Ciclo 2: le o dominio legal de la e reaproveita
-o parser PDDL do planejador. Tudo o que depende desse caminho fica aqui.
+A pasta `acsplan/`, ao lado de `compilador/`, e uma copia parcial e SEM
+ALTERACOES do pacote do Ciclo 2 (ver acsplan/LEIAME.md). Assim o projeto
+funciona sozinho, sem depender da pasta PCI-Saude-GroupB. O compilador le o
+dominio legal dessa copia e reaproveita dela o parser PDDL, o planejador, o
+gerador de problema, o roteirizador e a selecao de pacientes. Tudo o que
+depende desses caminhos fica aqui.
 """
 
 from __future__ import annotations
@@ -10,15 +14,26 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-RAIZ_CICLO2 = Path(__file__).resolve().parents[2] / "PCI-Saude-GroupB"
-DOMINIOS = RAIZ_CICLO2 / "acsplan" / "logica" / "dominios"
+# Pasta do projeto: contem compilador/ e a copia acsplan/.
+RAIZ = Path(__file__).resolve().parents[1]
+BASE = RAIZ / "acsplan"
+DOMINIOS = BASE / "logica" / "dominios"
 DOMINIO_LEGAL = DOMINIOS / "dominio-legal.pddl"
 DOMINIO_ESTENDIDO = DOMINIOS / "dominio-estendido.pddl"
+PLANILHA_EXEMPLO = BASE / "dados" / "microarea_exemplo.csv"
+
+
+def garantir_caminho() -> None:
+    """Poe a pasta do projeto no inicio do caminho de importacao, para que
+    `import acsplan` encontre a copia local mesmo fora desta pasta."""
+    if not sys.path or sys.path[0] != str(RAIZ):
+        if str(RAIZ) in sys.path:
+            sys.path.remove(str(RAIZ))
+        sys.path.insert(0, str(RAIZ))
 
 
 def planejador():
-    """Importa e devolve o modulo `acsplan.logica.planejador` do Ciclo 2."""
-    if str(RAIZ_CICLO2) not in sys.path:
-        sys.path.insert(0, str(RAIZ_CICLO2))
+    """Importa e devolve o modulo `acsplan.logica.planejador` da copia local."""
+    garantir_caminho()
     from acsplan.logica import planejador as modulo
     return modulo

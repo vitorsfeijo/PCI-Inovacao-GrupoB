@@ -395,7 +395,7 @@ class TestLinhaDeComandoComPlanilha(unittest.TestCase):
         from acsplan.geo import roteirizador
         from acsplan.logica.gerador_problema import gerar_problema
 
-        planilha = ciclo2.RAIZ_CICLO2 / "acsplan" / "dados" / "microarea_exemplo.csv"
+        planilha = ciclo2.PLANILHA_EXEMPLO
         dados = carregador.carregar(str(planilha))
         marcados = sorted(p["id"] for p in dados["pacientes"]
                           if p.get("exige_protecao_respiratoria"))

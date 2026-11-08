@@ -161,7 +161,7 @@ def gerar_problema_com_regras(dados: dict, roteamento: dict, regras: Regras,
     from . import ciclo2
     from .pddl import escrever_pddl
 
-    ciclo2.planejador()  # garante o Ciclo 2 no caminho de importacao
+    ciclo2.garantir_caminho()
     from acsplan.logica.gerador_problema import gerar_problema
 
     with tempfile.TemporaryDirectory() as pasta:

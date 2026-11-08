@@ -11,7 +11,7 @@ Linha de comando do compilador.
     # regras com exigencia por paciente: as marcas vem da planilha
     python -m compilador exemplos/sinteticas-ciclo2.toml -o dominio.pddl \\
         --problema problema-legal.pddl --saida-problema problema.pddl \\
-        --dados ../PCI-Saude-GroupB/acsplan/dados/microarea_exemplo.csv
+        --dados acsplan/dados/microarea_exemplo.csv
 
 Sem -o, o dominio e escrito na saida padrao.
 """
@@ -39,7 +39,7 @@ def _ler_pddl(caminho: str) -> list:
 
 
 def _ler_dados(caminho: str) -> dict:
-    ciclo2.planejador()                    # Ciclo 2 no caminho de importacao
+    ciclo2.garantir_caminho()
     from acsplan.dados import carregador
     try:
         return carregador.carregar(caminho)
