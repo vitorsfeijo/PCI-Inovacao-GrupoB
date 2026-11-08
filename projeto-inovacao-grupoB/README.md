@@ -332,6 +332,50 @@ conferência das sete regras. Nos casos em que o ótimo é conhecido, o modo
 Ainda em aberto: com as sete regras e 10 pacientes, nem o modo ótimo do Fast
 Downward termina, então não se sabe quão longe do ótimo estão os 477 min.
 
+### Medições (etapa 8.4)
+
+Resultados completos em [`exemplos/avaliacao/resultados.md`](exemplos/avaliacao/resultados.md),
+gerados por `python -m testes.medicoes` (cerca de 25 minutos; `--rapido` para
+conferir o script). Planilha de avaliação, 10 pacientes, mesma rota.
+
+**Esforço e impacto de cada regra (sozinha):**
+
+| Regra | TOML escrito | PDDL alterado | Turno ótimo | Δ |
+|---|---|---|---|---|
+| R1 lancetas | 8 linhas | 27 linhas | 389 min | +3 |
+| R2 termômetro | 13 | 36 | 387 | +1 |
+| R3 balança | 7 | 13 | 388 | +2 |
+| R4 avental | 18 | 60 | 395 | +9 |
+| R5 N95 | 18 | 60 | 389 | +3 |
+| R6 luvas | 17 | 52 | 387 | +1 |
+| R7 algodão | 12 | 41 | 389 | +3 |
+
+Turno ótimo sem regras: 386 min. Cada linha de TOML vira, em média, 3,1
+linhas de PDDL alteradas, espalhadas por até 9 ações (novas e modificadas).
+As sete regras compilam e os sete roteiros passam na conferência.
+
+**O que os números mostram:**
+
+1. **Escrever uma regra é muito mais curto que editar o PDDL:** de 7 a 18
+   linhas de TOML (incluindo os textos do roteiro), contra 13 a 60 linhas de
+   PDDL em vários lugares do domínio.
+2. **No plano ótimo, cada regra custa pouco ao turno:** de 1 a 9 minutos.
+3. **A instanciação com poda resolve o crescimento das combinações:** com
+   as sete regras e as três do Ciclo 2, a original testaria 566 bilhões de
+   combinações; a podada gera 90.545 ações em 1,8 s.
+4. **Achar um plano deixa de ser problema com o Fast Downward:** ele
+   encontra plano em 0,1 s em todos os casos, inclusive com as dez regras
+   juntas (550 min). O planejador do Ciclo 2 não termina a partir de seis
+   regras.
+5. **Achar o plano ÓTIMO continua difícil com muitas regras:** o LM-cut prova
+   o ótimo até R1–R4 (401 min, 31 s) e não termina a partir de R1–R5. E o
+   primeiro plano do Fast Downward fica longe do ótimo quando há várias
+   regras: 429 contra 401 com R1–R4; com sete regras e 3 pacientes, 226
+   contra 156. Somando os acréscimos de cada regra, o ótimo com as sete
+   estaria perto de 408 min, e o melhor plano que temos tem 477 (depois da
+   limpeza). É uma estimativa, porque as regras interagem, mas indica espaço
+   para melhorar a qualidade dos planos.
+
 ### Controle negativo
 
 Para mostrar que o teste detecta diferenças, ele também roda com regras
@@ -388,9 +432,10 @@ python -m unittest discover testes     # inclui uma versão rápida (cerca de 20
           glicemia de gestantes; R7 algodão, 2 na glicemia e 1 na temperatura.
           (A R1 seria "luvas em toda glicemia", mas contradizia a R6 e virou
           lancetas.)
-   4. [ ] Medições: se compila, se o roteiro mostra a tarefa certa, linhas de
-          TOML × linhas de PDDL geradas, quanto o turno cresce, e tempo de
-          planejamento com 0, 3, 5 e 8 regras ativas.
+   4. [x] Medições: se compila, se o roteiro mostra a tarefa certa, linhas de
+          TOML × linhas de PDDL alteradas, quanto o turno cresce, e tempo de
+          planejamento com as regras acumuladas (0 a 7, e 10) e com 1 a 10
+          pacientes ([resultados](exemplos/avaliacao/resultados.md)).
    5. [ ] Teste com alguém que não programa: escrever 2 ou 3 regras pelo
           assistente, medindo tempo e erros.
 
@@ -635,6 +680,7 @@ testes/
   test_instanciacao.py  instanciação podada idêntica à original, e escala
   test_fastdownward.py  Fast Downward (pulados se ele não estiver instalado)
   roteiros_avaliacao.py confere um roteiro contra o esperado de cada regra
+  medicoes.py           medições da avaliação (gera exemplos/avaliacao/resultados.md)
 ```
 
 Para rodar os testes, dentro desta pasta:
