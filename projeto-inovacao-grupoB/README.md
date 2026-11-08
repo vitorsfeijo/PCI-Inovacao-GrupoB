@@ -318,8 +318,12 @@ python -m unittest discover testes     # inclui uma versão rápida (cerca de 20
    1. [x] Extensões: `quantidade` no consumo (um procedimento pode gastar
           mais de uma unidade) e exigência por paciente num procedimento
           (ex.: luvas só na glicemia de gestantes).
-   2. [ ] Planilha de avaliação: cópia da planilha de exemplo com as colunas
-          `exige_avental` e `suspeita_tuberculose`.
+   2. [x] Planilha de avaliação ([`exemplos/avaliacao/`](exemplos/avaliacao/)):
+          cópia da planilha de exemplo com as colunas `gestante` (p3),
+          `suspeita_tuberculose` (p7) e `exige_avental` (p6 e p8), e um JSON
+          companheiro com unidade, recursos e agente. Única alteração clínica:
+          p3 passa a fazer glicemia, para que a regra das luvas em gestantes
+          seja exercitada (documentado no JSON).
    3. [ ] Sete regras novas, todas sintéticas: luvas na glicemia; desinfetar
           o termômetro antes da temperatura; zerar a balança uma vez no turno;
           avental para acamados; N95 para suspeita de tuberculose; luvas só na
