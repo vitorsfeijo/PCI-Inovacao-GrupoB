@@ -140,9 +140,12 @@ class TestComandoPlanejar(unittest.TestCase):
             self.assertTrue((pddl / "problema.pddl").exists())
 
     def test_planilha_de_exemplo(self):
-        codigo, roteiro, info = rodar(str(SINTETICAS), "--orcamento", "240")
+        # mesmo modo de busca do `acsplan roteiro --estrategia astar-hadd` do
+        # Ciclo 2, sem a limpeza (que o Ciclo 2 nao tem): o mesmo turno que ele
+        # da com o dominio estendido
+        codigo, roteiro, info = rodar(str(SINTETICAS), "--orcamento", "240",
+                                      "--estrategia", "astar-hadd", "--sem-limpeza")
         self.assertEqual(codigo, 0, info)
-        # o mesmo turno que o acsplan roteiro do Ciclo 2 da com o dominio estendido
         self.assertIn("6 visitas  |  duração estimada: 262 min", roteiro)
         self.assertIn("ATENÇÃO: excede em 22 min o orçamento de 240 min", roteiro)
 
@@ -173,6 +176,57 @@ class TestComandoPlanejar(unittest.TestCase):
             codigo, _, info = rodar(str(SINTETICAS), "--dados", str(arquivo))
         self.assertEqual(codigo, 1)
         self.assertIn("nenhuma sequência de ações cumpre as regras", info)
+
+
+AVALIACAO = EXEMPLOS / "avaliacao"
+PLANILHA_AVALIACAO = AVALIACAO / "microarea-avaliacao.csv"
+
+
+class TestCorrecoesDaAvaliacao(unittest.TestCase):
+    """Falhas achadas ao testar as regras novas no turno completo."""
+
+    def test_limpeza_retira_equipamento_vestido_a_toa(self):
+        # com h_add, o plano vestia avental em quem nao precisava e ia a UBS
+        # repor; a limpeza retira essas acoes
+        regra = str(AVALIACAO / "regras" / "r4-avental.toml")
+        comum = (regra, "--dados", str(PLANILHA_AVALIACAO), "--sem-selecao",
+                 "--estrategia", "astar-hadd", "--mostrar-plano")
+        _, sujo, _ = rodar(*comum, "--sem-limpeza")
+        codigo, limpo, info = rodar(*comum)
+        self.assertEqual(codigo, 0, info)
+        self.assertIn("ações redundantes retiradas", info)
+        # contado no PLANO: no roteiro, a atribuicao de cada preparo a visita
+        # em que e usado ja esconderia os vestires inuteis (mas nao o tempo)
+        vestir = lambda t: t.split("PLANO COMPLETO")[1].count("vestir-avental(")
+        self.assertGreater(vestir(sujo), 2)
+        self.assertEqual(vestir(limpo), 2)                               # os 2 acamados
+        duracao = lambda t: int(t.split("duração estimada: ")[1].split()[0])
+        self.assertLess(duracao(limpo), duracao(sujo))
+
+    def test_preparo_aparece_onde_e_usado(self):
+        # o plano zera a balanca logo no inicio, mas o roteiro mostra a tarefa
+        # na primeira visita com antropometria
+        codigo, roteiro, info = rodar(str(AVALIACAO / "regras" / "r3-balanca.toml"),
+                                      "--dados", str(PLANILHA_AVALIACAO), "--sem-selecao",
+                                      "--estrategia", "astar-hadd", "--mostrar-plano")
+        self.assertEqual(codigo, 0, info)
+        plano = roteiro.split("PLANO COMPLETO")[1]
+        # o plano zera a balanca antes de chegar a casa da Paciente 10...
+        self.assertLess(plano.index("zerar-balanca"), plano.index("casa-p10"))
+        # ... mas o roteiro mostra a tarefa na visita dela, a primeira pesagem
+        visita = roteiro.split("  3. ")[1].split("\n\n")[0]
+        self.assertIn("Paciente 10", visita)
+        self.assertIn("Zerar a balança portátil", visita)
+        self.assertEqual(roteiro.split("PLANO COMPLETO")[0].count("Zerar a balança"), 1)
+
+    def test_auto_recorre_ao_h_add(self):
+        codigo, _, info = rodar(str(SINTETICAS), "--orcamento", "240", "--limite", "0.02")
+        self.assertIn("buscando com h_add", info)
+
+    def test_auto_e_otimo_quando_h_max_termina(self):
+        codigo, roteiro, info = rodar(str(SINTETICAS), "--instancia-sintetica", "3", "1")
+        self.assertEqual(codigo, 0, info)
+        self.assertIn("astar-hmax, ótimo", info)
 
 
 class TestDespachoDeComandos(unittest.TestCase):

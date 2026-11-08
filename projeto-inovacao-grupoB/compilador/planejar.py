@@ -9,9 +9,11 @@ Equivale ao `acsplan roteiro` do Ciclo 2, com as regras da equipe aplicadas:
     [1] selecao     quem entra no turno (prioridade e atraso, sob orcamento)
     [2] roteamento  em que ordem visitar
     [3] regras      dominio legal + regras compiladas; problema com os fatos
-                    das regras (estoques, marcas dos pacientes)
-    [4] plano       busca no espaco de estados
-    [5] roteiro     o que o ACS recebe
+                    das regras (estoques, marcas dos pacientes); instanciacao
+                    com poda (compilador/instanciacao.py)
+    [4] plano       busca no espaco de estados (padrao: A* com h_max, otimo)
+    [5] limpeza     retira do plano as acoes redundantes (compilador/limpeza.py)
+    [6] roteiro     o que o ACS recebe
 
 Sem arquivo de regras, planeja so com o dominio legal. O resumo de cada
 passo vai para a saida de erro; o roteiro, para a saida padrao (ou para o
@@ -24,18 +26,29 @@ import argparse
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from . import ciclo2, roteiro
+from .instanciacao import TarefaPlanejamentoPodada
+from .limpeza import eliminar_redundantes
 from .dominio import NOME_PADRAO, compilar_dominio
 from .pddl import escrever_pddl
 from .problema import gerar_problema_com_regras
 from .regras import ErroRegra, Regras, avisos, carregar_regras
 
+# Padrao: "auto". A* com h_max e o unico com garantia de plano otimo, mas
+# nao termina em turnos realistas com regras (a planilha de exemplo com as
+# tres regras sinteticas passa de 60 s). A* com h_add e rapido, mas na
+# avaliacao deu turnos 11% mais longos que o otimo sem nenhuma regra, e ate
+# 35% com exigencias na porta; a limpeza do plano reduz isso para ~10%.
+# "auto" tenta h_max na primeira metade do limite e, se o tempo acabar, usa
+# h_add na outra metade, avisando que o plano nao e garantidamente otimo.
 ESTRATEGIAS = {
-    "astar-hmax": "A* com h_max (ótimo, mais lento)",
-    "astar-hadd": "A* com h_add (quase sempre ótimo, mais rápido)",
-    "gbfs": "busca gulosa (mais rápida, plano pode ser mais longo)",
+    "auto": "h_max (ótimo); se não terminar na metade do limite, h_add",
+    "astar-hmax": "A* com h_max (plano ótimo)",
+    "astar-hadd": "A* com h_add (mais rápido, mas o turno pode sair bem mais longo)",
+    "gbfs": "busca gulosa (a mais rápida, plano pode ter ações inúteis)",
 }
 
 
@@ -61,19 +74,34 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument("--distancias", choices=["haversine", "osrm"], default="haversine")
     p.add_argument("--modal", choices=["pe", "carro"], default="pe")
     p.add_argument("--semente", type=int, default=0)
-    p.add_argument("--estrategia", choices=list(ESTRATEGIAS), default="astar-hadd")
+    p.add_argument("--estrategia", choices=list(ESTRATEGIAS), default="auto")
     p.add_argument("--limite", type=float, default=60.0, metavar="S",
                    help="limite de tempo da busca, em segundos")
     p.add_argument("--salvar", metavar="ARQUIVO", help="grava o roteiro em arquivo")
     p.add_argument("--salvar-pddl", metavar="PASTA",
                    help="grava o domínio e o problema compilados nessa pasta")
     p.add_argument("--mostrar-plano", action="store_true",
-                   help="lista também o plano completo, ação por ação")
+                   help="lista também o plano completo (já limpo), ação por ação")
+    p.add_argument("--sem-limpeza", action="store_true",
+                   help="não retira do plano as ações redundantes")
     return p
 
 
 def _info(texto: str = "") -> None:
     print(texto, file=sys.stderr)
+
+
+def _buscar(planejador, tarefa, estrategia: str, limite: float):
+    """Devolve (resultado, estrategia usada)."""
+    if estrategia != "auto":
+        return planejador.resolver(tarefa, estrategia, limite_segundos=limite), estrategia
+    resultado = planejador.resolver(tarefa, "astar-hmax", limite_segundos=limite / 2)
+    if resultado.sucesso or not _interrompida(resultado.motivo):
+        return resultado, "astar-hmax"         # plano otimo, ou impossibilidade provada
+    _info(f"    h_max não terminou em {limite / 2:g} s; buscando com h_add "
+          f"(o plano pode não ser ótimo)")
+    return (planejador.resolver(tarefa, "astar-hadd", limite_segundos=limite / 2),
+            "astar-hadd")
 
 
 def _interrompida(motivo: str) -> bool:
@@ -144,14 +172,17 @@ def main(argv: list[str] | None = None) -> int:
             for problema in erro.problemas:
                 _info(f"Erro: {problema}")
             return 1
-        tarefa = planejador.TarefaPlanejamento(
+        inicio = time.perf_counter()
+        tarefa = TarefaPlanejamentoPodada(
             planejador.carregar_dominio(str(caminho_dominio)),
             planejador.carregar_problema(str(caminho_problema)))
+        segundos_instanciacao = time.perf_counter() - inicio
     if args.salvar_pddl:
         _info(f"    domínio e problema gravados em {args.salvar_pddl}{os.sep}")
 
-    _info(f"[3] Busca: {ESTRATEGIAS[args.estrategia]}, limite de {args.limite:g} s")
-    resultado = planejador.resolver(tarefa, args.estrategia, limite_segundos=args.limite)
+    _info(f"[3] Instanciação: {len(tarefa.acoes)} ações em {segundos_instanciacao:.1f} s")
+    _info(f"    Busca: {ESTRATEGIAS[args.estrategia]}, limite de {args.limite:g} s")
+    resultado, usada = _buscar(planejador, tarefa, args.estrategia, args.limite)
     if not resultado.sucesso:
         _info("")
         if _interrompida(resultado.motivo):
@@ -166,13 +197,26 @@ def main(argv: list[str] | None = None) -> int:
             _info(f"Motivo informado pelo planejador: {resultado.motivo}")
             _info("Reveja a seleção de pacientes, os recursos ou as regras.")
         return 1
+    garantia = "ótimo" if usada == "astar-hmax" else "sem garantia de ser ótimo"
     _info(f"[4] Plano: {resultado.tamanho} ações, {resultado.custo} min "
-          f"({resultado.segundos:.1f} s de busca)")
+          f"({resultado.segundos:.1f} s de busca, {usada}, {garantia})")
 
-    # [5] roteiro
+    # [5] limpeza do plano
     custos = {acao.assinatura: acao.custo for acao in tarefa.acoes}
-    paradas = roteiro.montar(resultado.plano, dados, custos, roteiro.legenda_para(regras))
-    texto = roteiro.imprimir(paradas, dados, custo_total=resultado.custo,
+    plano = resultado.plano
+    if not args.sem_limpeza:
+        plano = eliminar_redundantes(tarefa, resultado.plano)
+        retiradas = len(resultado.plano) - len(plano)
+        if retiradas:
+            _info(f"[5] Limpeza: {retiradas} ações redundantes retiradas, "
+                  f"{resultado.custo} -> {sum(custos[p] for p in plano)} min")
+        else:
+            _info("[5] Limpeza: nenhuma ação redundante")
+    custo_total = sum(custos[passo] for passo in plano)
+
+    # [6] roteiro
+    paradas = roteiro.montar(plano, dados, custos, roteiro.legenda_para(regras))
+    texto = roteiro.imprimir(paradas, dados, custo_total=custo_total,
                              orcamento=args.orcamento)
     _info("")
     if args.salvar:
@@ -183,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.mostrar_plano:
         print("\nPLANO COMPLETO (representação interna)")
-        for numero, passo in enumerate(resultado.plano, start=1):
+        for numero, passo in enumerate(plano, start=1):
             print(f"  {numero:>3}. {passo}")
     return 0
 

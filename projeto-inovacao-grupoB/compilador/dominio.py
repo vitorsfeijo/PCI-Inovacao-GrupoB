@@ -379,16 +379,53 @@ def _dividir_procedimento(arvore: list, nomes: list[str], e, estado: str) -> lis
     return novos
 
 
-def versoes_de_procedimentos(regras: Regras) -> dict[str, str]:
+def versoes_detalhadas(regras: Regras) -> dict[str, tuple[str, frozenset[str]]]:
     """
-    Nome de cada versao criada por exigencias com `antes_de` -> acao original.
-    Segue a mesma ordem de `compilar_dominio`; o roteiro usa para mostrar
-    todas as versoes com o texto do procedimento original.
+    Cada versao de procedimento -> (acao original, exigencias que ela cumpre).
+    Inclui a propria acao original, com o conjunto vazio. Segue a mesma ordem
+    de `compilar_dominio`.
     """
-    versoes: dict[str, list[str]] = {}
+    versoes: dict[str, list[tuple[str, frozenset[str]]]] = {}
     for e in regras.exigencias:
         for procedimento in e.antes_de:
             base = PROCEDIMENTOS[procedimento]
-            nomes = versoes.setdefault(base, [base])
-            nomes.extend([f"{nome}-{e.nome}" for nome in list(nomes)])
-    return {nome: base for base, nomes in versoes.items() for nome in nomes if nome != base}
+            lista = versoes.setdefault(base, [(base, frozenset())])
+            lista.extend([(f"{nome}-{e.nome}", cumpre | {e.nome})
+                          for nome, cumpre in list(lista)])
+    return {nome: (base, cumpre)
+            for base, lista in versoes.items() for nome, cumpre in lista}
+
+
+def versoes_de_procedimentos(regras: Regras) -> dict[str, str]:
+    """
+    Nome de cada versao criada por exigencias com `antes_de` -> acao original.
+    O roteiro usa para mostrar todas as versoes com o texto do original.
+    """
+    return {nome: base for nome, (base, _) in versoes_detalhadas(regras).items()
+            if nome != base}
+
+
+def acoes_que_exigem(regras: Regras) -> dict[str, set[str]]:
+    """
+    Preparo -> acoes do dominio compilado que exigem o estado dele: os
+    procedimentos do pre-requisito (C), em todas as versoes; a conferencia na
+    porta das exigencias de visita; e as versoes de procedimento das
+    exigencias com `antes_de` que o cumprem.
+    """
+    detalhes = versoes_detalhadas(regras)
+    versoes_de: dict[str, list[str]] = {}
+    for nome, (base, _) in detalhes.items():
+        versoes_de.setdefault(base, []).append(nome)
+
+    exigem: dict[str, set[str]] = {p.nome: set() for p in regras.preparos}
+    for p in regras.preparos:
+        for procedimento in p.exigido_antes_de:
+            base = PROCEDIMENTOS[procedimento]
+            exigem[p.nome].update(versoes_de.get(base, [base]))
+    for e in regras.exigencias:
+        if e.no_inicio_da_visita:
+            exigem[e.preparo].add(e.acao_exigida)
+        else:
+            exigem[e.preparo].update(nome for nome, (_, cumpre) in detalhes.items()
+                                     if e.nome in cumpre)
+    return exigem

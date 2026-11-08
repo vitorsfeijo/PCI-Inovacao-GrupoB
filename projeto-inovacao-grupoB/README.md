@@ -276,6 +276,46 @@ pacientes, 5 sementes, com o álcool do exemplo e com álcool para só 2 casas,
 caso em que 11 planos precisam de reposição na UBS). O teste continua no
 relatório, porque isola a higienização.
 
+### Teste do roteiro com as regras novas
+
+Cada uma das sete regras da avaliação foi planejada no turno completo da
+planilha de avaliação (10 pacientes), e o roteiro foi conferido contra o que
+cada regra deveria produzir (`python -m testes.roteiros_avaliacao`). O teste
+revelou quatro falhas, todas corrigidas:
+
+| Falha | Causa | Correção |
+|---|---|---|
+| Regras combinadas não rodavam | instanciação do Ciclo 2 gera todas as combinações de parâmetros: 4,7 bilhões com as sete regras | instanciação com poda, resultado idêntico: 9.449 ações em 0,2 s |
+| Turnos até 35% mais longos que o ótimo, com avental e N95 em quem não precisava | estratégia padrão `h_add`, escolhida por mim; sem garantia de ótimo | padrão `auto` (`h_max`, ou `h_add` se o tempo acabar) |
+| Ações inúteis no plano (5 aventais para 2 acamados, 4 idas à UBS) | idem | limpeza do plano: −10 ações e −81 min nesse caso |
+| "Zerar a balança" na visita de quem não é pesado | o plano zera a qualquer momento antes do uso | o roteiro mostra cada preparo na visita em que é usado |
+
+Com as correções, as sete regras passam na conferência, sozinhas e todas
+juntas.
+
+**Limite encontrado: a busca não escala com muitas regras.** Resolvida a
+instanciação, o gargalo passa a ser o espaço de estados: cada regra
+acrescenta um estoque ou um equipamento vestido, e eles se combinam ao longo
+das visitas. Com as sete regras, por número de pacientes no turno:
+
+| Pacientes | Tempo de busca (`h_add`) |
+|---|---|
+| 1 | < 1 s (cada um dos 5 marcados) |
+| 2 | 0,4 a 3,6 s |
+| 3 | 9 a 23 s |
+| 5 | não termina em 10 min (nem a busca gulosa) |
+| 10 | não termina em 2 min |
+
+E, no turno de 10 pacientes, acrescentando as regras uma a uma: R1 0,6 s;
+R1–R3 2,5 s; R1–R4 6,5 s; R1–R5 35 s; seis ou mais, mais de 2 min. Não é
+impossibilidade: todos os turnos pequenos têm plano, a R6 combinada com cada
+outra regra planeja em ~2 s, e as seis regras sem a R6 também esbarram no
+limite. É o planejador didático do Ciclo 2 (busca em Python com `h_max` e
+`h_add`) que não dá conta. Como a ordem das visitas já vem fixa do
+roteirizador, um caminho é planejar visita por visita, carregando só os
+estoques de uma para a outra; outro é um planejador mais forte (Fast
+Downward, que o planejador do Ciclo 2 já sabe chamar para verificação cruzada).
+
 ### Controle negativo
 
 Para mostrar que o teste detecta diferenças, ele também roda com regras
@@ -324,11 +364,14 @@ python -m unittest discover testes     # inclui uma versão rápida (cerca de 20
           companheiro com unidade, recursos e agente. Única alteração clínica:
           p3 passa a fazer glicemia, para que a regra das luvas em gestantes
           seja exercitada (documentado no JSON).
-   3. [ ] Sete regras novas, todas sintéticas: luvas na glicemia; desinfetar
-          o termômetro antes da temperatura; zerar a balança uma vez no turno;
-          avental para acamados; N95 para suspeita de tuberculose; luvas só na
-          glicemia de gestantes; um procedimento gastando 2 unidades de um
-          estoque que outro gasta 1.
+   3. [x] Sete regras novas, todas sintéticas, em
+          [`exemplos/avaliacao/regras/`](exemplos/avaliacao/regras/): R1
+          lancetas na glicemia; R2 desinfetar o termômetro antes da
+          temperatura; R3 zerar a balança uma vez no turno; R4 avental para
+          acamados; R5 N95 para suspeita de tuberculose; R6 luvas só na
+          glicemia de gestantes; R7 algodão, 2 na glicemia e 1 na temperatura.
+          (A R1 seria "luvas em toda glicemia", mas contradizia a R6 e virou
+          lancetas.)
    4. [ ] Medições: se compila, se o roteiro mostra a tarefa certa, linhas de
           TOML × linhas de PDDL geradas, quanto o turno cresce, e tempo de
           planejamento com 0, 3, 5 e 8 regras ativas.
@@ -431,9 +474,34 @@ original tem os textos fixos no código e não mostraria ações criadas por
 regras novas. Os minutos vêm do custo de cada ação do plano, então o total bate
 com o custo do plano.
 
-Com a planilha de exemplo e `--orcamento 240`, o roteiro sai igual ao do
+Com a planilha de exemplo, `--orcamento 240` e o mesmo modo de busca
+(`--estrategia astar-hadd --sem-limpeza`), o roteiro sai igual ao do
 `acsplan roteiro --dominio estendido` do Ciclo 2: as mesmas 6 visitas, na mesma
 ordem, com 262 minutos e o mesmo alerta de orçamento.
+
+Três etapas foram acrescentadas depois que o teste do roteiro com as regras
+da avaliação revelou falhas (detalhes na seção de avaliação):
+
+- **Instanciação com poda** (`compilador/instanciacao.py`). O planejador do
+  Ciclo 2 gera todas as combinações de objetos para os parâmetros de cada ação
+  e só depois descarta as inválidas; cada recurso gasto numa ação multiplica
+  isso. Com as sete regras, eram 4,7 bilhões de combinações. A versão podada
+  liga os parâmetros um a um e testa cada precondição fixa assim que pode: as
+  mesmas 9.449 ações, em 0,2 s. O resultado é **idêntico** ao original (mesmas
+  ações, mesma ordem), o que os testes conferem. A cópia do Ciclo 2 não muda:
+  é uma subclasse que troca só esse método.
+- **Busca `auto`** (padrão). `h_max` dá o plano ótimo mas não termina em turnos
+  realistas com regras; `h_add` termina, mas fez turnos 11% mais longos que o
+  ótimo sem nenhuma regra e até 35% com exigências na porta. O `auto` tenta
+  `h_max` na metade do limite e, se não der, usa `h_add`, avisando.
+- **Limpeza do plano** (`compilador/limpeza.py`): retira ações redundantes
+  (*action elimination*). Com `h_add`, o plano da regra do avental vestia
+  avental 5 vezes para 2 acamados e ia 4 vezes à UBS repor sem necessidade; a
+  limpeza tira 10 ações e 81 minutos.
+
+E, no roteiro, cada preparo criado por regra aparece na visita em que é
+**usado**: zerar a balança aparece na primeira pesagem, mesmo que o plano o
+tenha feito antes.
 
 | Opção | Padrão | O que faz |
 |---|---|---|
@@ -441,11 +509,12 @@ ordem, com 262 minutos e o mesmo alerta de orçamento.
 | `--instancia-sintetica N SEMENTE` | — | microárea sorteada, em vez da planilha |
 | `--orcamento MIN`, `--max-pacientes`, `--sem-selecao` | — | seleção de quem entra no turno |
 | `--metodo`, `--distancias`, `--modal`, `--semente`, `--sem-precedencia` | como no Ciclo 2 | roteirização |
-| `--estrategia` | `astar-hadd` | busca: `astar-hmax` (ótimo, mais lento), `astar-hadd` ou `gbfs` |
+| `--estrategia` | `auto` | `auto` (`h_max`, ou `h_add` se o tempo acabar), `astar-hmax` (ótimo), `astar-hadd` ou `gbfs` |
 | `--limite S` | 60 | limite de tempo da busca |
 | `--salvar ARQUIVO` | — | grava o roteiro em vez de imprimir |
 | `--salvar-pddl PASTA` | — | grava o domínio e o problema compilados |
-| `--mostrar-plano` | — | lista o plano completo, ação por ação |
+| `--mostrar-plano` | — | lista o plano completo (já limpo), ação por ação |
+| `--sem-limpeza` | — | não retira as ações redundantes do plano |
 
 O resumo de cada passo vai para a saída de erro e o roteiro para a saída
 padrão, então `... > roteiro.txt` grava só o roteiro. Quando não há roteiro, a
@@ -525,6 +594,8 @@ compilador/
   ciclo2.py      caminhos e acesso à cópia do Ciclo 2 (acsplan/)
   planejar.py    comando planejar: turno inteiro com as regras
   roteiro.py     roteiro do ACS, com os textos das regras
+  instanciacao.py  instanciação com poda (resultado idêntico ao do Ciclo 2)
+  limpeza.py     retira ações redundantes do plano
   __main__.py    linha de comando
 acsplan/         cópia parcial, sem alterações, do pacote do Ciclo 2 (ver LEIAME.md)
 exemplos/
@@ -537,6 +608,8 @@ testes/
   test_assistente.py    sessões do assistente com respostas programadas
   test_planejar.py      roteiro e comando planejar
   test_extensoes.py     quantidade no consumo e exigência antes de procedimento
+  test_instanciacao.py  instanciação podada idêntica à original, e escala
+  roteiros_avaliacao.py confere um roteiro contra o esperado de cada regra
 ```
 
 Para rodar os testes, dentro desta pasta:

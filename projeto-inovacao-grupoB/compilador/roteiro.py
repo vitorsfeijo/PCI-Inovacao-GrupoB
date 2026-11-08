@@ -22,7 +22,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .dominio import versoes_de_procedimentos
+from .dominio import acoes_que_exigem, versoes_de_procedimentos
 from .regras import Regras
 
 # Acoes do dominio legal que viram tarefa, e a ordem de trabalho de cada uma.
@@ -67,6 +67,9 @@ class Legenda:
     ocultas: set[str] = field(default_factory=set)
     # acoes sem paciente que pertencem a proxima visita (preparacao para ela)
     preparacao: set[str] = field(default_factory=set)
+    # acao -> preparos cujo estado ela exige (para mostrar cada preparo na
+    # visita em que ele e usado, e nao na proxima visita qualquer)
+    exige_preparos: dict[str, set[str]] = field(default_factory=dict)
 
 
 def legenda_para(regras: Regras) -> Legenda:
@@ -91,6 +94,9 @@ def legenda_para(regras: Regras) -> Legenda:
 
     legenda.preparacao = ({"acionar-supervisao", DESVIO} | set(legenda.reposicoes)
                           | {p.nome for p in regras.preparos})
+    for preparo, acoes in acoes_que_exigem(regras).items():
+        for acao in acoes:
+            legenda.exige_preparos.setdefault(acao, set()).add(preparo)
     return legenda
 
 
@@ -109,8 +115,13 @@ def montar(plano: list[str], dados: dict, custos: dict[str, int],
 
     Regra de atribuicao, a mesma do Ciclo 2: toda acao que menciona um
     paciente pertence a ele; as acoes de preparacao sem paciente (acionar
-    supervisao, preparos, desvios, reposicoes) pertencem ao paciente da
-    proxima acao que mencione um, porque preparam o atendimento seguinte.
+    supervisao, desvios, reposicoes) pertencem ao paciente da proxima acao
+    que mencione um, porque preparam o atendimento seguinte.
+
+    Preparos criados por regras sao a excecao: pertencem ao paciente da
+    proxima acao que EXIGE o estado deles. Um preparo que vale o turno todo
+    (ex.: zerar a balanca) pode ser feito pelo planejador em qualquer momento
+    antes do uso; sem esta regra, apareceria na visita de quem nem precisa.
     """
     por_id = {p["id"]: p for p in dados["pacientes"]}
 
@@ -123,11 +134,14 @@ def montar(plano: list[str], dados: dict, custos: dict[str, int],
         eventos.append({"nome": nome, "minutos": minutos, "dono": dono})
 
     seguinte: str | None = None
+    proximo_uso: dict[str, str] = {}       # preparo -> paciente do proximo uso
     for evento in reversed(eventos):
         if evento["dono"] is not None:
             seguinte = evento["dono"]
+            for preparo in legenda.exige_preparos.get(evento["nome"], ()):
+                proximo_uso[preparo] = evento["dono"]
         elif evento["nome"] in legenda.preparacao:
-            evento["dono"] = seguinte
+            evento["dono"] = proximo_uso.get(evento["nome"], seguinte)
 
     paradas: list[dict] = []
     indice: dict[str, dict] = {}
