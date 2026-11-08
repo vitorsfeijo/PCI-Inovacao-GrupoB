@@ -18,7 +18,7 @@ São 11 slides organizados em **Problema → Solução → Exemplos → Próximo
 
 ## 1. Capa
 
-“Somos o Grupo C. Vamos continuar um projeto que o Grupo B desenvolveu no ciclo anterior: um assistente para organizar o turno de visitas domiciliares do agente comunitário de saúde. Hoje queremos mostrar qual problema ele tenta resolver e como, e principalmente ouvir de vocês se esse problema é real.”
+“Somos o Grupo B deste ciclo. Vamos continuar o projeto que o Grupo B do ciclo anterior desenvolveu: um assistente para organizar o turno de visitas domiciliares do agente comunitário de saúde. Hoje queremos mostrar qual problema ele tenta resolver e como, e principalmente ouvir de vocês se esse problema é real.”
 
 ## 2. Um turno de visitas do ACS
 
@@ -90,13 +90,13 @@ Ele recebe três tipos de informação: as famílias com suas prioridades e atra
 
 ## 10. O que queremos aprender com vocês
 
-“Para fechar, três perguntas. Como o turno de visitas é organizado hoje? O que mais atrapalha uma visita planejada? E o que tornaria um roteiro como esse útil de verdade? É a partir desta conversa que vamos definir a inovação do Grupo C neste ciclo.”
+“Para fechar, três perguntas. Como o turno de visitas é organizado hoje? O que mais atrapalha uma visita planejada? E o que tornaria um roteiro como esse útil de verdade? É a partir desta conversa que vamos definir a nossa inovação neste ciclo.”
 
 **Condução:** deixar este slide projetado durante a conversa. Anotar as situações, como a equipe resolve hoje e o que indicaria que uma melhoria foi útil. Não pedir nomes nem dados identificáveis de pacientes.
 
 ## 11. Encerramento e créditos
 
-“O projeto original é do Grupo B. Nós, do Grupo C, vamos levá-lo adiante. Obrigado!”
+“O projeto original é do Grupo B do Ciclo 2. Nós, o Grupo B do Ciclo 3, vamos levá-lo adiante. Obrigado!”
 
 Créditos completos: projeto original de Gabriel Pieruccini Knopp, Arthur Andrade da Silva e Izadora Candotti de Oliveira. Apresentação e próximo ciclo por Luis Henrique Caselani Macedo Junior, Manuela Cristina Zen Dalmonte e Vítor Santana Feijó.
 
