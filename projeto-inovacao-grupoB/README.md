@@ -5,8 +5,8 @@ Luis Henrique Caselani Macedo Junior · Manuela Cristina Zen Dalmonte · Vítor 
 
 Continuação do projeto do Grupo B do Ciclo 2, em [`../PCI-Saude-GroupB`](../PCI-Saude-GroupB).
 
-> **Estado:** etapas 1 e 2 concluídas. O compilador já gera domínio e problema
-> para os modelos A, B e C; as demais etapas estão na lista abaixo.
+> **Estado:** etapas 1 a 3 concluídas. O compilador já gera domínio e problema
+> para os modelos A, B e C, com validação; as demais etapas estão na lista abaixo.
 
 ---
 
@@ -127,14 +127,40 @@ legal, para que ninguém precise conhecer os nomes internos do PDDL:
 ## Validação
 
 O compilador recusa regras malformadas com **mensagens em português** que
-dizem o que está errado e qual é o valor válido. Por exemplo:
+dizem o que está errado e qual é o valor aceito. Ele relata **todos os
+problemas de uma vez**, para que quem escreveu a regra corrija tudo antes de
+rodar de novo:
 
-- o preparo `higienizar-maos` consome `alcool`, mas não há recurso com esse nome;
-- o procedimento `glicose` não existe; os válidos são `pressao`, `glicemia`, …;
-- dois recursos com o mesmo nome;
-- capacidade menor que 1.
+```
+Não foi possível compilar regras.toml. 3 problemas encontrados:
+  1. recurso "Álcool Gel", campo 'nome': "Álcool Gel" não serve como nome. Use só
+     letras minúsculas sem acento e números, com hífen entre as palavras, começando
+     por letra (ex.: "maos-higienizadas"). Sugestão: "alcool-gel".
+  2. recurso "Álcool Gel", campo 'capacidade': deve ser um número inteiro, sem
+     aspas. Recebido: '6'
+  3. preparo "higienizar-maos", campo 'exigido_antes_de': procedimento(s)
+     inexistente(s): 'glicose'. Os aceitos são: pressao, glicemia, temperatura, ...
+```
 
-O assistente usa as mesmas validações, campo a campo.
+A validação acontece em três níveis:
+
+| Nível | O que confere | Onde |
+|---|---|---|
+| Campo | formato, tipo e faixa de cada valor; campos que faltam ou não existem | `regras.py`, funções `validar_*` |
+| Regras entre si | nomes repetidos, preparo que consome recurso não declarado | `regras.py`, `ler_regras` |
+| Regras e domínio | nome (ou nome derivado, como `repor-alcool`) já usado pelo domínio | `dominio.py` |
+
+Erros de formato do TOML aparecem com linha e coluna. Os validadores de campo
+devolvem a mensagem ou nada, para o assistente interativo reaproveitá-los
+campo a campo.
+
+Além dos erros, há **avisos**, que não impedem a compilação, para regras
+válidas que provavelmente não fazem o que se espera:
+
+- recurso que nenhum preparo consome (não muda nenhum plano);
+- preparo sem `exigido_antes_de` (o planejador nunca vai fazê-lo);
+- preparo exigido que não é desfeito ao sair (basta uma vez no turno inteiro);
+- arquivo sem nenhuma regra.
 
 ## Como saberemos que funciona
 
@@ -157,7 +183,7 @@ completa vem com D e E.
 1. [x] Compilador do domínio para os modelos A, B e C.
 2. [x] Geração dos fatos do problema a partir das regras, sobre o problema
        que o Ciclo 2 gera para o domínio legal.
-3. [ ] Validação com mensagens em português.
+3. [x] Validação com mensagens em português.
 4. [ ] Teste de equivalência da higienização.
 5. [ ] Assistente interativo que gera o TOML.
 6. [ ] Modelos D e E e teste de equivalência completo.
@@ -225,6 +251,14 @@ compilador/
   __main__.py    linha de comando
 exemplos/
   higienizacao.toml   regra sintética da higienização, como no Ciclo 2
+testes/
+  test_compilador.py  leitura, validação, avisos, domínio e problema
+```
+
+Para rodar os testes, dentro desta pasta:
+
+```bash
+python -m unittest discover testes
 ```
 
 ## Observações

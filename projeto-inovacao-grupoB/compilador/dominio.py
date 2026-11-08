@@ -43,7 +43,7 @@ def _secao(arvore: list, chave: str) -> list:
     for item in arvore[2:]:
         if isinstance(item, list) and item and item[0] == chave:
             return item
-    raise ErroRegra(f"o dominio de entrada nao tem a secao {chave}")
+    raise ErroRegra(f"o domínio de entrada não tem a seção {chave}")
 
 
 def _acoes(arvore: list) -> dict[str, list]:
@@ -72,7 +72,8 @@ def _variavel_do_tipo(acao: list, tipo: str) -> str:
         if token == tipo and pendentes:
             return pendentes[0]
         pendentes = []
-    raise ErroRegra(f"a acao '{acao[1]}' nao tem parametro do tipo {tipo}")
+    raise ErroRegra(f"a ação \"{acao[1]}\" do domínio de entrada não tem "
+                    f"parâmetro do tipo {tipo}")
 
 
 def _como_and(expressao: list) -> list:
@@ -105,44 +106,56 @@ def _custo(minutos: int) -> list:
 # ----------------------------------------------------------------------------
 
 def _conferir(arvore: list, regras: Regras) -> None:
+    """Confere as regras contra o dominio. Acumula todos os problemas."""
+    erros: list[str] = []
     predicados = {p[0] for p in _secao(arvore, ":predicates")[1:]}
     acoes = _acoes(arvore)
     nomes_recursos = [r.nome for r in regras.recursos]
+    gerados: dict[str, str] = {}
 
-    novos_predicados: dict[str, str] = {}
-    novas_acoes: dict[str, str] = {}
-
-    def reservar(nome: str, tabela: dict, existentes, tipo: str, dono: str) -> None:
-        if nome in existentes:
-            raise ErroRegra(f"{dono}: o nome '{nome}' ja existe no dominio como "
-                            f"{tipo}. Escolha outro nome")
-        if nome in tabela:
-            raise ErroRegra(f"{dono}: o nome '{nome}' ja foi usado por {tabela[nome]}")
-        tabela[nome] = dono
+    def reservar(nome: str, dono: str, escrito: str) -> None:
+        # `escrito` e o nome como aparece na regra; `nome` pode ser derivado
+        # dele (ex.: recurso "alcool" gera "repor-alcool").
+        if nome == escrito:
+            sujeito = f'o nome "{nome}"'
+        else:
+            sujeito = f'gera o nome "{nome}", que'
+        if nome in predicados or nome in acoes:
+            erros.append(f"{dono}: {sujeito} já é usado pelo domínio de entrada "
+                         f"(lei ou Ciclo 2). Escolha outro nome")
+        elif nome in gerados and gerados[nome] != dono:
+            erros.append(f"{dono}: {sujeito} coincide com um nome gerado por "
+                         f"{gerados[nome]}")
+        else:
+            gerados[nome] = dono
 
     for r in regras.recursos:
-        dono = f"recurso '{r.nome}'"
-        reservar(r.predicado, novos_predicados, predicados, "predicado", dono)
-        reservar(r.predicado_maximo, novos_predicados, predicados, "predicado", dono)
-        reservar(r.acao_reposicao, novas_acoes, acoes, "acao", dono)
+        dono = f"recurso \"{r.nome}\""
+        reservar(r.predicado, dono, r.nome)
+        reservar(r.predicado_maximo, dono, r.nome)
+        reservar(r.acao_reposicao, dono, r.nome)
 
     for p in regras.preparos:
-        dono = f"preparo '{p.nome}'"
-        reservar(p.estado, novos_predicados, predicados, "predicado", dono)
-        reservar(p.nome, novas_acoes, acoes, "acao", dono)
+        dono = f"preparo \"{p.nome}\""
+        reservar(p.nome, dono, p.nome)
+        reservar(p.estado, f"{dono}, campo 'estado'", p.estado)
         if p.consome is not None and p.consome not in nomes_recursos:
-            disponiveis = ", ".join(nomes_recursos) or "nenhum recurso declarado"
-            raise ErroRegra(f"{dono}: consome '{p.consome}', mas nao ha recurso com "
-                            f"esse nome. Recursos declarados: {disponiveis}")
+            declarados = ", ".join(nomes_recursos) or "nenhum"
+            erros.append(f"{dono}: consome \"{p.consome}\", mas não há recurso com "
+                         f"esse nome. Recursos declarados: {declarados}")
         for procedimento in p.exigido_antes_de:
-            if PROCEDIMENTOS[procedimento] not in acoes:
-                raise ErroRegra(f"{dono}: o dominio de entrada nao tem a acao "
-                                f"'{PROCEDIMENTOS[procedimento]}'")
+            acao = PROCEDIMENTOS.get(procedimento)
+            if acao not in acoes:
+                erros.append(f"{dono}: o domínio de entrada não tem a ação "
+                             f"\"{acao or procedimento}\", ligada ao procedimento "
+                             f"\"{procedimento}\"")
         if p.desfeito_ao_sair:
             for nome in ACOES_DE_SAIDA:
                 if nome not in acoes:
-                    raise ErroRegra(f"{dono}: o dominio de entrada nao tem a acao "
-                                    f"'{nome}', necessaria para 'desfeito_ao_sair'")
+                    erros.append(f"{dono}: o domínio de entrada não tem a ação "
+                                 f"\"{nome}\", necessária para 'desfeito_ao_sair'")
+    if erros:
+        raise ErroRegra(erros)
 
 
 # ----------------------------------------------------------------------------

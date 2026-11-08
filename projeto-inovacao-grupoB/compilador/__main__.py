@@ -21,7 +21,26 @@ from . import ciclo2
 from .dominio import NOME_PADRAO, compilar_dominio
 from .pddl import escrever_pddl
 from .problema import compilar_problema
-from .regras import ErroRegra, carregar_regras
+from .regras import ErroRegra, avisos, carregar_regras
+
+
+def _ler_pddl(caminho: str) -> list:
+    try:
+        return ciclo2.planejador().ler_sexp(caminho)
+    except FileNotFoundError:
+        raise ErroRegra(f"o arquivo {caminho} não foi encontrado") from None
+    except SyntaxError as erro:
+        raise ErroRegra(f"o arquivo {caminho} não é um PDDL válido ({erro})") from None
+
+
+def _relatar_erros(caminho: str, problemas: list[str]) -> None:
+    if len(problemas) == 1:
+        print(f"Não foi possível compilar {caminho}: {problemas[0]}", file=sys.stderr)
+        return
+    print(f"Não foi possível compilar {caminho}. "
+          f"{len(problemas)} problemas encontrados:", file=sys.stderr)
+    for numero, problema in enumerate(problemas, start=1):
+        print(f"  {numero}. {problema}", file=sys.stderr)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -43,15 +62,18 @@ def main(argv: list[str] | None = None) -> int:
     if bool(args.problema) != bool(args.saida_problema):
         parser.error("--problema e --saida-problema devem ser usados juntos")
 
-    ler = ciclo2.planejador().ler_sexp
     try:
         regras = carregar_regras(args.regras)
-        dominio = compilar_dominio(ler(args.dominio), regras, nome=args.nome)
-        problema = (compilar_problema(ler(args.problema), regras, nome_dominio=args.nome)
+        dominio = compilar_dominio(_ler_pddl(args.dominio), regras, nome=args.nome)
+        problema = (compilar_problema(_ler_pddl(args.problema), regras,
+                                      nome_dominio=args.nome)
                     if args.problema else None)
     except ErroRegra as erro:
-        print(f"Erro na regra: {erro}", file=sys.stderr)
+        _relatar_erros(args.regras, erro.problemas)
         return 1
+
+    for aviso_regra in avisos(regras):
+        print(f"Aviso: {aviso_regra}", file=sys.stderr)
 
     resumo = [
         f"Regras: {Path(args.regras).name}",
