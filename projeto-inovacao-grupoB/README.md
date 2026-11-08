@@ -5,9 +5,10 @@ Luis Henrique Caselani Macedo Junior · Manuela Cristina Zen Dalmonte · Vítor 
 
 Continuação do projeto do Grupo B do Ciclo 2, em [`../PCI-Saude-GroupB`](../PCI-Saude-GroupB).
 
-> **Estado:** etapas 1 a 4 concluídas. O compilador gera domínio e problema
+> **Estado:** etapas 1 a 5 concluídas. O compilador gera domínio e problema
 > para os modelos A, B e C, com validação, e reproduz a higienização do domínio
-> estendido do Ciclo 2; as demais etapas estão na lista abaixo.
+> estendido do Ciclo 2. As regras podem ser escritas à mão ou pelo assistente
+> interativo. As demais etapas estão na lista abaixo.
 
 ---
 
@@ -217,7 +218,7 @@ A equivalência com o domínio estendido **completo** vem com os modelos D e E.
        que o Ciclo 2 gera para o domínio legal.
 3. [x] Validação com mensagens em português.
 4. [x] Teste de equivalência da higienização.
-5. [ ] Assistente interativo que gera o TOML.
+5. [x] Assistente interativo que gera o TOML.
 6. [ ] Modelos D e E e teste de equivalência completo.
 7. [ ] Integração com a linha de comando do `acsplan` e texto legível das
        ações novas no roteiro do ACS.
@@ -234,7 +235,41 @@ A equivalência com o domínio estendido **completo** vem com os modelos D e E.
 
 ## Como usar
 
+### Escrevendo as regras pelo assistente
+
 Dentro desta pasta:
+
+```bash
+python -m compilador.assistente minhas-regras.toml
+```
+
+O assistente pergunta o que adicionar (recurso ou preparo) e depois cada
+campo, com explicação. Um trecho da conversa:
+
+```
+Novo RECURSO: um estoque finito que só é reposto na UBS (ex.: álcool, máscaras).
+Nome do recurso: Álcool Gel
+  Nomes precisam ser em minúsculas, sem acento nem espaço. Usar "alcool-gel"? [S/n]: s
+Quantas unidades o ACS leva por carga: seis
+  ! digite um número inteiro. Recebido: "seis"
+Quantas unidades o ACS leva por carga: 4
+Quantos minutos leva para repor na UBS [3]:
+```
+
+- Cada resposta é validada na hora; uma resposta inválida faz a mesma pergunta
+  de novo. Nomes já usados pelo domínio ou por outra regra são recusados
+  quando digitados.
+- O recurso consumido e os procedimentos exigidos são escolhidos por número,
+  numa lista com o nome legível de cada procedimento.
+- Se o arquivo já existe, as regras novas são **acrescentadas ao fim**, sem
+  apagar o que estava lá (inclusive comentários).
+- No fim, as regras passam pela conferência do compilador antes de serem
+  gravadas, e os avisos são mostrados. Ctrl+C cancela sem gravar nada.
+
+O arquivo gravado é um TOML comum, com um comentário explicando cada campo, e
+pode ser editado à mão depois.
+
+### Compilando
 
 ```bash
 # imprime o domínio compilado
@@ -275,7 +310,8 @@ nome_dominio=...)`, que gera o problema legal e aplica as regras de uma vez.
 
 ```
 compilador/
-  regras.py      leitura do TOML e conferência de cada campo
+  regras.py      leitura e escrita do TOML, conferência de cada campo
+  assistente.py  assistente interativo que grava o TOML
   dominio.py     aplica os modelos sobre a árvore do domínio
   problema.py    acrescenta ao problema os fatos que as regras exigem
   pddl.py        escreve a árvore (domínio ou problema) como PDDL legível
@@ -287,6 +323,7 @@ testes/
   test_compilador.py    leitura, validação, avisos, domínio e problema
   equivalencia.py       projeção do estendido e comparação (também roda sozinho)
   test_equivalencia.py  equivalência da higienização e controle negativo
+  test_assistente.py    sessões do assistente com respostas programadas
 ```
 
 Para rodar os testes, dentro desta pasta:

@@ -39,6 +39,30 @@ PROCEDIMENTOS = {
     "vacinal": "verificar-caderneta-vacinal",
 }
 
+# Como cada procedimento aparece para quem escreve a regra.
+DESCRICAO_PROCEDIMENTOS = {
+    "pressao": "aferir pressão arterial",
+    "glicemia": "medir glicemia capilar",
+    "temperatura": "aferir temperatura axilar",
+    "medicacao": "orientar a administração de medicação",
+    "antropometria": "verificação antropométrica (peso e altura)",
+    "vacinal": "verificar a caderneta de vacinação",
+}
+
+# Explicacao curta de cada campo: usada nas perguntas do assistente e nos
+# comentarios do TOML que ele grava.
+DESCRICAO_CAMPOS = {
+    ("recurso", "nome"): "nome do estoque",
+    ("recurso", "capacidade"): "unidades por carga",
+    ("recurso", "custo_reposicao"): "minutos para repor na UBS",
+    ("preparo", "nome"): "o que o ACS faz",
+    ("preparo", "estado"): "o que passa a valer depois",
+    ("preparo", "custo"): "minutos",
+    ("preparo", "consome"): "recurso gasto a cada vez",
+    ("preparo", "desfeito_ao_sair"): "sair da casa desfaz o estado?",
+    ("preparo", "exigido_antes_de"): "procedimentos que dependem do preparo",
+}
+
 # Campos de cada modelo: nome -> obrigatorio?
 CAMPOS = {
     "recurso": {"nome": True, "capacidade": True, "custo_reposicao": True},
@@ -308,3 +332,35 @@ def avisos(regras: Regras) -> list[str]:
                              f"basta fazê-lo uma vez no turno inteiro. Confira se é "
                              f"essa a intenção")
     return resultado
+
+
+# ============================================================================
+#  4. ESCRITA EM TOML (usada pelo assistente)
+# ============================================================================
+
+def _valor_toml(valor: Any) -> str:
+    if isinstance(valor, bool):
+        return "true" if valor else "false"
+    if isinstance(valor, int):
+        return str(valor)
+    if isinstance(valor, str):
+        return '"' + valor.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    if isinstance(valor, (list, tuple)):
+        return "[" + ", ".join(_valor_toml(v) for v in valor) + "]"
+    raise TypeError(f"valor sem representacao TOML: {valor!r}")
+
+
+def bloco_toml(modelo: str, campos: dict) -> str:
+    """Um bloco [[modelo]] com um comentario explicando cada campo."""
+    curtos = [f"{c} = {_valor_toml(v)}" for c, v in campos.items()]
+    largura = max((len(t) for t in curtos if len(t) <= 40), default=0)
+    linhas = [f"[[{modelo}]]"]
+    for (campo, _), texto in zip(campos.items(), curtos):
+        comentario = DESCRICAO_CAMPOS.get((modelo, campo), "")
+        if not comentario:
+            linhas.append(texto)
+        elif len(texto) <= 40:
+            linhas.append(f"{texto.ljust(largura)}  # {comentario}")
+        else:                                   # linha longa: comentario acima
+            linhas += [f"# {comentario}", texto]
+    return "\n".join(linhas) + "\n"
