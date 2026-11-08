@@ -144,7 +144,8 @@ class TestComandoPlanejar(unittest.TestCase):
         # Ciclo 2, sem a limpeza (que o Ciclo 2 nao tem): o mesmo turno que ele
         # da com o dominio estendido
         codigo, roteiro, info = rodar(str(SINTETICAS), "--orcamento", "240",
-                                      "--estrategia", "astar-hadd", "--sem-limpeza")
+                                      "--estrategia", "astar-hadd", "--sem-limpeza",
+                                      "--planejador", "ciclo2")
         self.assertEqual(codigo, 0, info)
         self.assertIn("6 visitas  |  duração estimada: 262 min", roteiro)
         self.assertIn("ATENÇÃO: excede em 22 min o orçamento de 240 min", roteiro)
@@ -160,7 +161,8 @@ class TestComandoPlanejar(unittest.TestCase):
 
     def test_busca_interrompida_nao_e_turno_impossivel(self):
         codigo, _, info = rodar(str(SINTETICAS), "--instancia-sintetica", "4", "2",
-                                "--estrategia", "astar-hmax", "--limite", "0.000001")
+                                "--estrategia", "astar-hmax", "--limite", "0.000001",
+                                "--planejador", "ciclo2")
         self.assertEqual(codigo, 1)
         self.assertIn("NÃO mostra que o turno é impossível", info)
 
@@ -183,14 +185,15 @@ PLANILHA_AVALIACAO = AVALIACAO / "microarea-avaliacao.csv"
 
 
 class TestCorrecoesDaAvaliacao(unittest.TestCase):
-    """Falhas achadas ao testar as regras novas no turno completo."""
+    """Falhas achadas ao testar as regras novas no turno completo. Estes testes
+    fixam o planejador do Ciclo 2, cujo comportamento eles verificam."""
 
     def test_limpeza_retira_equipamento_vestido_a_toa(self):
         # com h_add, o plano vestia avental em quem nao precisava e ia a UBS
         # repor; a limpeza retira essas acoes
         regra = str(AVALIACAO / "regras" / "r4-avental.toml")
         comum = (regra, "--dados", str(PLANILHA_AVALIACAO), "--sem-selecao",
-                 "--estrategia", "astar-hadd", "--mostrar-plano")
+                 "--estrategia", "astar-hadd", "--mostrar-plano", "--planejador", "ciclo2")
         _, sujo, _ = rodar(*comum, "--sem-limpeza")
         codigo, limpo, info = rodar(*comum)
         self.assertEqual(codigo, 0, info)
@@ -208,7 +211,8 @@ class TestCorrecoesDaAvaliacao(unittest.TestCase):
         # na primeira visita com antropometria
         codigo, roteiro, info = rodar(str(AVALIACAO / "regras" / "r3-balanca.toml"),
                                       "--dados", str(PLANILHA_AVALIACAO), "--sem-selecao",
-                                      "--estrategia", "astar-hadd", "--mostrar-plano")
+                                      "--estrategia", "astar-hadd", "--mostrar-plano",
+                                      "--planejador", "ciclo2")
         self.assertEqual(codigo, 0, info)
         plano = roteiro.split("PLANO COMPLETO")[1]
         # o plano zera a balanca antes de chegar a casa da Paciente 10...
@@ -220,11 +224,13 @@ class TestCorrecoesDaAvaliacao(unittest.TestCase):
         self.assertEqual(roteiro.split("PLANO COMPLETO")[0].count("Zerar a balança"), 1)
 
     def test_auto_recorre_ao_h_add(self):
-        codigo, _, info = rodar(str(SINTETICAS), "--orcamento", "240", "--limite", "0.02")
-        self.assertIn("buscando com h_add", info)
+        codigo, _, info = rodar(str(SINTETICAS), "--orcamento", "240", "--limite", "0.02",
+                                "--planejador", "ciclo2")
+        self.assertIn("buscando com astar-hadd", info)
 
     def test_auto_e_otimo_quando_h_max_termina(self):
-        codigo, roteiro, info = rodar(str(SINTETICAS), "--instancia-sintetica", "3", "1")
+        codigo, roteiro, info = rodar(str(SINTETICAS), "--instancia-sintetica", "3", "1",
+                                      "--planejador", "ciclo2")
         self.assertEqual(codigo, 0, info)
         self.assertIn("astar-hmax, ótimo", info)
 

@@ -46,7 +46,8 @@ def paradas(texto: str) -> list[dict]:
 
 def verificar(texto: str, planilha: Path, regras: list[str]) -> list[tuple[bool, str]]:
     """Lista de (passou, descricao). `regras`: prefixos como "r1", "r4"."""
-    pacientes = {r["nome"]: r for r in csv.DictReader(planilha.open(encoding="utf-8"))}
+    with planilha.open(encoding="utf-8") as arquivo:
+        pacientes = {r["nome"]: r for r in csv.DictReader(arquivo)}
     lista = paradas(texto)
     visitados = {p["nome"] for p in lista}
     plano = texto.split("PLANO COMPLETO", 1)[1] if "PLANO COMPLETO" in texto else ""

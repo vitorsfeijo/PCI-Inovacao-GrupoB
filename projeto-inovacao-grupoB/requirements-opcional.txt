@@ -1,0 +1,5 @@
+# Dependência OPCIONAL. Sem ela, tudo funciona com o planejador do Ciclo 2.
+# Com ela, o comando planejar usa o Fast Downward, que escala com muitas regras.
+# Tem versões já compiladas para Windows, Linux e macOS.
+#     pip install -r requirements-opcional.txt
+up-fast-downward==1.0.0

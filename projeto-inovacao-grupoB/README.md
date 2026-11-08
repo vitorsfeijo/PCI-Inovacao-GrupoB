@@ -293,7 +293,8 @@ revelou quatro falhas, todas corrigidas:
 Com as correções, as sete regras passam na conferência, sozinhas e todas
 juntas.
 
-**Limite encontrado: a busca não escala com muitas regras.** Resolvida a
+**Limite encontrado: a busca do planejador do Ciclo 2 não escala com muitas
+regras.** Resolvida a
 instanciação, o gargalo passa a ser o espaço de estados: cada regra
 acrescenta um estoque ou um equipamento vestido, e eles se combinam ao longo
 das visitas. Com as sete regras, por número de pacientes no turno:
@@ -311,10 +312,25 @@ R1–R3 2,5 s; R1–R4 6,5 s; R1–R5 35 s; seis ou mais, mais de 2 min. Não é
 impossibilidade: todos os turnos pequenos têm plano, a R6 combinada com cada
 outra regra planeja em ~2 s, e as seis regras sem a R6 também esbarram no
 limite. É o planejador didático do Ciclo 2 (busca em Python com `h_max` e
-`h_add`) que não dá conta. Como a ordem das visitas já vem fixa do
-roteirizador, um caminho é planejar visita por visita, carregando só os
-estoques de uma para a outra; outro é um planejador mais forte (Fast
-Downward, que o planejador do Ciclo 2 já sabe chamar para verificação cruzada).
+`h_add`) que não dá conta.
+
+**Com o Fast Downward (opcional), o limite some.** O mesmo caso (sete regras,
+10 pacientes) tem plano em 0,02 s de busca: 119 ações, 486 min, válido na
+tarefa do nosso planejador, 477 min depois da limpeza, e o roteiro passa na
+conferência das sete regras. Nos casos em que o ótimo é conhecido, o modo
+ótimo do Fast Downward (A\* com LM-cut) dá exatamente os mesmos valores que o
+`h_max` do Ciclo 2, de 10 a 13 vezes mais rápido:
+
+| Caso (10 pacientes) | Ótimo, `h_max` do Ciclo 2 | Fast Downward, ótimo (LM-cut) | Fast Downward, LAMA | Fast Downward, 1º plano |
+|---|---|---|---|---|
+| sem regras | 386 min em 1,9 s | 386 em 0,2 s | 386 em 0,4 s | 412 em 0,1 s |
+| R3 balança | 388 em 2,6 s | 388 em 0,3 s | 388 em 0,5 s | 414 |
+| R4 avental | 395 em 9,3 s | 395 em 0,7 s | 395 em 1,7 s | 421 |
+| R5 N95 | 389 em 13,3 s | 389 em 1,0 s | 389 em 2,6 s | 417 |
+| sete regras | não termina | não termina em 5 min | 486 (não melhora em 60 s) | 486 em 0,02 s |
+
+Ainda em aberto: com as sete regras e 10 pacientes, nem o modo ótimo do Fast
+Downward termina, então não se sabe quão longe do ótimo estão os 477 min.
 
 ### Controle negativo
 
@@ -490,6 +506,11 @@ da avaliação revelou falhas (detalhes na seção de avaliação):
   mesmas 9.449 ações, em 0,2 s. O resultado é **idêntico** ao original (mesmas
   ações, mesma ordem), o que os testes conferem. A cópia do Ciclo 2 não muda:
   é uma subclasse que troca só esse método.
+- **Fast Downward opcional** (`compilador/fastdownward.py`). Se o pacote
+  `up-fast-downward` estiver instalado, o `planejar` o usa no lugar do
+  planejador do Ciclo 2: ele lê os mesmos arquivos PDDL, e o plano que ele
+  devolve é validado na tarefa do nosso planejador antes de seguir. Com as sete
+  regras e 10 pacientes, acha plano em 0,02 s, onde o do Ciclo 2 não termina.
 - **Busca `auto`** (padrão). `h_max` dá o plano ótimo mas não termina em turnos
   realistas com regras; `h_add` termina, mas fez turnos 11% mais longos que o
   ótimo sem nenhuma regra e até 35% com exigências na porta. O `auto` tenta
@@ -509,7 +530,8 @@ tenha feito antes.
 | `--instancia-sintetica N SEMENTE` | — | microárea sorteada, em vez da planilha |
 | `--orcamento MIN`, `--max-pacientes`, `--sem-selecao` | — | seleção de quem entra no turno |
 | `--metodo`, `--distancias`, `--modal`, `--semente`, `--sem-precedencia` | como no Ciclo 2 | roteirização |
-| `--estrategia` | `auto` | `auto` (`h_max`, ou `h_add` se o tempo acabar), `astar-hmax` (ótimo), `astar-hadd` ou `gbfs` |
+| `--planejador` | `auto` | `auto` (Fast Downward se instalado, senão o do Ciclo 2), `fast-downward` ou `ciclo2` |
+| `--estrategia` | `auto` | `auto` (ótimo se der tempo, senão um plano bom), `astar-hmax` (só o ótimo: `h_max` ou LM-cut), `astar-hadd` (plano bom: `h_add` ou LAMA) ou `gbfs` (primeiro plano) |
 | `--limite S` | 60 | limite de tempo da busca |
 | `--salvar ARQUIVO` | — | grava o roteiro em vez de imprimir |
 | `--salvar-pddl PASTA` | — | grava o domínio e o problema compilados |
@@ -596,8 +618,10 @@ compilador/
   roteiro.py     roteiro do ACS, com os textos das regras
   instanciacao.py  instanciação com poda (resultado idêntico ao do Ciclo 2)
   limpeza.py     retira ações redundantes do plano
+  fastdownward.py  Fast Downward opcional, com validação do plano
   __main__.py    linha de comando
 acsplan/         cópia parcial, sem alterações, do pacote do Ciclo 2 (ver LEIAME.md)
+requirements-opcional.txt  Fast Downward (opcional)
 exemplos/
   higienizacao.toml       regra sintética da higienização, como no Ciclo 2
   sinteticas-ciclo2.toml  as três regras sintéticas, com os cinco modelos
@@ -609,6 +633,7 @@ testes/
   test_planejar.py      roteiro e comando planejar
   test_extensoes.py     quantidade no consumo e exigência antes de procedimento
   test_instanciacao.py  instanciação podada idêntica à original, e escala
+  test_fastdownward.py  Fast Downward (pulados se ele não estiver instalado)
   roteiros_avaliacao.py confere um roteiro contra o esperado de cada regra
 ```
 
@@ -631,5 +656,17 @@ python -m unittest discover testes
 
 Python 3.11 ou superior (leitura de TOML com `tomllib`, da biblioteca padrão).
 O Ciclo 2 pedia 3.10+; o requisito sobe por causa do TOML. Nenhuma dependência
-externa, e nenhuma dependência da pasta `PCI-Saude-GroupB`: todos os testes
-passam com esta pasta copiada sozinha para outro lugar.
+obrigatória, e nenhuma dependência da pasta `PCI-Saude-GroupB`: todos os
+testes passam com esta pasta copiada sozinha para outro lugar.
+
+**Opcional, recomendado:** o Fast Downward, para planejar turnos com muitas
+regras (veja a avaliação). Tem versões já compiladas para Windows, Linux e
+macOS:
+
+```bash
+pip install -r requirements-opcional.txt      # up-fast-downward
+```
+
+Com ele instalado no mesmo Python, `python -m compilador planejar` passa a
+usá-lo sozinho; sem ele, usa o planejador do Ciclo 2 e avisa. Os testes que
+dependem dele são pulados quando ele não está instalado.

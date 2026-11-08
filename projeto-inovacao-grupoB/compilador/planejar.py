@@ -29,7 +29,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from . import ciclo2, roteiro
+from . import ciclo2, fastdownward, roteiro
 from .instanciacao import TarefaPlanejamentoPodada
 from .limpeza import eliminar_redundantes
 from .dominio import NOME_PADRAO, compilar_dominio
@@ -45,10 +45,10 @@ from .regras import ErroRegra, Regras, avisos, carregar_regras
 # "auto" tenta h_max na primeira metade do limite e, se o tempo acabar, usa
 # h_add na outra metade, avisando que o plano nao e garantidamente otimo.
 ESTRATEGIAS = {
-    "auto": "h_max (ótimo); se não terminar na metade do limite, h_add",
-    "astar-hmax": "A* com h_max (plano ótimo)",
-    "astar-hadd": "A* com h_add (mais rápido, mas o turno pode sair bem mais longo)",
-    "gbfs": "busca gulosa (a mais rápida, plano pode ter ações inúteis)",
+    "auto": "ótimo se terminar na metade do limite; senão, um plano bom",
+    "astar-hmax": "só o ótimo (Ciclo 2: h_max; Fast Downward: LM-cut)",
+    "astar-hadd": "plano bom e rápido (Ciclo 2: h_add; Fast Downward: LAMA)",
+    "gbfs": "o primeiro plano (Ciclo 2: busca gulosa; Fast Downward: LAMA, 1º plano)",
 }
 
 
@@ -75,6 +75,9 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument("--modal", choices=["pe", "carro"], default="pe")
     p.add_argument("--semente", type=int, default=0)
     p.add_argument("--estrategia", choices=list(ESTRATEGIAS), default="auto")
+    p.add_argument("--planejador", choices=["auto", "fast-downward", "ciclo2"],
+                   default="auto",
+                   help="auto: Fast Downward se estiver instalado, senão o do Ciclo 2")
     p.add_argument("--limite", type=float, default=60.0, metavar="S",
                    help="limite de tempo da busca, em segundos")
     p.add_argument("--salvar", metavar="ARQUIVO", help="grava o roteiro em arquivo")
@@ -91,17 +94,49 @@ def _info(texto: str = "") -> None:
     print(texto, file=sys.stderr)
 
 
-def _buscar(planejador, tarefa, estrategia: str, limite: float):
-    """Devolve (resultado, estrategia usada)."""
+# Estrategia -> configuracao do Fast Downward com o mesmo papel.
+FD_POR_ESTRATEGIA = {
+    "astar-hmax": fastdownward.OTIMO,    # A* com LM-cut: otimo
+    "astar-hadd": fastdownward.BOM,      # LAMA: rapido e continua melhorando
+    "gbfs": fastdownward.PRIMEIRO,       # LAMA: primeiro plano
+}
+
+
+def _escolher_planejador(escolha: str) -> bool | None:
+    """True: Fast Downward; False: planejador do Ciclo 2; None: erro."""
+    if escolha == "ciclo2":
+        return False
+    if fastdownward.disponivel():
+        return True
+    if escolha == "fast-downward":
+        _info(f"Erro: o Fast Downward não está instalado neste Python. Instale com: "
+              f"{fastdownward.INSTALACAO}")
+        return None
+    _info(f"    (Fast Downward não instalado: usando o planejador do Ciclo 2, que não "
+          f"escala com muitas regras; {fastdownward.INSTALACAO} acelera)")
+    return False
+
+
+def _buscar(planejador, tarefa, estrategia: str, limite: float, usar_fd: bool,
+            caminhos: tuple[str, str]):
+    """Devolve (resultado, configuracao usada, se o plano e garantidamente otimo)."""
+    def rodar(configuracao: str, segundos: float):
+        if usar_fd:
+            return fastdownward.resolver(*caminhos, tarefa, configuracao=configuracao,
+                                         limite_segundos=segundos)
+        return planejador.resolver(tarefa, configuracao, limite_segundos=segundos)
+
+    otima = fastdownward.OTIMO if usar_fd else "astar-hmax"
     if estrategia != "auto":
-        return planejador.resolver(tarefa, estrategia, limite_segundos=limite), estrategia
-    resultado = planejador.resolver(tarefa, "astar-hmax", limite_segundos=limite / 2)
+        configuracao = FD_POR_ESTRATEGIA[estrategia] if usar_fd else estrategia
+        return rodar(configuracao, limite), configuracao, configuracao == otima
+    resultado = rodar(otima, limite / 2)
     if resultado.sucesso or not _interrompida(resultado.motivo):
-        return resultado, "astar-hmax"         # plano otimo, ou impossibilidade provada
-    _info(f"    h_max não terminou em {limite / 2:g} s; buscando com h_add "
+        return resultado, otima, True          # plano otimo, ou impossibilidade provada
+    boa = fastdownward.BOM if usar_fd else "astar-hadd"
+    _info(f"    {otima} não terminou em {limite / 2:g} s; buscando com {boa} "
           f"(o plano pode não ser ótimo)")
-    return (planejador.resolver(tarefa, "astar-hadd", limite_segundos=limite / 2),
-            "astar-hadd")
+    return rodar(boa, limite / 2), boa, False
 
 
 def _interrompida(motivo: str) -> bool:
@@ -156,50 +191,60 @@ def main(argv: list[str] | None = None) -> int:
 
     # [3] regras e [4] plano
     planejador = ciclo2.planejador()
+    usar_fd = _escolher_planejador(args.planejador)
+    if usar_fd is None:
+        return 1
     with tempfile.TemporaryDirectory() as temporaria:
         pasta = Path(args.salvar_pddl) if args.salvar_pddl else Path(temporaria)
         pasta.mkdir(parents=True, exist_ok=True)
-        caminho_dominio = pasta / "dominio.pddl"
-        caminho_problema = pasta / "problema.pddl"
-        caminho_dominio.write_text(
+        caminhos = (str(pasta / "dominio.pddl"), str(pasta / "problema.pddl"))
+        Path(caminhos[0]).write_text(
             escrever_pddl(dominio, ["ARQUIVO GERADO por python -m compilador planejar.",
                                     f"Regras: {args.regras or '-'}"]),
             encoding="utf-8")
         try:
-            gerar_problema_com_regras(dados, roteamento, regras, str(caminho_problema),
+            gerar_problema_com_regras(dados, roteamento, regras, caminhos[1],
                                       nome_dominio=NOME_PADRAO)
         except ErroRegra as erro:
             for problema in erro.problemas:
                 _info(f"Erro: {problema}")
             return 1
         inicio = time.perf_counter()
-        tarefa = TarefaPlanejamentoPodada(
-            planejador.carregar_dominio(str(caminho_dominio)),
-            planejador.carregar_problema(str(caminho_problema)))
+        tarefa = TarefaPlanejamentoPodada(planejador.carregar_dominio(caminhos[0]),
+                                          planejador.carregar_problema(caminhos[1]))
         segundos_instanciacao = time.perf_counter() - inicio
-    if args.salvar_pddl:
-        _info(f"    domínio e problema gravados em {args.salvar_pddl}{os.sep}")
+        if args.salvar_pddl:
+            _info(f"    domínio e problema gravados em {args.salvar_pddl}{os.sep}")
 
-    _info(f"[3] Instanciação: {len(tarefa.acoes)} ações em {segundos_instanciacao:.1f} s")
-    _info(f"    Busca: {ESTRATEGIAS[args.estrategia]}, limite de {args.limite:g} s")
-    resultado, usada = _buscar(planejador, tarefa, args.estrategia, args.limite)
+        _info(f"[3] Instanciação: {len(tarefa.acoes)} ações em {segundos_instanciacao:.1f} s")
+        nome_planejador = "Fast Downward" if usar_fd else "planejador do Ciclo 2"
+        _info(f"    Busca: {nome_planejador}, {ESTRATEGIAS[args.estrategia]}, "
+              f"limite de {args.limite:g} s")
+        try:
+            resultado, usada, otimo = _buscar(planejador, tarefa, args.estrategia,
+                                              args.limite, usar_fd, caminhos)
+        except RuntimeError as erro:
+            _info(f"Erro: {erro}")
+            return 1
+
     if not resultado.sucesso:
         _info("")
         if _interrompida(resultado.motivo):
             _info("Não foi possível montar o roteiro: a busca parou no limite antes de "
                   "encontrar um plano. Isso NÃO mostra que o turno é impossível.")
             _info(f"Motivo informado pelo planejador: {resultado.motivo}")
-            _info("Tente --estrategia gbfs (mais rápida), um --limite maior ou menos "
-                  "pacientes (--max-pacientes).")
+            dica = ("" if usar_fd else
+                    f"; instalar o Fast Downward ({fastdownward.INSTALACAO}) costuma resolver")
+            _info(f"Tente um --limite maior ou menos pacientes (--max-pacientes){dica}.")
         else:
             _info("Não foi possível montar o roteiro: nenhuma sequência de ações cumpre "
                   "as regras neste turno.")
             _info(f"Motivo informado pelo planejador: {resultado.motivo}")
             _info("Reveja a seleção de pacientes, os recursos ou as regras.")
         return 1
-    garantia = "ótimo" if usada == "astar-hmax" else "sem garantia de ser ótimo"
+    garantia = "ótimo" if otimo else "sem garantia de ser ótimo"
     _info(f"[4] Plano: {resultado.tamanho} ações, {resultado.custo} min "
-          f"({resultado.segundos:.1f} s de busca, {usada}, {garantia})")
+          f"({resultado.segundos:.1f} s, {usada}, {garantia})")
 
     # [5] limpeza do plano
     custos = {acao.assinatura: acao.custo for acao in tarefa.acoes}
