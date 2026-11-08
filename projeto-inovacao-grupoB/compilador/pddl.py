@@ -60,8 +60,8 @@ def _quebrar_palavras(palavras: list[str], recuo: int) -> str:
     return "\n".join(linhas) + ")"
 
 
-def escrever_dominio(arvore: list, cabecalho: list[str]) -> str:
-    """Texto completo do dominio, com uma linha em branco entre as secoes."""
+def escrever_pddl(arvore: list, cabecalho: list[str]) -> str:
+    """Texto completo de um dominio ou problema, com linha em branco entre as secoes."""
     _, nome, *secoes = arvore
     partes = [";; " + linha if linha else ";;" for linha in cabecalho]
     partes.append("")

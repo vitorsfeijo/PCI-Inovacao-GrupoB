@@ -5,8 +5,8 @@ Luis Henrique Caselani Macedo Junior · Manuela Cristina Zen Dalmonte · Vítor 
 
 Continuação do projeto do Grupo B do Ciclo 2, em [`../PCI-Saude-GroupB`](../PCI-Saude-GroupB).
 
-> **Estado:** etapa 1 concluída. O compilador já aplica os modelos A, B e C
-> sobre o domínio legal; as demais etapas estão na lista abaixo.
+> **Estado:** etapas 1 e 2 concluídas. O compilador já gera domínio e problema
+> para os modelos A, B e C; as demais etapas estão na lista abaixo.
 
 ---
 
@@ -45,7 +45,9 @@ assistente interativo  ──gera──▶  regras.toml  ──compilador──�
 - O **compilador** só conhece o TOML. Isso o mantém simples de testar.
 
 O `dominio-legal.pddl` do Ciclo 2 é **somente lido, nunca alterado**: as normas
-ficam travadas e as regras da equipe são aplicadas por cima.
+ficam travadas e as regras da equipe são aplicadas por cima. O mesmo vale para o
+código do Ciclo 2: o gerador de problema dele continua gerando o problema do
+domínio legal, e o compilador acrescenta o que as regras exigem.
 
 ---
 
@@ -153,8 +155,8 @@ completa vem com D e E.
 ## Etapas
 
 1. [x] Compilador do domínio para os modelos A, B e C.
-2. [ ] Geração dos fatos do problema a partir das regras, substituindo o trecho
-       fixo `if estendido:` do `gerador_problema.py`.
+2. [x] Geração dos fatos do problema a partir das regras, sobre o problema
+       que o Ciclo 2 gera para o domínio legal.
 3. [ ] Validação com mensagens em português.
 4. [ ] Teste de equivalência da higienização.
 5. [ ] Assistente interativo que gera o TOML.
@@ -187,9 +189,29 @@ python -m compilador exemplos/higienizacao.toml -o dominio-com-regras.pddl
 python -m compilador regras.toml --dominio outro.pddl --nome meu-dominio
 ```
 
-Por enquanto só o domínio é gerado. O arquivo de problema ainda precisa dos
-fatos iniciais dos recursos novos, como `(alcool n6)` e
-`(nivel-maximo-alcool n6)`; isso é a etapa 2.
+Para planejar, o problema também precisa dos fatos das regras. O compilador
+recebe um problema gerado pelo Ciclo 2 **para o domínio legal** e grava a
+versão com as regras:
+
+```bash
+python -m compilador exemplos/higienizacao.toml -o dominio.pddl \
+    --problema problema-legal.pddl --saida-problema problema.pddl
+```
+
+O que entra no problema, para cada recurso de capacidade N:
+
+- `(R nN)` e `(nivel-maximo-R nN)`: o turno começa com o estoque cheio, e a
+  reposição na UBS enche até N;
+- níveis `n…` e fatos `(prox …)` a mais, quando N passa do maior nível que o
+  problema já tinha.
+
+Preparos não acrescentam nada: o estado começa falso, e no PDDL o que não está
+no estado inicial é falso. O problema também passa a apontar para o domínio
+compilado (`visita-domiciliar-acs-regras`, ou o nome dado em `--nome`).
+
+Quem usa o pipeline do Ciclo 2 em Python pode chamar
+`compilador.gerar_problema_com_regras(dados, roteamento, regras, caminho,
+nome_dominio=...)`, que gera o problema legal e aplica as regras de uma vez.
 
 ## Estrutura
 
@@ -197,7 +219,8 @@ fatos iniciais dos recursos novos, como `(alcool n6)` e
 compilador/
   regras.py      leitura do TOML e conferência de cada campo
   dominio.py     aplica os modelos sobre a árvore do domínio
-  pddl.py        escreve a árvore de volta como PDDL legível
+  problema.py    acrescenta ao problema os fatos que as regras exigem
+  pddl.py        escreve a árvore (domínio ou problema) como PDDL legível
   ciclo2.py      caminhos e parser PDDL do Ciclo 2 (../PCI-Saude-GroupB)
   __main__.py    linha de comando
 exemplos/

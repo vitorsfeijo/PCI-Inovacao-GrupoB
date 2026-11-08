@@ -31,6 +31,9 @@ from .regras import PROCEDIMENTOS, ErroRegra, Regras
 # Acoes em que o ACS deixa a casa: o que for "desfeito ao sair" cai nelas.
 ACOES_DE_SAIDA = ("mover", "desviar-para-ubs")
 
+# Nome do dominio gerado; o problema compilado aponta para ele.
+NOME_PADRAO = "visita-domiciliar-acs-regras"
+
 
 # ----------------------------------------------------------------------------
 #  acesso a arvore
