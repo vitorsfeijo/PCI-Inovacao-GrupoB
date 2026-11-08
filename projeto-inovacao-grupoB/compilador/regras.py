@@ -3,17 +3,20 @@ Leitura e validacao do arquivo de regras (TOML).
 
 Modelos suportados:
 
-    A. [[recurso]]  estoque finito, reposto so na UBS
-    B. [[preparo]]  algo que o ACS faz antes de atender, podendo consumir
-                    um recurso e sendo desfeito ao sair da casa
+    A. [[recurso]]    estoque finito, reposto so na UBS
+    B. [[preparo]]    algo que o ACS faz antes de atender, podendo consumir
+                      um recurso e sendo desfeito ao sair da casa
     C. pre-requisito, escrito como o campo `exigido_antes_de` do preparo
+    D. [[consumo]]    um procedimento gasta uma unidade de um recurso
+    E. [[exigencia]]  pacientes com uma marca so podem ter a visita iniciada
+                      com um preparo valendo
 
 Validacao em tres niveis:
 
     1. cada campo isolado (formato, tipo, faixa): funcoes `validar_*`, que
        devolvem a mensagem de erro ou None. O assistente interativo usa as
        mesmas funcoes, campo a campo.
-    2. regras entre si (nomes repetidos, recurso inexistente): `ler_regras`.
+    2. regras entre si (nomes repetidos, referencia inexistente): `ler_regras`.
     3. regras contra o dominio (nome ja usado no PDDL): no compilador, que e
        quem conhece o dominio.
 
@@ -55,20 +58,33 @@ DESCRICAO_CAMPOS = {
     ("recurso", "nome"): "nome do estoque",
     ("recurso", "capacidade"): "unidades por carga",
     ("recurso", "custo_reposicao"): "minutos para repor na UBS",
+    ("recurso", "acao_reposicao"): "nome da ação de reposição",
     ("preparo", "nome"): "o que o ACS faz",
     ("preparo", "estado"): "o que passa a valer depois",
     ("preparo", "custo"): "minutos",
     ("preparo", "consome"): "recurso gasto a cada vez",
     ("preparo", "desfeito_ao_sair"): "sair da casa desfaz o estado?",
     ("preparo", "exigido_antes_de"): "procedimentos que dependem do preparo",
+    ("consumo", "procedimento"): "procedimento que gasta o recurso",
+    ("consumo", "recurso"): "recurso gasto, uma unidade por vez",
+    ("exigencia", "nome"): "nome da conferência feita na porta",
+    ("exigencia", "marca"): "marca do paciente (coluna da planilha)",
+    ("exigencia", "preparo"): "preparo exigido para iniciar a visita",
+    ("exigencia", "custo"): "minutos da conferência",
 }
 
-# Campos de cada modelo: nome -> obrigatorio?
+# Campos de cada modelo, na ordem em que aparecem: nome -> obrigatorio?
 CAMPOS = {
-    "recurso": {"nome": True, "capacidade": True, "custo_reposicao": True},
+    "recurso": {"nome": True, "capacidade": True, "custo_reposicao": True,
+                "acao_reposicao": False},
     "preparo": {"nome": True, "estado": True, "custo": True, "consome": False,
                 "desfeito_ao_sair": False, "exigido_antes_de": False},
+    "consumo": {"procedimento": True, "recurso": True},
+    "exigencia": {"nome": True, "marca": True, "preparo": True, "custo": False},
 }
+
+# Custo padrao da conferencia de uma exigencia, em minutos.
+CUSTO_CONFERENCIA_PADRAO = 1
 
 # Nomes PDDL: minusculas, digitos e hifen, comecando por letra.
 _NOME_VALIDO = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
@@ -82,11 +98,18 @@ class ErroRegra(ValueError):
         super().__init__("\n".join(self.problemas))
 
 
+# ============================================================================
+#  MODELOS
+#  `nomes_gerados` lista os nomes que cada regra cria no dominio. A validacao,
+#  o compilador e o assistente usam essa lista para recusar nomes repetidos.
+# ============================================================================
+
 @dataclass(frozen=True)
 class Recurso:
     nome: str
     capacidade: int
     custo_reposicao: int
+    nome_reposicao: str | None = None      # campo `acao_reposicao` no TOML
 
     @property
     def predicado(self) -> str:
@@ -98,7 +121,11 @@ class Recurso:
 
     @property
     def acao_reposicao(self) -> str:
-        return f"repor-{self.nome}"
+        return self.nome_reposicao or f"repor-{self.nome}"
+
+    @property
+    def nomes_gerados(self) -> list[str]:
+        return [self.predicado, self.predicado_maximo, self.acao_reposicao]
 
 
 @dataclass(frozen=True)
@@ -106,15 +133,70 @@ class Preparo:
     nome: str
     estado: str
     custo: int
-    consome: str | None
-    desfeito_ao_sair: bool
-    exigido_antes_de: tuple[str, ...]
+    consome: str | None = None
+    desfeito_ao_sair: bool = True
+    exigido_antes_de: tuple[str, ...] = ()
+
+    @property
+    def nomes_gerados(self) -> list[str]:
+        return [self.nome, self.estado]
+
+
+@dataclass(frozen=True)
+class Consumo:
+    procedimento: str
+    recurso: str
+
+
+@dataclass(frozen=True)
+class Exigencia:
+    nome: str
+    marca: str
+    preparo: str
+    custo: int = CUSTO_CONFERENCIA_PADRAO
+
+    @property
+    def predicado_conferencia(self) -> str:
+        return f"{self.nome}-conferida"
+
+    @property
+    def acao_exigida(self) -> str:
+        return f"conferir-{self.nome}-exigida"
+
+    @property
+    def acao_dispensada(self) -> str:
+        return f"conferir-{self.nome}-dispensada"
+
+    @property
+    def campo_paciente(self) -> str:
+        """Coluna da planilha de pacientes com a marca: hifens viram _."""
+        return self.marca.replace("-", "_")
+
+    @property
+    def nomes_gerados(self) -> list[str]:
+        return [self.marca, self.predicado_conferencia, self.acao_exigida,
+                self.acao_dispensada]
 
 
 @dataclass(frozen=True)
 class Regras:
-    recursos: tuple[Recurso, ...]
-    preparos: tuple[Preparo, ...]
+    recursos: tuple[Recurso, ...] = ()
+    preparos: tuple[Preparo, ...] = ()
+    consumos: tuple[Consumo, ...] = ()
+    exigencias: tuple[Exigencia, ...] = ()
+
+    @property
+    def vazia(self) -> bool:
+        return not (self.recursos or self.preparos or self.consumos or self.exigencias)
+
+
+def nomes_gerados_por(modelo: str, campos: dict) -> list[str]:
+    """Nomes que um bloco ainda em preenchimento vai gerar (assistente)."""
+    if modelo == "recurso":
+        return Recurso(campos["nome"], 1, 0, campos.get("acao_reposicao")).nomes_gerados
+    if modelo == "exigencia":
+        return Exigencia(campos["nome"], campos.get("marca", ""), "").nomes_gerados[1:]
+    return [campos["nome"]]
 
 
 # ============================================================================
@@ -149,6 +231,13 @@ def validar_booleano(valor: Any) -> str | None:
     return None
 
 
+def validar_procedimento(valor: Any) -> str | None:
+    if valor not in PROCEDIMENTOS:
+        return (f"o procedimento {valor!r} não existe. "
+                f"Os aceitos são: {', '.join(PROCEDIMENTOS)}")
+    return None
+
+
 def validar_procedimentos(valor: Any) -> str | None:
     if not isinstance(valor, list):
         return (f"deve ser uma lista entre colchetes, como [\"pressao\", \"glicemia\"]. "
@@ -178,11 +267,16 @@ VALIDADORES = {
     "nome": validar_nome,
     "estado": validar_nome,
     "consome": validar_nome,
+    "acao_reposicao": validar_nome,
+    "recurso": validar_nome,
+    "marca": validar_nome,
+    "preparo": validar_nome,
     "capacidade": lambda v: validar_inteiro(v, 1),
     "custo_reposicao": lambda v: validar_inteiro(v, 0),
     "custo": lambda v: validar_inteiro(v, 0),
     "desfeito_ao_sair": validar_booleano,
     "exigido_antes_de": validar_procedimentos,
+    "procedimento": validar_procedimento,
 }
 
 
@@ -194,6 +288,8 @@ def _rotulo(modelo: str, indice: int, tabela: dict) -> str:
     nome = tabela.get("nome")
     if isinstance(nome, str) and nome:
         return f"{modelo} \"{nome}\""
+    if modelo == "consumo" and isinstance(tabela.get("procedimento"), str):
+        return f"consumo de \"{tabela.get('recurso')}\" por \"{tabela['procedimento']}\""
     return f"{modelo} nº {indice + 1}"
 
 
@@ -226,29 +322,60 @@ def _blocos(dados: dict, modelo: str, erros: list[str]) -> list[dict]:
     return valor
 
 
-def _conferir_entre_si(recursos: list[Recurso], preparos: list[Preparo],
-                       recursos_declarados: list[str], erros: list[str]) -> None:
-    vistos: dict[str, str] = {}
+def _declarados(blocos: list[dict]) -> list[str]:
+    """Nomes declarados, mesmo em blocos com erro: o erro deles ja foi
+    relatado, e acusar "inexistente" em quem os referencia seria enganoso."""
+    return [t["nome"] for t in blocos if isinstance(t.get("nome"), str)]
 
-    def reservar(nome: str, dono: str) -> None:
-        if nome in vistos:
-            erros.append(f"{dono}: o nome \"{nome}\" já é usado por {vistos[nome]}")
-        else:
-            vistos[nome] = dono
 
-    for r in recursos:
-        reservar(r.nome, f"recurso \"{r.nome}\"")
-    for p in preparos:
-        reservar(p.nome, f"preparo \"{p.nome}\"")
-        reservar(p.estado, f"o estado do preparo \"{p.nome}\"")
+def _conferir_entre_si(regras: Regras, recursos_declarados: list[str],
+                       preparos_declarados: list[str], erros: list[str]) -> None:
+    vistos: dict[str, tuple[object, str]] = {}   # nome -> (regra, "pelo ...")
 
-    # recursos com erro tambem contam como declarados: o problema deles ja foi
-    # relatado, e acusar "recurso inexistente" aqui seria enganoso
-    for p in preparos:
-        if p.consome is not None and p.consome not in recursos_declarados:
-            declarados = ", ".join(recursos_declarados) or "nenhum"
-            erros.append(f"preparo \"{p.nome}\": consome \"{p.consome}\", mas não há "
-                         f"recurso com esse nome. Recursos declarados: {declarados}")
+    def reservar(regra: object, nomes: list[str], dono: str, por: str) -> None:
+        for nome in nomes:
+            if nome not in vistos:
+                vistos[nome] = (regra, por)
+                continue
+            # um erro por regra basta: dois recursos "alcool" colidem tambem
+            # em "repor-alcool" e "nivel-maximo-alcool", e repetir confunde
+            if vistos[nome][0] is regra:
+                erros.append(f"{dono}: usa o nome \"{nome}\" duas vezes")
+            else:
+                erros.append(f"{dono}: o nome \"{nome}\" já é usado {vistos[nome][1]}")
+            return
+
+    for r in regras.recursos:
+        reservar(r, r.nomes_gerados, f"recurso \"{r.nome}\"", f"pelo recurso \"{r.nome}\"")
+    for p in regras.preparos:
+        reservar(p, p.nomes_gerados, f"preparo \"{p.nome}\"", f"pelo preparo \"{p.nome}\"")
+    for e in regras.exigencias:
+        reservar(e, e.nomes_gerados, f"exigência \"{e.nome}\"",
+                 f"pela exigência \"{e.nome}\"")
+
+    def recurso_existe(nome: str, dono: str, campo: str) -> None:
+        if nome not in recursos_declarados:
+            lista = ", ".join(recursos_declarados) or "nenhum"
+            erros.append(f"{dono}: {campo} \"{nome}\", mas não há recurso com esse "
+                         f"nome. Recursos declarados: {lista}")
+
+    for p in regras.preparos:
+        if p.consome is not None:
+            recurso_existe(p.consome, f"preparo \"{p.nome}\"", "consome")
+
+    pares: set[tuple[str, str]] = set()
+    for c in regras.consumos:
+        dono = f"consumo de \"{c.recurso}\" por \"{c.procedimento}\""
+        recurso_existe(c.recurso, dono, "gasta")
+        if (c.procedimento, c.recurso) in pares:
+            erros.append(f"{dono}: aparece mais de uma vez")
+        pares.add((c.procedimento, c.recurso))
+
+    for e in regras.exigencias:
+        if e.preparo not in preparos_declarados:
+            lista = ", ".join(preparos_declarados) or "nenhum"
+            erros.append(f"exigência \"{e.nome}\": exige o preparo \"{e.preparo}\", "
+                         f"mas não há preparo com esse nome. Preparos declarados: {lista}")
 
 
 def ler_regras(dados: dict) -> Regras:
@@ -259,27 +386,30 @@ def ler_regras(dados: dict) -> Regras:
             erros.append(f"o modelo '{chave}' não existe. Os modelos disponíveis "
                          f"são: {', '.join(CAMPOS)}")
 
-    recursos: list[Recurso] = []
-    blocos_recurso = _blocos(dados, "recurso", erros)
-    recursos_declarados = [t["nome"] for t in blocos_recurso
-                           if isinstance(t.get("nome"), str)]
-    for i, tabela in enumerate(blocos_recurso):
-        if (t := _ler_tabela("recurso", i, tabela, erros)) is not None:
-            recursos.append(Recurso(t["nome"], t["capacidade"], t["custo_reposicao"]))
+    blocos = {modelo: _blocos(dados, modelo, erros) for modelo in CAMPOS}
+    validos = {modelo: [t for i, t in enumerate(lista)
+                        if _ler_tabela(modelo, i, t, erros) is not None]
+               for modelo, lista in blocos.items()}
 
-    preparos: list[Preparo] = []
-    for i, tabela in enumerate(_blocos(dados, "preparo", erros)):
-        if (t := _ler_tabela("preparo", i, tabela, erros)) is not None:
-            preparos.append(Preparo(
-                nome=t["nome"], estado=t["estado"], custo=t["custo"],
-                consome=t.get("consome"),
-                desfeito_ao_sair=t.get("desfeito_ao_sair", True),
-                exigido_antes_de=tuple(t.get("exigido_antes_de", []))))
-
-    _conferir_entre_si(recursos, preparos, recursos_declarados, erros)
+    regras = Regras(
+        recursos=tuple(Recurso(t["nome"], t["capacidade"], t["custo_reposicao"],
+                               t.get("acao_reposicao"))
+                       for t in validos["recurso"]),
+        preparos=tuple(Preparo(t["nome"], t["estado"], t["custo"], t.get("consome"),
+                               t.get("desfeito_ao_sair", True),
+                               tuple(t.get("exigido_antes_de", [])))
+                       for t in validos["preparo"]),
+        consumos=tuple(Consumo(t["procedimento"], t["recurso"])
+                       for t in validos["consumo"]),
+        exigencias=tuple(Exigencia(t["nome"], t["marca"], t["preparo"],
+                                   t.get("custo", CUSTO_CONFERENCIA_PADRAO))
+                         for t in validos["exigencia"]),
+    )
+    _conferir_entre_si(regras, _declarados(blocos["recurso"]),
+                       _declarados(blocos["preparo"]), erros)
     if erros:
         raise ErroRegra(erros)
-    return Regras(tuple(recursos), tuple(preparos))
+    return regras
 
 
 def _traduzir_erro_toml(erro: tomllib.TOMLDecodeError) -> str:
@@ -307,6 +437,30 @@ def carregar_regras(caminho: str) -> Regras:
     return ler_regras(dados)
 
 
+def regras_para_dados(regras: Regras) -> dict:
+    """Caminho inverso de `ler_regras`: Regras -> dicionario do TOML."""
+    dados: dict[str, list[dict]] = {m: [] for m in CAMPOS}
+    for r in regras.recursos:
+        campos = {"nome": r.nome, "capacidade": r.capacidade,
+                  "custo_reposicao": r.custo_reposicao}
+        if r.nome_reposicao:
+            campos["acao_reposicao"] = r.nome_reposicao
+        dados["recurso"].append(campos)
+    for p in regras.preparos:
+        campos = {"nome": p.nome, "estado": p.estado, "custo": p.custo}
+        if p.consome:
+            campos["consome"] = p.consome
+        campos["desfeito_ao_sair"] = p.desfeito_ao_sair
+        campos["exigido_antes_de"] = list(p.exigido_antes_de)
+        dados["preparo"].append(campos)
+    for c in regras.consumos:
+        dados["consumo"].append({"procedimento": c.procedimento, "recurso": c.recurso})
+    for e in regras.exigencias:
+        dados["exigencia"].append({"nome": e.nome, "marca": e.marca,
+                                   "preparo": e.preparo, "custo": e.custo})
+    return {m: blocos for m, blocos in dados.items() if blocos}
+
+
 # ============================================================================
 #  3. AVISOS (nao impedem a compilacao)
 # ============================================================================
@@ -314,20 +468,24 @@ def carregar_regras(caminho: str) -> Regras:
 def avisos(regras: Regras) -> list[str]:
     """Regras validas, mas que provavelmente nao fazem o que se espera."""
     resultado: list[str] = []
-    if not regras.recursos and not regras.preparos:
+    if regras.vazia:
         resultado.append("o arquivo não tem nenhuma regra; o domínio sai igual ao de entrada")
 
-    consumidos = {p.consome for p in regras.preparos}
+    consumidos = ({p.consome for p in regras.preparos}
+                  | {c.recurso for c in regras.consumos})
     for r in regras.recursos:
         if r.nome not in consumidos:
-            resultado.append(f"recurso \"{r.nome}\": nenhum preparo o consome, então "
-                             f"ele não muda nenhum plano")
+            resultado.append(f"recurso \"{r.nome}\": nenhum preparo ou procedimento o "
+                             f"consome, então ele não muda nenhum plano")
+
+    exigidos = {e.preparo for e in regras.exigencias}
     for p in regras.preparos:
-        if not p.exigido_antes_de:
+        usado = bool(p.exigido_antes_de) or p.nome in exigidos
+        if not usado:
             resultado.append(f"preparo \"{p.nome}\": não é exigido antes de nenhum "
-                             f"procedimento, então o planejador nunca vai fazê-lo "
-                             f"(preencha 'exigido_antes_de')")
-        if not p.desfeito_ao_sair and p.exigido_antes_de:
+                             f"procedimento nem por nenhuma exigência, então o "
+                             f"planejador nunca vai fazê-lo")
+        if not p.desfeito_ao_sair and usado:
             resultado.append(f"preparo \"{p.nome}\": como não é desfeito ao sair, "
                              f"basta fazê-lo uma vez no turno inteiro. Confira se é "
                              f"essa a intenção")
@@ -364,3 +522,9 @@ def bloco_toml(modelo: str, campos: dict) -> str:
         else:                                   # linha longa: comentario acima
             linhas += [f"# {comentario}", texto]
     return "\n".join(linhas) + "\n"
+
+
+def regras_para_toml(regras: Regras) -> str:
+    return "\n".join(bloco_toml(modelo, campos)
+                     for modelo, blocos in regras_para_dados(regras).items()
+                     for campos in blocos)

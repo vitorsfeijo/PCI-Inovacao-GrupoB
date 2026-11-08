@@ -11,9 +11,14 @@ este modulo acrescenta o que as regras exigem:
         (nivel-maximo-R nN)    ate onde a reposicao na UBS enche
         objetos e fatos (prox ...) a mais, se N passa do maior nivel existente
 
-    Preparo (modelos B e C)
-        nada: o estado do preparo comeca falso, e no PDDL o que nao esta
-        no estado inicial e falso.
+    Preparo, pre-requisito e consumo (modelos B, C e D)
+        nada: o estado do preparo comeca falso (no PDDL, o que nao esta no
+        estado inicial e falso), e o consumo usa o estoque do recurso.
+
+    Exigencia com a marca M (modelo E)
+        (M p) para cada paciente marcado. Quem esta marcado vem dos dados
+        dos pacientes (coluna M com hifens trocados por _, a mesma da
+        planilha do Ciclo 2), passados em `marcados`.
 
 O dominio declarado no problema passa a ser o do dominio compilado.
 """
@@ -22,6 +27,8 @@ from __future__ import annotations
 
 import copy
 import re
+
+from collections.abc import Iterable
 
 from .regras import ErroRegra, Regras
 
@@ -68,8 +75,15 @@ def _maior_nivel(objetos: list) -> int:
     return max(indices)
 
 
-def compilar_problema(arvore: list, regras: Regras, *, nome_dominio: str) -> list:
-    """Devolve uma nova arvore de problema com os fatos que as regras exigem."""
+def compilar_problema(arvore: list, regras: Regras, *, nome_dominio: str,
+                      marcados: dict[str, Iterable[str]] | None = None) -> list:
+    """
+    Devolve uma nova arvore de problema com os fatos que as regras exigem.
+
+    `marcados` diz, para cada marca usada por uma exigencia, quais pacientes
+    a tem: {"exige-protecao-respiratoria": ["p2", "p5"]}. So e necessario
+    quando ha exigencias; `marcas_dos_dados` monta isso a partir dos dados.
+    """
     saida = copy.deepcopy(arvore)
     _secao(saida, ":domain")[1] = nome_dominio
 
@@ -82,6 +96,21 @@ def compilar_problema(arvore: list, regras: Regras, *, nome_dominio: str) -> lis
              for r in regras.recursos
              for predicado in (r.predicado, r.predicado_maximo)
              if predicado in ja_existentes]
+    erros += [f"exigência \"{e.nome}\": o problema de entrada já tem fatos "
+              f"\"{e.marca}\". Use um problema gerado para o domínio legal"
+              for e in regras.exigencias if e.marca in ja_existentes]
+    pacientes = set(_objetos_do_tipo(objetos[1:], "paciente"))
+    marcados = marcados or {}
+    for e in regras.exigencias:
+        if e.marca not in marcados:
+            erros.append(f"exigência \"{e.nome}\": faltam os dados dos pacientes para "
+                         f"saber quem tem a marca \"{e.marca}\" (coluna "
+                         f"\"{e.campo_paciente}\" da planilha)")
+            continue
+        desconhecidos = sorted(set(marcados[e.marca]) - pacientes)
+        if desconhecidos:
+            erros.append(f"exigência \"{e.nome}\": paciente(s) marcado(s) que não "
+                         f"estão no problema: {', '.join(desconhecidos)}")
     if erros:
         raise ErroRegra(erros)
 
@@ -104,8 +133,20 @@ def compilar_problema(arvore: list, regras: Regras, *, nome_dominio: str) -> lis
     for r in regras.recursos:
         fatos.append([r.predicado, f"n{r.capacidade}"])
         fatos.append([r.predicado_maximo, f"n{r.capacidade}"])
+    marcas_feitas: set[str] = set()
+    for e in regras.exigencias:
+        if e.marca in marcas_feitas:              # duas exigencias, mesma marca
+            continue
+        marcas_feitas.add(e.marca)
+        fatos.extend([e.marca, p] for p in sorted(marcados[e.marca]))
     init[posicao:posicao] = fatos
     return saida
+
+
+def marcas_dos_dados(dados: dict, regras: Regras) -> dict[str, list[str]]:
+    """Quem tem cada marca, lido dos dados dos pacientes (formato do Ciclo 2)."""
+    return {e.marca: [p["id"] for p in dados["pacientes"] if p.get(e.campo_paciente)]
+            for e in regras.exigencias}
 
 
 def gerar_problema_com_regras(dados: dict, roteamento: dict, regras: Regras,
@@ -128,7 +169,8 @@ def gerar_problema_com_regras(dados: dict, roteamento: dict, regras: Regras,
         gerar_problema(dados, roteamento, caminho_legal, dominio="legal")
         arvore = ciclo2.planejador().ler_sexp(caminho_legal)
 
-    compilado = compilar_problema(arvore, regras, nome_dominio=nome_dominio)
+    compilado = compilar_problema(arvore, regras, nome_dominio=nome_dominio,
+                                  marcados=marcas_dos_dados(dados, regras))
     texto = escrever_pddl(compilado, [
         "ARQUIVO GERADO pelo compilador de regras. Nao editar a mao.",
         "Problema do Ciclo 2 (dominio legal) com os fatos exigidos pelas regras.",

@@ -8,6 +8,11 @@ Linha de comando do compilador.
     python -m compilador exemplos/higienizacao.toml -o dominio.pddl \\
         --problema problema-legal.pddl --saida-problema problema.pddl
 
+    # regras com exigencia por paciente: as marcas vem da planilha
+    python -m compilador exemplos/sinteticas-ciclo2.toml -o dominio.pddl \\
+        --problema problema-legal.pddl --saida-problema problema.pddl \\
+        --dados ../PCI-Saude-GroupB/acsplan/dados/microarea_exemplo.csv
+
 Sem -o, o dominio e escrito na saida padrao.
 """
 
@@ -20,7 +25,7 @@ from pathlib import Path
 from . import ciclo2
 from .dominio import NOME_PADRAO, compilar_dominio
 from .pddl import escrever_pddl
-from .problema import compilar_problema
+from .problema import compilar_problema, marcas_dos_dados
 from .regras import ErroRegra, avisos, carregar_regras
 
 
@@ -31,6 +36,17 @@ def _ler_pddl(caminho: str) -> list:
         raise ErroRegra(f"o arquivo {caminho} não foi encontrado") from None
     except SyntaxError as erro:
         raise ErroRegra(f"o arquivo {caminho} não é um PDDL válido ({erro})") from None
+
+
+def _ler_dados(caminho: str) -> dict:
+    ciclo2.planejador()                    # Ciclo 2 no caminho de importacao
+    from acsplan.dados import carregador
+    try:
+        return carregador.carregar(caminho)
+    except FileNotFoundError:
+        raise ErroRegra(f"o arquivo {caminho} não foi encontrado") from None
+    except Exception as erro:              # erros de formato do carregador do Ciclo 2
+        raise ErroRegra(f"não foi possível ler os dados de {caminho}: {erro}") from None
 
 
 def _relatar_erros(caminho: str, problemas: list[str]) -> None:
@@ -57,6 +73,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="problema de entrada, gerado para o dominio legal")
     parser.add_argument("--saida-problema",
                         help="arquivo .pddl de saida do problema")
+    parser.add_argument("--dados",
+                        help="pacientes (.csv ou .json do Ciclo 2), de onde vem as "
+                             "marcas usadas pelas exigencias")
     args = parser.parse_args(argv)
 
     if bool(args.problema) != bool(args.saida_problema):
@@ -65,9 +84,16 @@ def main(argv: list[str] | None = None) -> int:
     try:
         regras = carregar_regras(args.regras)
         dominio = compilar_dominio(_ler_pddl(args.dominio), regras, nome=args.nome)
-        problema = (compilar_problema(_ler_pddl(args.problema), regras,
-                                      nome_dominio=args.nome)
-                    if args.problema else None)
+        problema = None
+        if args.problema:
+            marcados = None
+            if regras.exigencias and args.dados:
+                marcados = marcas_dos_dados(_ler_dados(args.dados), regras)
+            elif regras.exigencias:
+                raise ErroRegra("as regras têm exigências por paciente; informe os "
+                                "dados dos pacientes com --dados planilha.csv")
+            problema = compilar_problema(_ler_pddl(args.problema), regras,
+                                         nome_dominio=args.nome, marcados=marcados)
     except ErroRegra as erro:
         _relatar_erros(args.regras, erro.problemas)
         return 1
@@ -79,6 +105,8 @@ def main(argv: list[str] | None = None) -> int:
         f"Regras: {Path(args.regras).name}",
         f"  recursos: {', '.join(r.nome for r in regras.recursos) or '-'}",
         f"  preparos: {', '.join(p.nome for p in regras.preparos) or '-'}",
+        f"  consumos: {', '.join(f'{c.procedimento}->{c.recurso}' for c in regras.consumos) or '-'}",
+        f"  exigencias: {', '.join(e.nome for e in regras.exigencias) or '-'}",
     ]
     aviso = "ARQUIVO GERADO pelo compilador de regras. Nao editar a mao."
     texto_dominio = escrever_pddl(

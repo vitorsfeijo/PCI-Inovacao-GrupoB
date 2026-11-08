@@ -5,9 +5,10 @@ Luis Henrique Caselani Macedo Junior · Manuela Cristina Zen Dalmonte · Vítor 
 
 Continuação do projeto do Grupo B do Ciclo 2, em [`../PCI-Saude-GroupB`](../PCI-Saude-GroupB).
 
-> **Estado:** etapas 1 a 5 concluídas. O compilador gera domínio e problema
-> para os modelos A, B e C, com validação, e reproduz a higienização do domínio
-> estendido do Ciclo 2. As regras podem ser escritas à mão ou pelo assistente
+> **Estado:** etapas 1 a 6 concluídas. Os cinco modelos (A a E) funcionam, e
+> as três regras sintéticas do Ciclo 2, escritas como modelos, reproduzem o
+> domínio estendido **inteiro**: mesma estrutura e mesmo comportamento em 24 de
+> 24 instâncias. As regras podem ser escritas à mão ou pelo assistente
 > interativo. As demais etapas estão na lista abaixo.
 
 ---
@@ -75,13 +76,15 @@ Como as regras sintéticas do Ciclo 2 se escrevem com eles:
 | Proteção respiratória | A (máscaras) + B (vestir, consome máscara) + E (marca "exige proteção") |
 | Coletor de perfurocortante | A (coletor) + D (glicemia consome coletor) |
 
-**Escopo inicial: modelos A, B e C**, suficientes para a higienização das mãos.
-D e E vêm depois que o primeiro ciclo estiver validado.
+Os cinco modelos estão implementados. A, B e C vieram primeiro (suficientes
+para a higienização); D e E completaram as outras duas regras.
 
 ## Formato do arquivo de regras
 
 O pré-requisito (C) é escrito como um campo do preparo, porque sempre se refere
-a um preparo. Exemplo completo em [`exemplos/higienizacao.toml`](exemplos/higienizacao.toml).
+a um preparo. Exemplos: [`exemplos/higienizacao.toml`](exemplos/higienizacao.toml)
+(só a higienização) e [`exemplos/sinteticas-ciclo2.toml`](exemplos/sinteticas-ciclo2.toml)
+(as três regras sintéticas, com todos os modelos).
 
 ```toml
 [[recurso]]
@@ -96,6 +99,22 @@ consome = "alcool"             # opcional
 custo = 2                      # minutos
 desfeito_ao_sair = true        # opcional, padrão true
 exigido_antes_de = ["pressao", "glicemia", "temperatura", "medicacao", "antropometria"]
+
+[[recurso]]
+nome = "coletor"
+capacidade = 3
+custo_reposicao = 3
+acao_reposicao = "trocar-coletor"   # opcional, padrão "repor-coletor"
+
+[[consumo]]                    # a glicemia ocupa uma posição no coletor
+procedimento = "glicemia"
+recurso = "coletor"
+
+[[exigencia]]                  # quem tem a marca exige máscara para iniciar a visita
+nome = "protecao"
+marca = "exige-protecao-respiratoria"
+preparo = "vestir-mascara"
+custo = 1                      # opcional, padrão 1
 ```
 
 | Modelo | Campo | Obrigatório | Significado |
@@ -109,6 +128,13 @@ exigido_antes_de = ["pressao", "glicemia", "temperatura", "medicacao", "antropom
 | preparo | `consome` | não | recurso gasto a cada execução |
 | preparo | `desfeito_ao_sair` | não | se sair da casa desfaz o estado (padrão `true`) |
 | preparo | `exigido_antes_de` | não | procedimentos que só acontecem com o estado valendo |
+| recurso | `acao_reposicao` | não | nome da ação de reposição (padrão `repor-<nome>`) |
+| consumo | `procedimento` | sim | procedimento que gasta o recurso |
+| consumo | `recurso` | sim | recurso gasto, uma unidade por execução |
+| exigencia | `nome` | sim | nome da conferência feita na porta; gera `<nome>-conferida`, `conferir-<nome>-exigida` e `conferir-<nome>-dispensada` |
+| exigencia | `marca` | sim | marca do paciente; vem da coluna de mesmo nome da planilha, com `_` no lugar de `-` |
+| exigencia | `preparo` | sim | preparo cujo estado é exigido para iniciar a visita |
+| exigencia | `custo` | não | minutos da conferência quando exigida (padrão 1; dispensada custa 0) |
 
 Os nomes seguem a regra do PDDL: minúsculas, sem acento nem espaço, com hífen
 entre as palavras. O `estado` tem nome próprio porque não dá para derivá-lo do
@@ -168,46 +194,76 @@ válidas que provavelmente não fazem o que se espera:
 
 **Teste de equivalência.** As regras sintéticas, escritas como modelos e
 compiladas sobre o domínio legal, precisam reproduzir o `dominio-estendido.pddl`
-escrito à mão pelo Grupo B do Ciclo 2.
-
-Enquanto só a higienização pode ser escrita com os modelos (A, B e C), a
-comparação é com a **projeção** do estendido: o estendido sem os elementos da
-máscara e do coletor. A projeção é mecânica, por nome de predicado: remove os
-predicados dessas regras, as ações que só existiam para elas, os literais que
-as mencionam nas demais ações e os parâmetros que ficam sem uso (como `?c` e
-`?c-1` da glicemia). Nada é editado à mão.
-
-Duas comparações:
+escrito à mão pelo Grupo B do Ciclo 2. São duas comparações:
 
 1. **Estrutura:** mesmos predicados e, em cada ação, os mesmos parâmetros,
-   precondições, efeitos e custo.
+   precondições, efeitos e custo. Os nomes das variáveis podem diferir: o
+   compilador gera `?coletor` onde o domínio escrito à mão usa `?c`, e a
+   comparação aceita qualquer troca de nomes entre variáveis do mesmo tipo.
 2. **Comportamento:** em cada instância, o custo ótimo (A\* com h_max) é o mesmo
-   nos dois domínios, e o plano de cada um, executado no outro, é válido e tem
-   o mesmo custo.
+   nos dois lados, e o plano de cada um, executado no outro, é válido e tem o
+   mesmo custo.
+
+### Equivalência completa (modelos A a E)
+
+As três regras sintéticas ([`exemplos/sinteticas-ciclo2.toml`](exemplos/sinteticas-ciclo2.toml))
+são comparadas com o domínio estendido **inteiro**. No comportamento, a
+comparação é entre os dois pipelines de ponta a ponta, a partir dos mesmos
+dados de pacientes:
+
+- **Ciclo 2:** `dominio-estendido.pddl` + problema gerado pelo Ciclo 2 para ele;
+- **compilado:** `dominio-legal.pddl` + regras compiladas + problema legal com
+  os fatos das regras.
+
+**Resultado:** estrutura igual, e 24 de 24 instâncias equivalentes:
+
+| Instâncias | Recursos | O que exercitam |
+|---|---|---|
+| 2 e 3 pacientes, 5 sementes | capacidades padrão do Ciclo 2 | 3 instâncias com paciente que exige máscara |
+| 2 e 3 pacientes, 5 sementes | 2 doses de álcool, 1 máscara, coletor com 2 posições | 5 planos com reposição ou troca na UBS |
+| 4 pacientes, sementes 2 e 164 | padrão e 1 máscara por carga | 2 pacientes com máscara; com 1 máscara, reposição obrigatória |
+
+As sementes 2 e 164 são as únicas do gerador do Ciclo 2 (testadas até 200)
+com dois pacientes que exigem máscara; sem elas, a falta de máscara nunca
+seria exercitada.
+
+### Equivalência parcial (higienização)
+
+Antes de D e E existirem, a higienização ([`exemplos/higienizacao.toml`](exemplos/higienizacao.toml))
+foi comparada com a **projeção** do estendido: o estendido sem os elementos da
+máscara e do coletor. A projeção é mecânica, por nome de predicado: remove os
+predicados dessas regras, as ações que só existiam para elas, os literais que
+as mencionam e os parâmetros que ficam sem uso. Nada é editado à mão.
 
 **Resultado:** estrutura igual, e 30 de 30 instâncias equivalentes (2 a 4
 pacientes, 5 sementes, com o álcool do exemplo e com álcool para só 2 casas,
-caso em que 11 planos precisam de reposição na UBS).
+caso em que 11 planos precisam de reposição na UBS). O teste continua no
+relatório, porque isola a higienização.
 
-**Controle negativo.** Para mostrar que o teste detecta diferenças, ele também
-roda com regras alteradas de propósito, que precisam ser acusadas:
+### Controle negativo
 
-| Alteração | Estrutura | Comportamento (3 pacientes) |
+Para mostrar que o teste detecta diferenças, ele também roda com regras
+alteradas de propósito, que precisam ser acusadas:
+
+| Alteração | Estrutura | Comportamento |
 |---|---|---|
 | tirar `temperatura` de `exigido_antes_de` | acusa a precondição que falta | igual (ninguém precisa de temperatura) |
 | `desfeito_ao_sair = false` | acusa os efeitos em `mover` e `desviar-para-ubs` | 125 × 129 |
-| custo 3 em vez de 2 | acusa o custo | 132 × 129 |
+| custo 3 em vez de 2 na higienização | acusa o custo | 132 × 129 |
+| sem o consumo do coletor | acusa a glicemia | — |
+| consumo na pressão em vez da glicemia | acusa as duas ações | — |
+| sem a exigência da máscara | acusa predicados, conferências e início da visita | — |
+| custo 2 na conferência | acusa a conferência exigida | — |
+| coletor com reposição `repor-coletor` | acusa `repor-coletor` × `trocar-coletor` | — |
 
 A primeira linha mostra por que as duas comparações existem: o comportamento
 só revela o erro quando a instância exercita aquela parte da regra; a
 estrutura revela sempre.
 
 ```bash
-python -m testes.equivalencia          # relatório completo (cerca de 20 s)
-python -m unittest discover testes     # inclui a versão rápida do mesmo teste
+python -m testes.equivalencia          # relatório completo (cerca de 3 min)
+python -m unittest discover testes     # inclui uma versão rápida (cerca de 20 s)
 ```
-
-A equivalência com o domínio estendido **completo** vem com os modelos D e E.
 
 ---
 
@@ -219,7 +275,7 @@ A equivalência com o domínio estendido **completo** vem com os modelos D e E.
 3. [x] Validação com mensagens em português.
 4. [x] Teste de equivalência da higienização.
 5. [x] Assistente interativo que gera o TOML.
-6. [ ] Modelos D e E e teste de equivalência completo.
+6. [x] Modelos D e E e teste de equivalência completo.
 7. [ ] Integração com a linha de comando do `acsplan` e texto legível das
        ações novas no roteiro do ACS.
 8. [ ] Avaliação com regras que não existem no domínio estendido e, se
@@ -243,8 +299,8 @@ Dentro desta pasta:
 python -m compilador.assistente minhas-regras.toml
 ```
 
-O assistente pergunta o que adicionar (recurso ou preparo) e depois cada
-campo, com explicação. Um trecho da conversa:
+O assistente pergunta o que adicionar (recurso, preparo, consumo ou
+exigência) e depois cada campo, com explicação. Um trecho da conversa:
 
 ```
 Novo RECURSO: um estoque finito que só é reposto na UBS (ex.: álcool, máscaras).
@@ -259,8 +315,12 @@ Quantos minutos leva para repor na UBS [3]:
 - Cada resposta é validada na hora; uma resposta inválida faz a mesma pergunta
   de novo. Nomes já usados pelo domínio ou por outra regra são recusados
   quando digitados.
-- O recurso consumido e os procedimentos exigidos são escolhidos por número,
-  numa lista com o nome legível de cada procedimento.
+- Recursos, preparos e procedimentos são escolhidos por número, numa lista
+  com o nome legível de cada procedimento. Consumo e exigência só podem ser
+  criados depois do recurso ou preparo a que se referem.
+- As três regras sintéticas do Ciclo 2 podem ser recriadas inteiras só
+  respondendo perguntas; um teste automático confere que o resultado é igual
+  a `exemplos/sinteticas-ciclo2.toml`.
 - Se o arquivo já existe, as regras novas são **acrescentadas ao fim**, sem
   apagar o que estava lá (inclusive comentários).
 - No fim, as regras passam pela conferência do compilador antes de serem
@@ -298,9 +358,23 @@ O que entra no problema, para cada recurso de capacidade N:
 - níveis `n…` e fatos `(prox …)` a mais, quando N passa do maior nível que o
   problema já tinha.
 
-Preparos não acrescentam nada: o estado começa falso, e no PDDL o que não está
-no estado inicial é falso. O problema também passa a apontar para o domínio
-compilado (`visita-domiciliar-acs-regras`, ou o nome dado em `--nome`).
+Preparos e consumos não acrescentam nada: o estado do preparo começa falso
+(no PDDL, o que não está no estado inicial é falso), e o consumo usa o estoque
+do recurso. O problema também passa a apontar para o domínio compilado
+(`visita-domiciliar-acs-regras`, ou o nome dado em `--nome`).
+
+Exigências precisam saber **quem tem a marca**, e isso vem da planilha de
+pacientes do Ciclo 2 (`.csv` ou `.json`), em `--dados`. A marca
+`exige-protecao-respiratoria` é lida da coluna `exige_protecao_respiratoria`:
+
+```bash
+python -m compilador exemplos/sinteticas-ciclo2.toml -o dominio.pddl \
+    --problema problema-legal.pddl --saida-problema problema.pddl \
+    --dados ../PCI-Saude-GroupB/acsplan/dados/microarea_exemplo.csv
+```
+
+Cada paciente marcado vira um fato `(exige-protecao-respiratoria pX)`. Sem
+`--dados`, o compilador recusa o problema e explica o que falta.
 
 Quem usa o pipeline do Ciclo 2 em Python pode chamar
 `compilador.gerar_problema_com_regras(dados, roteamento, regras, caminho,
@@ -310,19 +384,20 @@ nome_dominio=...)`, que gera o problema legal e aplica as regras de uma vez.
 
 ```
 compilador/
-  regras.py      leitura e escrita do TOML, conferência de cada campo
+  regras.py      modelos, leitura e escrita do TOML, conferência de cada campo
   assistente.py  assistente interativo que grava o TOML
   dominio.py     aplica os modelos sobre a árvore do domínio
-  problema.py    acrescenta ao problema os fatos que as regras exigem
+  problema.py    acrescenta ao problema os fatos que as regras exigem (recursos, marcas)
   pddl.py        escreve a árvore (domínio ou problema) como PDDL legível
   ciclo2.py      caminhos e parser PDDL do Ciclo 2 (../PCI-Saude-GroupB)
   __main__.py    linha de comando
 exemplos/
-  higienizacao.toml   regra sintética da higienização, como no Ciclo 2
+  higienizacao.toml       regra sintética da higienização, como no Ciclo 2
+  sinteticas-ciclo2.toml  as três regras sintéticas, com os cinco modelos
 testes/
   test_compilador.py    leitura, validação, avisos, domínio e problema
-  equivalencia.py       projeção do estendido e comparação (também roda sozinho)
-  test_equivalencia.py  equivalência da higienização e controle negativo
+  equivalencia.py       comparações com o estendido (também roda sozinho)
+  test_equivalencia.py  equivalência parcial e completa, controle negativo
   test_assistente.py    sessões do assistente com respostas programadas
 ```
 

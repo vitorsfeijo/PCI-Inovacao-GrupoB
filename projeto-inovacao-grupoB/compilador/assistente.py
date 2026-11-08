@@ -24,8 +24,9 @@ from typing import Callable
 
 from . import ciclo2
 from .dominio import compilar_dominio
-from .regras import (DESCRICAO_PROCEDIMENTOS, PROCEDIMENTOS, ErroRegra, Recurso,
-                     Regras, avisos, bloco_toml, carregar_regras, ler_regras,
+from .regras import (CUSTO_CONFERENCIA_PADRAO, DESCRICAO_PROCEDIMENTOS,
+                     PROCEDIMENTOS, ErroRegra, Exigencia, Recurso, Regras, avisos,
+                     bloco_toml, carregar_regras, ler_regras, regras_para_dados,
                      sugerir_nome, validar_inteiro, validar_nome)
 
 
@@ -44,8 +45,15 @@ def _nomes_do_dominio(arvore: list) -> set[str]:
 
 
 def _nomes_de_recurso(nome: str) -> list[str]:
+    """Nomes que o recurso gera, sem contar a acao de reposicao (perguntada
+    a parte, porque pode ter outro nome)."""
     r = Recurso(nome, 1, 0)
-    return [r.predicado, r.predicado_maximo, r.acao_reposicao]
+    return [r.predicado, r.predicado_maximo]
+
+
+def _nomes_de_exigencia(nome: str) -> list[str]:
+    e = Exigencia(nome, "", "")
+    return [e.predicado_conferencia, e.acao_exigida, e.acao_dispensada]
 
 
 class Assistente:
@@ -56,16 +64,18 @@ class Assistente:
         self.dominio = dominio
         self.entrada = entrada
         self.escrever = escrever
-        self.existentes = existentes or Regras((), ())
+        self.existentes = existentes or Regras()
         self.blocos: list[tuple[str, dict]] = []
 
         # nome -> quem ja usa, pronto para "ja e usado <dono>"
         self.usados: dict[str, str] = {n: "pelo domínio de entrada (lei ou Ciclo 2)"
                                        for n in _nomes_do_dominio(dominio)}
         for r in self.existentes.recursos:
-            self._reservar(_nomes_de_recurso(r.nome), f"pelo recurso \"{r.nome}\"")
+            self._reservar(r.nomes_gerados, f"pelo recurso \"{r.nome}\"")
         for p in self.existentes.preparos:
-            self._reservar([p.nome, p.estado], f"pelo preparo \"{p.nome}\"")
+            self._reservar(p.nomes_gerados, f"pelo preparo \"{p.nome}\"")
+        for e in self.existentes.exigencias:
+            self._reservar(e.nomes_gerados, f"pela exigência \"{e.nome}\"")
 
     # ------------------------------------------------------------------
     #  perguntas basicas
@@ -84,10 +94,12 @@ class Assistente:
         for nome in nomes:
             self.usados[nome] = dono
 
-    def pedir_nome(self, pergunta: str, gerados: Callable[[str], list[str]]) -> str:
+    def pedir_nome(self, pergunta: str, gerados: Callable[[str], list[str]],
+                   padrao: str | None = None) -> str:
         """Nome PDDL livre, com sugestao para nomes com acento ou espaco."""
+        sufixo = f" [{padrao}]" if padrao else ""
         while True:
-            resposta = self._ler(f"{pergunta}: ")
+            resposta = self._ler(f"{pergunta}{sufixo}: ") or (padrao or "")
             problema = validar_nome(resposta)
             if problema:
                 sugestao = sugerir_nome(resposta)
@@ -178,14 +190,30 @@ class Assistente:
         return ([r.nome for r in self.existentes.recursos]
                 + [c["nome"] for m, c in self.blocos if m == "recurso"])
 
+    def _preparos_disponiveis(self) -> list[str]:
+        return ([p.nome for p in self.existentes.preparos]
+                + [c["nome"] for m, c in self.blocos if m == "preparo"])
+
+    def _consumos_existentes(self) -> set[tuple[str, str]]:
+        return ({(c.procedimento, c.recurso) for c in self.existentes.consumos}
+                | {(c["procedimento"], c["recurso"])
+                   for m, c in self.blocos if m == "consumo"})
+
     def novo_recurso(self) -> dict:
         self.escrever("\nNovo RECURSO: um estoque finito que só é reposto na UBS "
                       "(ex.: álcool, máscaras).")
         nome = self.pedir_nome("Nome do recurso", _nomes_de_recurso)
+        self._reservar(_nomes_de_recurso(nome), f"pelo recurso \"{nome}\"")
         capacidade = self.pedir_inteiro("Quantas unidades o ACS leva por carga", 1)
         custo = self.pedir_inteiro("Quantos minutos leva para repor na UBS", 0, padrao=3)
-        self._reservar(_nomes_de_recurso(nome), f"pelo recurso \"{nome}\"")
-        return {"nome": nome, "capacidade": capacidade, "custo_reposicao": custo}
+        padrao = f"repor-{nome}"
+        reposicao = self.pedir_nome("Nome da ação de reposição (Enter aceita o "
+                                    "sugerido)", lambda n: [n], padrao=padrao)
+        self._reservar([reposicao], f"pelo recurso \"{nome}\"")
+        campos = {"nome": nome, "capacidade": capacidade, "custo_reposicao": custo}
+        if reposicao != padrao:
+            campos["acao_reposicao"] = reposicao
+        return campos
 
     def novo_preparo(self) -> dict:
         self.escrever("\nNovo PREPARO: algo que o ACS faz antes de certos "
@@ -214,24 +242,51 @@ class Assistente:
         campos["exigido_antes_de"] = self.pedir_procedimentos()
         return campos
 
+    def novo_consumo(self) -> dict | None:
+        self.escrever("\nNovo CONSUMO: um procedimento gasta uma unidade de um "
+                      "recurso (ex.: a glicemia ocupa espaço no coletor).")
+        recursos = self._recursos_disponiveis()
+        if not recursos:
+            self.escrever("(Nenhum recurso declarado ainda. Declare o recurso antes.)")
+            return None
+        procedimento = self.pedir_opcao("Qual procedimento gasta o recurso?",
+                                        [(p, DESCRICAO_PROCEDIMENTOS[p])
+                                         for p in PROCEDIMENTOS])
+        recurso = self.pedir_opcao("Qual recurso ele gasta?", [(r, r) for r in recursos])
+        if (procedimento, recurso) in self._consumos_existentes():
+            self._erro("esse consumo já foi declarado; nada foi adicionado")
+            return None
+        return {"procedimento": procedimento, "recurso": recurso}
+
+    def nova_exigencia(self) -> dict | None:
+        self.escrever("\nNova EXIGÊNCIA: pacientes com uma marca só podem ter a "
+                      "visita iniciada depois de um preparo (ex.: máscara para "
+                      "quem exige proteção respiratória).")
+        preparos = self._preparos_disponiveis()
+        if not preparos:
+            self.escrever("(Nenhum preparo declarado ainda. Declare o preparo antes.)")
+            return None
+        nome = self.pedir_nome("Nome curto da conferência feita na porta "
+                               "(ex.: protecao)", _nomes_de_exigencia)
+        self._reservar(_nomes_de_exigencia(nome), f"pela exigência \"{nome}\"")
+        self.escrever("A marca é a coluna da planilha de pacientes que diz quem precisa "
+                      "do preparo, com hífen no lugar de _ (ex.: a coluna "
+                      "exige_protecao_respiratoria vira exige-protecao-respiratoria).")
+        marca = self.pedir_nome("Marca do paciente", lambda n: [n])
+        self._reservar([marca], f"pela exigência \"{nome}\"")
+        preparo = self.pedir_opcao("Qual preparo é exigido?", [(p, p) for p in preparos])
+        custo = self.pedir_inteiro("Quantos minutos leva a conferência", 0,
+                                   padrao=CUSTO_CONFERENCIA_PADRAO)
+        return {"nome": nome, "marca": marca, "preparo": preparo, "custo": custo}
+
     # ------------------------------------------------------------------
     #  fluxo principal
     # ------------------------------------------------------------------
 
     def regras_completas(self) -> Regras:
-        dados = {"recurso": [], "preparo": []}
-        for r in self.existentes.recursos:
-            dados["recurso"].append({"nome": r.nome, "capacidade": r.capacidade,
-                                     "custo_reposicao": r.custo_reposicao})
-        for p in self.existentes.preparos:
-            campos = {"nome": p.nome, "estado": p.estado, "custo": p.custo,
-                      "desfeito_ao_sair": p.desfeito_ao_sair,
-                      "exigido_antes_de": list(p.exigido_antes_de)}
-            if p.consome:
-                campos["consome"] = p.consome
-            dados["preparo"].append(campos)
+        dados = regras_para_dados(self.existentes)
         for modelo, campos in self.blocos:
-            dados[modelo].append(campos)
+            dados.setdefault(modelo, []).append(campos)
         return ler_regras(dados)
 
     def executar(self) -> list[tuple[str, dict]]:
@@ -240,11 +295,17 @@ class Assistente:
             escolha = self.pedir_opcao("\nO que deseja adicionar?", [
                 ("recurso", "um recurso (estoque reposto na UBS)"),
                 ("preparo", "um preparo (feito antes de procedimentos)"),
+                ("consumo", "um consumo (procedimento que gasta um recurso)"),
+                ("exigencia", "uma exigência (pacientes marcados exigem um preparo)"),
                 ("fim", "terminar"),
             ])
             if escolha == "fim":
                 return self.blocos
-            campos = self.novo_recurso() if escolha == "recurso" else self.novo_preparo()
+            campos = {"recurso": self.novo_recurso, "preparo": self.novo_preparo,
+                      "consumo": self.novo_consumo,
+                      "exigencia": self.nova_exigencia}[escolha]()
+            if campos is None:
+                continue
             self.blocos.append((escolha, campos))
             self.escrever(f"\nAdicionado:\n{bloco_toml(escolha, campos).rstrip()}")
 
@@ -292,7 +353,8 @@ def main(argv: list[str] | None = None, *, entrada: Callable[[str], str] = input
                 escrever(f"  - {problema}")
             escrever("Corrija o arquivo ou escolha outro nome.")
             return 1
-        total = len(existentes.recursos) + len(existentes.preparos)
+        total = (len(existentes.recursos) + len(existentes.preparos)
+                 + len(existentes.consumos) + len(existentes.exigencias))
         escrever(f"O arquivo {caminho} já existe, com {total} regra(s). "
                  f"As novas serão acrescentadas ao fim dele.")
     else:
