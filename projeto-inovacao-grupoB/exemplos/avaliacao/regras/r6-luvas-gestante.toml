@@ -1,0 +1,23 @@
+# R6 [SINTETICA] Em gestantes, calcar luvas antes da glicemia capilar (so nelas,
+# e so nesse procedimento).
+# Testa: exigencia por paciente num procedimento (E com antes_de).
+
+[[recurso]]
+nome = "luvas"
+capacidade = 4
+custo_reposicao = 3
+texto = "luvas de procedimento"
+
+[[preparo]]
+nome = "calcar-luvas"
+estado = "luvas-calcadas"
+consome = "luvas"
+custo = 1
+desfeito_ao_sair = true
+texto = "Calçar luvas de procedimento"
+
+[[exigencia]]
+nome = "luvas-gestante"
+marca = "gestante"
+preparo = "calcar-luvas"
+antes_de = ["glicemia"]

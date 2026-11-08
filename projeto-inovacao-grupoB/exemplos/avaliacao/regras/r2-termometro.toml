@@ -1,0 +1,18 @@
+# R2 [SINTETICA] Antes de aferir a temperatura, desinfetar o termometro com um
+# sache de alcool 70%; sair da casa exige desinfetar de novo.
+# Testa: preparo (B) exigido por um unico procedimento (C).
+
+[[recurso]]
+nome = "saches-alcool"
+capacidade = 4
+custo_reposicao = 3
+texto = "sachês de álcool 70%"
+
+[[preparo]]
+nome = "desinfetar-termometro"
+estado = "termometro-desinfetado"
+consome = "saches-alcool"
+custo = 1
+desfeito_ao_sair = true
+exigido_antes_de = ["temperatura"]
+texto = "Desinfetar o termômetro"

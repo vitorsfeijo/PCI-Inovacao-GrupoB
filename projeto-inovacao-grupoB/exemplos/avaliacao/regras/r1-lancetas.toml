@@ -1,0 +1,12 @@
+# R1 [SINTETICA] Cada glicemia usa uma lanceta descartavel; o estoque so e
+# reposto na UBS. Testa: consumo (D) num procedimento que ja consome fitas.
+
+[[recurso]]
+nome = "lancetas"
+capacidade = 4
+custo_reposicao = 3
+texto = "lancetas descartáveis"
+
+[[consumo]]
+procedimento = "glicemia"
+recurso = "lancetas"

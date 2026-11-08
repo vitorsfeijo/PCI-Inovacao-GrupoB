@@ -1,0 +1,24 @@
+# R5 [SINTETICA] Pacientes com suspeita de tuberculose exigem mascara N95 para
+# iniciar a visita.
+# Testa: exigencia na porta (E) que pode se somar a outra no mesmo paciente.
+
+[[recurso]]
+nome = "mascaras-n95"
+capacidade = 2
+custo_reposicao = 3
+texto = "máscaras N95"
+
+[[preparo]]
+nome = "vestir-n95"
+estado = "n95-vestida"
+consome = "mascaras-n95"
+custo = 2
+desfeito_ao_sair = true
+texto = "Colocar máscara N95"
+
+[[exigencia]]
+nome = "n95"
+marca = "suspeita-tuberculose"
+preparo = "vestir-n95"
+custo = 1
+texto = "Conferir a N95 antes de entrar"
