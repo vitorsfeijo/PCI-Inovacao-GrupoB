@@ -43,6 +43,19 @@ from .tarefas import Gerenciador
 PASTA_WEB = ciclo2.PROJETO / "web"
 TAMANHO_MAXIMO = 3_000_000           # bytes por requisicao (planilha de ate 2 MB)
 HOSTS_LOCAIS = ("127.0.0.1", "localhost")
+# O navegador so carrega o que vem deste servidor; a unica excecao sao as
+# imagens das ruas do OpenStreetMap, no mapa. Nada mais sai do computador.
+POLITICA_DE_CONTEUDO = "; ".join([
+    "default-src 'self'",
+    "img-src 'self' data: https://tile.openstreetmap.org",
+    "connect-src 'self'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+])
 
 ROTAS_GET = {
     "/api/modelos": lambda _: api.modelos(),
@@ -128,6 +141,8 @@ class Manipulador(BaseHTTPRequestHandler):
         self.send_header("Content-Type", tipo)
         self.send_header("Content-Length", str(len(dados)))
         self.send_header("Cache-Control", "no-cache")
+        self.send_header("Content-Security-Policy", POLITICA_DE_CONTEUDO)
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(dados)
 

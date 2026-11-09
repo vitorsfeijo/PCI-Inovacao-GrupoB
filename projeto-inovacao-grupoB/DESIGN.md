@@ -232,6 +232,10 @@ que não há plano" de "parou no limite".
   dados de pacientes.
 - **Nada é gravado** fora de pastas temporárias: salvar regras é um download
   feito pelo navegador.
+- **Política de conteúdo (CSP):** a página só carrega scripts, estilos e
+  dados do próprio servidor; a única exceção são as imagens das ruas de
+  `tile.openstreetmap.org`. Os testes de ponta a ponta conferem que nenhuma
+  tela esbarra nela (nem tem erros de JavaScript).
 - **Uma fonte só da verdade:** os formulários são montados a partir de
   `GET /api/modelos`, que lê as descrições e os **tipos de campo** do próprio
   `regras.py`; a validação usa os mesmos validadores do assistente e do
@@ -321,6 +325,28 @@ igual ou que saiu. Escolhas:
   vezes") e por **reposição** na UBS, não por minutos de cada regra: o
   resultado traz o custo total do plano, e o atraso de cada chegada mostra
   como o tempo se acumula ao longo do turno.
+
+### Mapa
+
+A rota do último roteiro da aba Planejar, a partir de `rota`, `paradas` e
+`pontos` do resultado. A lógica (`mapa-logica.js`, testada com `node --test`)
+monta os trechos na ordem, transformando cada passagem pela UBS em ida e
+volta, e calcula distâncias e a projeção do desenho. Escolhas:
+
+- **Leaflet guardado no projeto** (`web/vendor/leaflet/`, 1.9.4, licença BSD,
+  com os hashes de integridade conferidos), sem CDN: só as imagens das ruas
+  vêm da internet, e elas não levam dados de pacientes, só a região.
+- **Sem internet, desenho simples em SVG:** os mesmos pontos e trechos, com
+  norte para cima e barra de escala. A tela troca sozinha se nenhuma imagem
+  de rua carregar em 5 s, e a pessoa pode escolher o desenho de propósito.
+  O desenho usa o tamanho real da caixa (no celular também).
+- **Linhas retas, não ruas:** é a distância que o roteirizador usa por
+  padrão (haversine); desenhar o caminho pelas ruas exigiria um serviço de
+  rotas (o OSRM, opcional no Ciclo 2) e daria a impressão de uma precisão que
+  o plano não tem. O resumo diz quanto as passagens pela UBS acrescentam ao
+  percurso, comparado a ir direto.
+- No teste de ponta a ponta as imagens das ruas ficam **bloqueadas**: o teste
+  não depende da internet e confere a troca para o desenho.
 
 ### Estratégia de busca: `auto`, janelas e limpeza
 
@@ -580,13 +606,13 @@ recusas.
           roteiro e qualidade dos planos.
    5. [ ] Teste com alguém que não programa. **Material pronto, aplicação
           pendente** (pelo grupo).
-9. [ ] Interface web:
+9. [x] Interface web:
    1. [x] Reorganização: `backend/` e o lançador `acs.py`.
    2. [x] Servidor local e API.
    3. [x] Tela de regras.
    4. [x] Tela de planejamento e roteiro.
    5. [x] Antes × depois.
-   6. [ ] Mapa da rota.
+   6. [x] Mapa da rota.
 
 ---
 
@@ -637,12 +663,16 @@ web/                       a interface (servida pelo backend)
     tela-planejar.js   tela de planejamento e roteiro
     comparar-logica.js lógica da tela antes × depois, sem DOM
     tela-comparar.js   tela antes × depois
+    mapa-logica.js     lógica do mapa (trechos, distâncias, projeção), sem DOM
+    tela-mapa.js       tela do mapa (Leaflet ou desenho em SVG)
+  vendor/leaflet/      Leaflet 1.9.4, sem alterações (ver LEIAME.md)
   testes/
     *.test.mjs         lógica das telas (node --test)
     navegador.mjs      Chrome sem janela controlado pelo CDP
     e2e-regras.mjs     ponta a ponta da tela de regras
     e2e-planejar.mjs   ponta a ponta da tela de planejamento (planeja de verdade)
     e2e-comparar.mjs   ponta a ponta da tela antes × depois
+    e2e-mapa.mjs       ponta a ponta do mapa (ruas bloqueadas: cai para o desenho)
 backend/
   compilador/
     regras.py        modelos, leitura e escrita do TOML, conferência de cada campo

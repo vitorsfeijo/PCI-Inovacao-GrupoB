@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Regras do ACS</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
@@ -15,7 +16,7 @@
       <button class="aba" role="tab" id="aba-regras" aria-selected="true" aria-controls="tela-regras">Regras</button>
       <button class="aba" role="tab" id="aba-planejar" aria-selected="false" aria-controls="tela-planejar">Planejar</button>
       <button class="aba" role="tab" id="aba-comparar" aria-selected="false" aria-controls="tela-comparar">Antes × depois</button>
-      <button class="aba" role="tab" id="aba-mapa" aria-selected="false" disabled>Mapa <small>(em breve)</small></button>
+      <button class="aba" role="tab" id="aba-mapa" aria-selected="false" aria-controls="tela-mapa">Mapa</button>
     </nav>
   </div>
 </header>
@@ -198,8 +199,44 @@
       </div>
     </div>
   </section>
+
+  <section id="tela-mapa" class="tela oculto" role="tabpanel" aria-labelledby="aba-mapa">
+    <div id="mapa-vazio" class="painel formulario__vazio">
+      <p>O mapa mostra a rota do último roteiro planejado.</p>
+      <button type="button" class="botao botao--primario" id="mapa-ir-planejar">Planejar um turno</button>
+    </div>
+    <div id="mapa-conteudo" class="oculto">
+      <div class="barra">
+        <div class="mapa__titulo"><strong>Rota do turno</strong>
+          <span id="mapa-resumo" class="campo__ajuda"></span></div>
+        <span class="barra__espaco"></span>
+        <div class="modos" role="radiogroup" aria-label="Tipo de mapa">
+          <label class="opcao"><input type="radio" name="modo-mapa" value="ruas" checked>
+            <span>Mapa de ruas <small class="campo__ajuda">(OpenStreetMap, usa a internet)</small></span></label>
+          <label class="opcao"><input type="radio" name="modo-mapa" value="desenho">
+            <span>Desenho simples <small class="campo__ajuda">(sem internet)</small></span></label>
+        </div>
+      </div>
+      <div id="mapa-aviso" class="aviso-topo oculto" role="status"></div>
+      <div class="mapa-layout">
+        <ol id="mapa-lista" class="painel mapa__lista" aria-label="Pontos da rota"></ol>
+        <div class="painel mapa__caixa">
+          <div id="mapa" class="mapa"></div>
+          <p class="mapa__legenda">
+            <span class="legenda-linha"></span> rota ·
+            <span class="legenda-linha legenda-linha--desvio"></span> passagem pela UBS para repor ·
+            <span class="legenda-adiado"></span> fica para outro turno.
+            Linhas retas entre os pontos (o planejador usa distâncias em linha reta); o caminho
+            pelas ruas pode ser outro. No mapa de ruas, só as imagens da região são baixadas;
+            nomes e dados dos pacientes não saem do computador.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
+<script src="vendor/leaflet/leaflet.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

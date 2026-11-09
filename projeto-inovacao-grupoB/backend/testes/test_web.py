@@ -72,6 +72,8 @@ class CenarioNoNavegador(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        if not cls.CENARIO:
+            raise unittest.SkipTest("classe base")
         cls.servidor = criar_servidor(0)
         porta = cls.servidor.server_address[1]
         threading.Thread(target=cls.servidor.serve_forever, daemon=True).start()
@@ -96,6 +98,10 @@ class CenarioNoNavegador(unittest.TestCase):
     def setUp(self):
         self.assertTrue(self.relato.get("ok"),
                         f"{self.relato.get('erro')} (capturas em {self.pasta})")
+
+    def test_sem_erros_de_javascript_nem_bloqueios_da_politica(self):
+        self.assertEqual(self.relato["erros_da_pagina"], [])
+        self.assertEqual(self.relato["violacoes_csp"], [])
 
 
 class TestTelaDeRegras(CenarioNoNavegador):
@@ -229,6 +235,40 @@ class TestTelaAntesDepois(CenarioNoNavegador):
 
     def test_so_mudancas_e_aparencia(self):
         self.assertEqual(self.relato["tarefas_so_mudancas"], 5)
+        self.assertFalse(self.relato["rolagem_horizontal"])
+
+
+class TestMapa(CenarioNoNavegador):
+    """Planeja e abre o mapa, com as imagens das ruas bloqueadas (sem internet)."""
+
+    CENARIO = "e2e-mapa.mjs"
+    PRAZO = 400
+
+    def test_percorreu_todos_os_passos(self):
+        self.assertEqual(self.relato["passos"], ["ruas", "desenho", "aparencia"])
+        self.assertTrue(self.relato["vazio_visivel"])
+        self.assertEqual(self.relato["endereco"], "#mapa")
+
+    def test_mapa_de_ruas_tem_marcadores_e_linhas(self):
+        desvios = self.relato["desvios"]
+        self.assertEqual(self.relato["modo_inicial"], "ruas")
+        self.assertEqual(self.relato["marcadores"], 6)                 # UBS + 5 visitas
+        # trechos (5 visitas + 1 a mais por passagem na UBS + retorno) + 5 adiados
+        self.assertEqual(self.relato["linhas_e_adiados"], 5 + desvios + 1 + 5)
+        self.assertEqual(self.relato["itens_lista"], 1 + 5 + 5)
+        self.assertRegex(self.relato["resumo"], r"^5 visitas · [\d,]+ km a pé em linha reta")
+        self.assertIn("3. Paciente", self.relato["balao"])
+        self.assertIn("chegada ≈", self.relato["balao"])
+
+    def test_sem_as_ruas_cai_para_o_desenho(self):
+        desvios = self.relato["desvios"]
+        self.assertIn("não carregaram", self.relato["aviso"])
+        self.assertTrue(self.relato["radio_desenho"])
+        self.assertEqual(self.relato["svg_pontos"], 1 + 5 + 5)
+        self.assertEqual(self.relato["svg_trechos"], 5 + desvios + 1)
+        self.assertEqual(self.relato["svg_desvios"], 2 * desvios)
+        self.assertRegex(self.relato["escala"], r"^\d+ (m|km)$")
+        self.assertEqual(self.relato["svg_destacado"], "2. Paciente 03")
         self.assertFalse(self.relato["rolagem_horizontal"])
 
 

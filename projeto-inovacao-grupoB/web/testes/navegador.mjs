@@ -18,6 +18,7 @@ export async function abrirNavegador(pastaCapturas) {
   let ws;
   let seq = 0;
   const pendentes = new Map();
+  const errosDaPagina = [];          // excecoes de JavaScript nao tratadas
 
   function cdp(metodo, params = {}) {
     const id = ++seq;
@@ -63,6 +64,11 @@ export async function abrirNavegador(pastaCapturas) {
               { features: [{ name: "prefers-color-scheme", value: escuro ? "dark" : "light" }] });
   }
 
+  // URLs que nao devem carregar (ex.: as imagens das ruas, para simular sem internet)
+  async function bloquear(padroes) {
+    await cdp("Network.setBlockedURLs", { urls: padroes });
+  }
+
   async function fechar() {
     try { ws?.close(); } catch {}
     chrome.kill();
@@ -81,6 +87,10 @@ export async function abrirNavegador(pastaCapturas) {
     await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
     ws.onmessage = (evento) => {
       const msg = JSON.parse(evento.data);
+      if (msg.method === "Runtime.exceptionThrown") {
+        const d = msg.params.exceptionDetails;
+        errosDaPagina.push(d.exception?.description ?? d.text);
+      }
       const p = pendentes.get(msg.id);
       if (!p) return;
       pendentes.delete(msg.id);
@@ -88,12 +98,18 @@ export async function abrirNavegador(pastaCapturas) {
     };
     await cdp("Page.enable");
     await cdp("Runtime.enable");
+    await cdp("Network.enable");
+    // o que a politica de conteudo (CSP) do servidor bloquear fica anotado
+    await cdp("Page.addScriptToEvaluateOnNewDocument", { source: `
+      window.__violacoes = [];
+      document.addEventListener('securitypolicyviolation',
+        (e) => window.__violacoes.push(e.violatedDirective + ' ' + e.blockedURI));` });
     await largura(1280, 1000);
   } catch (erro) {
     await fechar();
     throw erro;
   }
-  return { cdp, avaliar, ate, capturar, abrir, largura, temaEscuro, fechar };
+  return { cdp, avaliar, ate, capturar, abrir, largura, temaEscuro, bloquear, fechar, errosDaPagina };
 }
 
 // Roda um cenario e imprime o relato em JSON (lido por backend/testes/test_web.py).
@@ -104,6 +120,8 @@ export async function rodarCenario(cenario) {
   try {
     navegador = await abrirNavegador(pastaCapturas);
     await cenario({ ...navegador, url, relato });
+    relato.violacoes_csp = await navegador.avaliar("window.__violacoes ?? []");
+    relato.erros_da_pagina = navegador.errosDaPagina;
     relato.ok = true;
   } catch (erro) {
     relato.ok = false;

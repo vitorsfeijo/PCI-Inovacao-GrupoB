@@ -11,8 +11,9 @@ import {
 
 export class TelaPlanejar {
   // situacaoDasRegras: () => { total, ok, conferindo, problemas, toml } (da tela de regras)
-  constructor(raiz, exemplos, { situacaoDasRegras, irParaRegras, aoPlanejar } = {}) {
+  constructor(raiz, exemplos, { situacaoDasRegras, irParaRegras, aoPlanejar, verNoMapa } = {}) {
     this.raiz = raiz;
+    this.verNoMapa = verNoMapa;
     this.situacaoDasRegras = situacaoDasRegras;
     this.aoPlanejar = aoPlanejar ?? (() => {});
     this.csv = null;
@@ -244,6 +245,8 @@ export class TelaPlanejar {
           el("p", { class: "campo__ajuda" },
              r.regras ? "Com as regras da equipe" : "Só com as normas da lei", " · ", resumo.busca)),
         el("div", { class: "roteiro__acoes" },
+          this.verNoMapa ? el("button", { class: "botao", type: "button", id: "ver-no-mapa",
+                                          onclick: () => this.verNoMapa() }, "Ver no mapa") : null,
           el("button", { class: "botao", type: "button", onclick: () => window.print() }, "Imprimir"),
           el("button", { class: "botao", type: "button",
                          onclick: () => baixar(r.texto + "\n", "roteiro.txt") }, "Baixar (.txt)"))),

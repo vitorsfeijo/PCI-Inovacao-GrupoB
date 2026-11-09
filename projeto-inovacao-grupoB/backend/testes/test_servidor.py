@@ -204,6 +204,20 @@ class TestServidor(unittest.TestCase):
             status, _ = self.pedir("GET", caminho)
             self.assertEqual(status, 404, caminho)
 
+    def test_politica_de_conteudo_e_leaflet_local(self):
+        conexao = http.client.HTTPConnection("127.0.0.1", self.porta, timeout=10)
+        conexao.request("GET", "/", headers={"Host": f"localhost:{self.porta}"})
+        resposta = conexao.getresponse()
+        resposta.read()
+        politica = resposta.getheader("Content-Security-Policy") or ""
+        conexao.close()
+        self.assertIn("default-src 'self'", politica)
+        self.assertIn("script-src 'self'", politica)            # nenhum script de fora
+        self.assertIn("img-src 'self' data: https://tile.openstreetmap.org", politica)
+        status, leaflet = self.pedir("GET", "/vendor/leaflet/leaflet.js")
+        self.assertEqual(status, 200)
+        self.assertIn("1.9.4", leaflet[:400])
+
     def test_json_invalido_e_rota_desconhecida(self):
         status, _ = self.pedir("POST", "/api/regras/ler", b"{nao e json")
         self.assertEqual(status, 400)

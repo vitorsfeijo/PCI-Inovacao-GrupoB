@@ -32,6 +32,11 @@ assistente interativo  ──gera──▶  regras.toml  ──compilador──�
 (pergunta campo a campo)          (fica salvo)                  ──▶ plano ──▶ roteiro do ACS
 ```
 
+Também há uma **interface web** local (`python3 acs.py web`): escrever as
+regras em formulários que conferem cada campo, planejar o turno e ver o
+roteiro, comparar o turno sem e com as regras da equipe e ver a rota no
+mapa.
+
 | Modelo | Exemplo |
 |---|---|
 | **A. Recurso** | o ACS leva 6 doses de álcool por saída, repostas na UBS |
@@ -42,8 +47,8 @@ assistente interativo  ──gera──▶  regras.toml  ──compilador──�
 
 ## Estado e resultados
 
-Etapas 1 a 7 concluídas e a avaliação (etapa 8) quase toda; falta aplicar o
-teste com usuários, cujo material está pronto.
+Etapas 1 a 7 e a interface web (etapa 9) concluídas, e a avaliação (etapa 8)
+quase toda; falta aplicar o teste com usuários, cujo material está pronto.
 
 - **Correto:** as três regras sintéticas do Ciclo 2, escritas como modelos,
   reproduzem o domínio estendido do Ciclo 2 **inteiro**: mesma estrutura e
@@ -62,7 +67,7 @@ Detalhes, números e limitações no [DESIGN.md](DESIGN.md#avaliação).
 
 ```
 acs.py        ponto de entrada: python3 acs.py <comando> (veja o HOWTORUN)
-web/          a interface web: python3 acs.py web (regras, planejamento e antes × depois prontos; mapa em construção)
+web/          a interface web: python3 acs.py web
 backend/      o código
   compilador/   o compilador, o assistente e o comando planejar
   servidor/     servidor local e API da interface web

@@ -3,10 +3,11 @@
 
 import { api } from "./api.js";
 import { TelaComparar } from "./tela-comparar.js";
+import { TelaMapa } from "./tela-mapa.js";
 import { TelaPlanejar } from "./tela-planejar.js";
 import { TelaRegras } from "./tela-regras.js";
 
-const TELAS = ["regras", "planejar", "comparar"];   // o mapa vem no proximo passo
+const TELAS = ["regras", "planejar", "comparar", "mapa"];
 const aoMostrar = {};                                 // tela -> funcao chamada ao aparecer
 
 function mostrarTela(nome, { focar = false } = {}) {
@@ -47,17 +48,22 @@ async function iniciar() {
       },
     });
     const situacaoDasRegras = () => telaRegras.situacao();
+    const irPara = (tela) => mostrarTela(tela, { focar: true });
+    const telaMapa = new TelaMapa(document.getElementById("tela-mapa"), { irPara });
     telaPlanejar = new TelaPlanejar(document.getElementById("tela-planejar"), exemplos, {
       situacaoDasRegras,
-      irParaRegras: () => mostrarTela("regras", { focar: true }),
+      irParaRegras: () => irPara("regras"),
+      aoPlanejar: (ultimo) => telaMapa.mostrar(ultimo),
+      verNoMapa: () => irPara("mapa"),
     });
     telaComparar = new TelaComparar(document.getElementById("tela-comparar"), {
       situacaoDasRegras,
       planejar: telaPlanejar,
-      irPara: (tela) => mostrarTela(tela, { focar: true }),
+      irPara,
     });
     aoMostrar.comparar = () => telaComparar.atualizar();
-    Object.assign(window, { telaRegras, telaPlanejar, telaComparar });
+    aoMostrar.mapa = () => telaMapa.aoAparecer();
+    Object.assign(window, { telaRegras, telaPlanejar, telaComparar, telaMapa });
     ligarAbas();
     document.body.dataset.pronto = "sim";            // usado pelos testes de ponta a ponta
   } catch (erro) {

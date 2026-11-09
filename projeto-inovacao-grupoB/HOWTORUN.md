@@ -53,7 +53,7 @@ deste guia funcionam como estão escritos. Sem ativar, usem o caminho direto:
 
 ---
 
-## Interface web (em construção)
+## Interface web
 
 ```bash
 python acs.py web
@@ -61,10 +61,14 @@ python acs.py web
 
 Abre o navegador em `http://localhost:8000` (se a porta estiver ocupada, usa
 a seguinte). A interface roda **só neste computador**: o servidor não aceita
-conexões de outras máquinas, e nada é enviado para a internet. Ctrl+C no
-terminal encerra. Opções: `--porta N` e `--sem-navegador`.
+conexões de outras máquinas, e os dados dos pacientes não saem dele. A única
+coisa buscada na internet são as imagens das ruas no mapa (OpenStreetMap);
+sem internet, o mapa vira um desenho simples. Ctrl+C no terminal encerra.
+Opções: `--porta N` e `--sem-navegador`.
 
-**Tela de regras (pronta).** Cada modelo (recurso, preparo, consumo,
+São quatro abas: **Regras**, **Planejar**, **Antes × depois** e **Mapa**.
+
+**Regras.** Cada modelo (recurso, preparo, consumo,
 exigência) tem um botão "+ Adicionar"; o formulário ao lado explica cada
 campo e confere enquanto vocês digitam. Nome com acento ou espaço ganha uma
 sugestão ("Usar “alcool-gel”"); renomear um recurso ou preparo atualiza as
@@ -74,7 +78,7 @@ salva o arquivo, que serve para o `planejar` do terminal. Também dá para
 abrir um `.toml` existente ou um dos exemplos. O que estiver na tela fica
 guardado no navegador até clicar em "Novo".
 
-**Tela de planejamento (pronta).** Escolham as regras (as da tela Regras,
+**Planejar.** Escolham as regras (as da tela Regras,
 quando válidas, ou só as normas da lei), os pacientes (uma planilha de
 exemplo, a planilha da equipe em `.csv` ou pacientes inventados para testar)
 e o turno (horário de início, duração e máximo de pacientes, todos
@@ -82,10 +86,11 @@ opcionais). "Planejar o turno" mostra o andamento com as mesmas mensagens do
 terminal e, no fim, o roteiro: visitas em ordem com horário estimado de
 chegada, a lista de tarefas de cada uma, as passagens pela UBS para repor
 material e quem ficou para outro turno. "Imprimir" imprime só o roteiro;
-"Baixar (.txt)" salva o mesmo texto do terminal. As opções avançadas
+"Baixar (.txt)" salva o mesmo texto do terminal; "Ver no mapa" abre a
+rota na aba Mapa. As opções avançadas
 (estratégia, planejador, rota) são as mesmas do `planejar`.
 
-**Antes × depois (pronta).** Planeja o mesmo turno duas vezes, com os mesmos
+**Antes × depois.** Planeja o mesmo turno duas vezes, com os mesmos
 pacientes e a mesma rota: só com as normas da lei e com as regras da equipe.
 As regras vêm da aba Regras e os pacientes e o turno, da aba Planejar. Mostra
 a diferença de duração, de tarefas e de voltas à UBS; o que as regras
@@ -93,8 +98,15 @@ acrescentaram ("Higienizar as mãos: 5 vezes"); e, visita a visita, as tarefas
 novas destacadas e o atraso na chegada. "Mostrar só as tarefas que mudaram"
 esconde o resto.
 
-O mapa vem no próximo passo. A API está descrita no
-[DESIGN](DESIGN.md#servidor-e-api-da-interface-web).
+**Mapa.** A rota do último roteiro planejado: a UBS, as visitas numeradas na
+ordem, as passagens pela UBS para repor material (tracejadas) e, em cinza,
+quem ficou para outro turno. Clicar numa visita (no mapa ou na lista) mostra
+o horário de chegada e as tarefas. O mapa de ruas usa o OpenStreetMap; o
+"Desenho simples" mostra os mesmos pontos sem internet, e a tela troca para
+ele sozinha se as imagens das ruas não carregarem. As linhas são retas, como
+as distâncias que o planejador usa; o caminho pelas ruas pode ser outro.
+
+A API está descrita no [DESIGN](DESIGN.md#servidor-e-api-da-interface-web).
 
 ## Escrevendo regras pelo assistente
 
