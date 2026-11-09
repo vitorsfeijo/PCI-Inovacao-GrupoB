@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regras do ACS</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem;
+         color: #1f2328; background: #fff; line-height: 1.5; }
+  code { background: #f2f2f2; padding: 0 .3em; border-radius: 3px; }
+  .ok { color: #1a7f37; } .erro { color: #cf222e; }
+</style>
+</head>
+<body>
+<h1>Regras do ACS</h1>
+<p>Interface em construção (passo 3). O servidor e a API já funcionam:</p>
+<p id="estado">Consultando a API…</p>
+<script>
+  fetch("/api/modelos").then(r => r.json()).then(d => {
+    const nomes = d.modelos.map(m => m.titulo).join(", ");
+    document.getElementById("estado").innerHTML =
+      `<span class="ok">API respondendo.</span> ${d.modelos.length} modelos (${nomes}) e ` +
+      `${d.procedimentos.length} procedimentos.`;
+  }).catch(e => {
+    document.getElementById("estado").innerHTML = `<span class="erro">API sem resposta: ${e}</span>`;
+  });
+</script>
+</body>
+</html>

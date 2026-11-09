@@ -9,6 +9,7 @@ Comandos:
     assistente ARQUIVO.toml        escreve regras respondendo perguntas
     compilar ARQUIVO.toml [...]    gera o domínio (e o problema) PDDL com as regras
     planejar [ARQUIVO.toml] [...]  planeja o turno e imprime o roteiro do ACS
+    web [--porta 8000]             abre a interface web no navegador
     testes                         roda os testes automáticos
 
     equivalencia                   regras sintéticas x domínio estendido do Ciclo 2
@@ -56,6 +57,9 @@ def main(argv: list[str]) -> int:
     if comando == "compilar":
         from compilador.__main__ import main as compilador
         return compilador(resto)
+    if comando == "web":
+        from servidor.http import main as web
+        return web(resto)
     if comando == "testes":
         import unittest
         programa = unittest.main(module=None, exit=False, argv=[
@@ -71,7 +75,7 @@ def main(argv: list[str]) -> int:
         return 0
 
     print(f"Comando desconhecido: {comando}. Comandos: assistente, compilar, planejar, "
-          f"testes, {', '.join(SCRIPTS)}. Veja: python3 acs.py --help", file=sys.stderr)
+          f"web, testes, {', '.join(SCRIPTS)}. Veja: python3 acs.py --help", file=sys.stderr)
     return 2
 
 

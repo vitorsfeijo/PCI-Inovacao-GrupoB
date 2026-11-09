@@ -218,6 +218,44 @@ sobre os mesmos arquivos PDDL, e **valida o plano devolvido na tarefa do
 nosso planejador** antes de seguir. Os códigos de saída distinguem "provou
 que não há plano" de "parou no limite".
 
+### Servidor e API da interface web
+
+`python3 acs.py web` sobe um servidor local que serve a interface (pasta
+`web/`) e uma API em JSON (`backend/servidor/`). Escolhas:
+
+- **Só biblioteca padrão** (`http.server`), para manter zero dependências
+  obrigatórias; a interface é HTML, CSS e JavaScript simples, sem etapa de
+  *build*.
+- **Só neste computador:** o servidor ouve em `127.0.0.1` e recusa
+  requisições cujo cabeçalho `Host` não seja local, o que impede um site
+  aberto no mesmo navegador de usar a API (*DNS rebinding*). A planilha tem
+  dados de pacientes.
+- **Nada é gravado** fora de pastas temporárias: salvar regras é um download
+  feito pelo navegador.
+- **Uma fonte só da verdade:** os formulários são montados a partir de
+  `GET /api/modelos`, que lê as descrições e os **tipos de campo** do próprio
+  `regras.py`; a validação usa os mesmos validadores do assistente e do
+  compilador.
+- **O mesmo núcleo do terminal:** o `planejar` foi dividido em `executar`
+  (devolve um resultado estruturado: seleção, rota com coordenadas, visitas,
+  tarefas, minutos, resumo) e `main` (imprime). A API traduz o pedido para os
+  mesmos argumentos da linha de comando e usa o mesmo analisador, então opções
+  inválidas são recusadas do mesmo jeito.
+- **Planejamento em segundo plano:** planejar pode levar até um minuto, então
+  `POST /api/planejar` cria uma tarefa e a interface acompanha
+  `GET /api/tarefas/<id>`, com as mesmas mensagens de progresso do terminal.
+  No máximo dois planejamentos rodam ao mesmo tempo.
+
+| Rota | O que faz |
+|---|---|
+| `GET /api/modelos` | modelos, campos (tipo, obrigatório, descrição) e procedimentos |
+| `GET /api/exemplos`, `GET /api/exemplos/regras/<id>` | regras e planilhas de exemplo |
+| `POST /api/regras/campo` | valida um campo `{modelo, campo, valor}`; devolve o erro e, para nomes, uma sugestão |
+| `POST /api/regras/validar` | valida o conjunto `{regras}`, inclusive contra o domínio; devolve problemas, avisos e o TOML |
+| `POST /api/regras/ler` | lê um TOML `{toml}` para os formulários |
+| `POST /api/planejar` | `{regras_toml, planilha: {exemplo \| csv \| sintetica}, opcoes}` → `{id}` |
+| `GET /api/tarefas/<id>` | estado, mensagens de progresso e, no fim, o resultado |
+
 ### Estratégia de busca: `auto`, janelas e limpeza
 
 | Estratégia | Ciclo 2 | Fast Downward |
@@ -476,6 +514,13 @@ recusas.
           roteiro e qualidade dos planos.
    5. [ ] Teste com alguém que não programa. **Material pronto, aplicação
           pendente** (pelo grupo).
+9. [ ] Interface web:
+   1. [x] Reorganização: `backend/` e o lançador `acs.py`.
+   2. [x] Servidor local e API.
+   3. [ ] Tela de regras.
+   4. [ ] Tela de planejamento e roteiro.
+   5. [ ] Antes × depois.
+   6. [ ] Mapa da rota.
 
 ---
 
@@ -514,6 +559,7 @@ HOWTORUN.md                instalar, escrever regras, planejar, testar
 DESIGN.md                  este arquivo
 acs.py                     ponto de entrada: python3 acs.py <comando>
 requirements-opcional.txt  Fast Downward (opcional)
+web/                       a interface (HTML, CSS e JavaScript, servidos pelo backend)
 backend/
   compilador/
     regras.py        modelos, leitura e escrita do TOML, conferência de cada campo
@@ -529,6 +575,10 @@ backend/
     fastdownward.py  Fast Downward opcional, com validação do plano
     janelas.py       planejamento por janelas
     __main__.py      linha de comando (chamada pelo acs.py)
+  servidor/
+    http.py          servidor local (python3 acs.py web)
+    api.py           operações da API, como funções puras
+    tarefas.py       planejamentos em segundo plano
   acsplan/           cópia parcial, sem alterações, do pacote do Ciclo 2 (ver LEIAME.md)
   testes/
     test_*.py              testes automáticos (python3 acs.py testes)

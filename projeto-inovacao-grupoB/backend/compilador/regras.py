@@ -79,6 +79,50 @@ DESCRICAO_CAMPOS = {
     ("exigencia", "antes_de"): "procedimentos que exigem o preparo nesses pacientes",
 }
 
+# O que cada modelo significa, para quem escreve a regra (assistente e web).
+DESCRICAO_MODELOS = {
+    "recurso": ("Recurso", "um estoque finito que só é reposto na UBS "
+                           "(ex.: álcool, máscaras)"),
+    "preparo": ("Preparo", "algo que o ACS faz antes de certos procedimentos, podendo "
+                           "gastar um recurso (ex.: higienizar as mãos)"),
+    "consumo": ("Consumo", "um procedimento gasta unidades de um recurso "
+                           "(ex.: a glicemia ocupa espaço no coletor)"),
+    "exigencia": ("Exigência", "pacientes com uma marca exigem um preparo, para iniciar "
+                               "a visita ou antes de certos procedimentos "
+                               "(ex.: máscara para quem exige proteção respiratória)"),
+}
+
+# Tipo de cada campo, para interfaces montarem o formulario certo:
+#   nome          nome PDDL (minusculas, hifen); "padrao" pode citar outro campo
+#   inteiro       numero com "minimo"
+#   booleano      sim/nao
+#   texto         texto livre (so o campo `texto`)
+#   procedimento  um da lista fechada; procedimentos: varios
+#   referencia    nome de uma regra do "modelo" indicado
+TIPOS_CAMPOS = {
+    ("recurso", "nome"): {"tipo": "nome"},
+    ("recurso", "capacidade"): {"tipo": "inteiro", "minimo": 1},
+    ("recurso", "custo_reposicao"): {"tipo": "inteiro", "minimo": 0, "sugestao": 3},
+    ("recurso", "acao_reposicao"): {"tipo": "nome", "padrao": "repor-{nome}"},
+    ("recurso", "texto"): {"tipo": "texto", "padrao": "{nome}"},
+    ("preparo", "nome"): {"tipo": "nome"},
+    ("preparo", "estado"): {"tipo": "nome"},
+    ("preparo", "custo"): {"tipo": "inteiro", "minimo": 0},
+    ("preparo", "consome"): {"tipo": "referencia", "modelo": "recurso"},
+    ("preparo", "desfeito_ao_sair"): {"tipo": "booleano", "padrao": True},
+    ("preparo", "exigido_antes_de"): {"tipo": "procedimentos"},
+    ("preparo", "texto"): {"tipo": "texto", "padrao": "{nome}"},
+    ("consumo", "procedimento"): {"tipo": "procedimento"},
+    ("consumo", "recurso"): {"tipo": "referencia", "modelo": "recurso"},
+    ("consumo", "quantidade"): {"tipo": "inteiro", "minimo": 1, "padrao": 1},
+    ("exigencia", "nome"): {"tipo": "nome"},
+    ("exigencia", "marca"): {"tipo": "nome"},
+    ("exigencia", "preparo"): {"tipo": "referencia", "modelo": "preparo"},
+    ("exigencia", "antes_de"): {"tipo": "procedimentos"},
+    ("exigencia", "custo"): {"tipo": "inteiro", "minimo": 0, "padrao": 1},
+    ("exigencia", "texto"): {"tipo": "texto", "padrao": "Conferir {nome} antes de entrar"},
+}
+
 # Campos de cada modelo, na ordem em que aparecem: nome -> obrigatorio?
 CAMPOS = {
     "recurso": {"nome": True, "capacidade": True, "custo_reposicao": True,

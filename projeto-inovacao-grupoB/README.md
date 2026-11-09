@@ -62,8 +62,10 @@ Detalhes, números e limitações no [DESIGN.md](DESIGN.md#avaliação).
 
 ```
 acs.py        ponto de entrada: python3 acs.py <comando> (veja o HOWTORUN)
+web/          a interface web (em construção): python3 acs.py web
 backend/      o código
   compilador/   o compilador, o assistente e o comando planejar
+  servidor/     servidor local e API da interface web
   acsplan/      cópia parcial, sem alterações, do Ciclo 2
   testes/       testes automáticos e scripts de avaliação
 exemplos/     regras de exemplo e a avaliação (planilha, regras R1–R7, resultados,

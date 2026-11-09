@@ -53,6 +53,21 @@ deste guia funcionam como estão escritos. Sem ativar, usem o caminho direto:
 
 ---
 
+## Interface web (em construção)
+
+```bash
+python acs.py web
+```
+
+Abre o navegador em `http://localhost:8000` (se a porta estiver ocupada, usa
+a seguinte). A interface roda **só neste computador**: o servidor não aceita
+conexões de outras máquinas, e nada é enviado para a internet. Ctrl+C no
+terminal encerra. Opções: `--porta N` e `--sem-navegador`.
+
+Por enquanto, a página só confirma que o servidor e a API funcionam; as telas
+de regras, planejamento, comparação e mapa vêm nos próximos passos. A API
+está descrita no [DESIGN](DESIGN.md#servidor-e-api-da-interface-web).
+
 ## Escrevendo regras pelo assistente
 
 ```bash
