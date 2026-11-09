@@ -17,8 +17,8 @@ from compilador.janelas import planejar_por_janelas
 from compilador.planejar import main as planejar
 
 RAIZ = Path(__file__).resolve().parents[1]
-SINTETICAS = RAIZ / "exemplos" / "sinteticas-ciclo2.toml"
-AVALIACAO = RAIZ / "exemplos" / "avaliacao"
+SINTETICAS = RAIZ.parent / "exemplos" / "sinteticas-ciclo2.toml"
+AVALIACAO = RAIZ.parent / "exemplos" / "avaliacao"
 REGRAS = sorted((AVALIACAO / "regras").glob("r*.toml"))
 
 

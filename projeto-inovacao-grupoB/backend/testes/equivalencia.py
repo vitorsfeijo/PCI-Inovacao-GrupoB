@@ -23,7 +23,7 @@ Comparacoes:
 Uso direto (relatorio com mais instancias):
 
     cd projeto-inovacao-grupoB
-    python -m testes.equivalencia
+    python3 acs.py equivalencia
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ from compilador import ciclo2  # noqa: E402
 from compilador.pddl import em_linha, escrever_pddl  # noqa: E402
 from compilador.regras import Regras  # noqa: E402
 
-EXEMPLOS = RAIZ / "exemplos"
+EXEMPLOS = RAIZ.parent / "exemplos"
 
 # Predicados de cada regra sintetica do dominio estendido.
 PREDICADOS_SINTETICOS = {

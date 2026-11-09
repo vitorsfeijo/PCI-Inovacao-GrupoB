@@ -2,23 +2,23 @@
 Linha de comando do compilador.
 
     # so o dominio
-    python -m compilador exemplos/higienizacao.toml -o dominio.pddl
+    python3 acs.py compilar exemplos/higienizacao.toml -o dominio.pddl
 
     # dominio e problema (o problema de entrada e um problema do dominio legal)
-    python -m compilador exemplos/higienizacao.toml -o dominio.pddl \\
+    python3 acs.py compilar exemplos/higienizacao.toml -o dominio.pddl \\
         --problema problema-legal.pddl --saida-problema problema.pddl
 
     # regras com exigencia por paciente: as marcas vem da planilha
-    python -m compilador exemplos/sinteticas-ciclo2.toml -o dominio.pddl \\
+    python3 acs.py compilar exemplos/sinteticas-ciclo2.toml -o dominio.pddl \\
         --problema problema-legal.pddl --saida-problema problema.pddl \\
-        --dados acsplan/dados/microarea_exemplo.csv
+        --dados backend/acsplan/dados/microarea_exemplo.csv
 
 Sem -o, o dominio e escrito na saida padrao.
 
 Outros comandos:
 
-    python -m compilador planejar regras.toml    # turno inteiro + roteiro do ACS
-    python -m compilador assistente regras.toml  # escreve regras por perguntas
+    python3 acs.py planejar regras.toml    # turno inteiro + roteiro do ACS
+    python3 acs.py assistente regras.toml  # escreve regras por perguntas
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         return assistente(argv[1:])
 
     parser = argparse.ArgumentParser(
-        prog="python -m compilador",
+        prog="acs.py compilar",
         description="Aplica regras escritas em TOML sobre o dominio PDDL do ACS.")
     parser.add_argument("regras", help="arquivo .toml com as regras")
     parser.add_argument("--dominio", default=str(ciclo2.DOMINIO_LEGAL),

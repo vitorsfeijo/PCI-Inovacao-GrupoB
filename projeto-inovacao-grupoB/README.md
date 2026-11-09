@@ -9,7 +9,7 @@ Luis Henrique Caselani Macedo Junior · Manuela Cristina Zen Dalmonte · Vítor 
 Continuação do projeto do Grupo B do Ciclo 2 ([`../PCI-Saude-GroupB`](../PCI-Saude-GroupB)),
 que planeja o turno de visitas domiciliares do Agente Comunitário de Saúde
 (ACS). Esta pasta funciona sozinha: a parte do Ciclo 2 que ela usa está
-copiada, sem alterações, em [`acsplan/`](acsplan/LEIAME.md).
+copiada, sem alterações, em [`backend/acsplan/`](backend/acsplan/LEIAME.md).
 
 ## O problema
 
@@ -61,9 +61,11 @@ Detalhes, números e limitações no [DESIGN.md](DESIGN.md#avaliação).
 ## Estrutura
 
 ```
-compilador/   o compilador, o assistente e o comando planejar
-acsplan/      cópia parcial, sem alterações, do Ciclo 2
+acs.py        ponto de entrada: python3 acs.py <comando> (veja o HOWTORUN)
+backend/      o código
+  compilador/   o compilador, o assistente e o comando planejar
+  acsplan/      cópia parcial, sem alterações, do Ciclo 2
+  testes/       testes automáticos e scripts de avaliação
 exemplos/     regras de exemplo e a avaliação (planilha, regras R1–R7, resultados,
               teste com usuários)
-testes/       testes automáticos e scripts de avaliação
 ```

@@ -1,7 +1,7 @@
 """
 Verificacao dos roteiros com as regras da avaliacao.
 
-Le um roteiro gerado por `python -m compilador planejar` e confere, para cada
+Le um roteiro gerado por `python3 acs.py planejar` e confere, para cada
 regra ativa, o que DEVERIA acontecer, a partir das marcas e procedimentos de
 cada paciente na planilha:
 
@@ -15,7 +15,7 @@ cada paciente na planilha:
 
 Uso:
 
-    python -m testes.roteiros_avaliacao ROTEIRO.txt PLANILHA.csv r1 r2 ...
+    python3 acs.py roteiros ROTEIRO.txt PLANILHA.csv r1 r2 ...
 
 O roteiro deve ter sido gerado com --mostrar-plano (algumas conferencias
 olham o plano). Devolve 0 se tudo confere.

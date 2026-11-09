@@ -8,7 +8,7 @@ Teste de equivalencia com o dominio estendido do Ciclo 2:
 
 Versao rapida, com poucas instancias. O relatorio completo e:
 
-    python -m testes.equivalencia
+    python3 acs.py equivalencia
 """
 
 from __future__ import annotations

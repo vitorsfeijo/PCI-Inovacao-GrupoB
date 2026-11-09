@@ -4,22 +4,24 @@ Instruções para instalar, escrever regras, planejar o turno e rodar os
 testes. Para a ideia geral, veja o [README](README.md); para a arquitetura e
 as decisões de implementação, o [DESIGN](DESIGN.md).
 
-Todos os comandos rodam **dentro desta pasta** (`projeto-inovacao-grupoB`).
+Todos os comandos usam o lançador **`acs.py`**, nesta pasta
+(`projeto-inovacao-grupoB`); o código fica em `backend/`.
+`python3 acs.py --help` lista os comandos.
 
 ## Requisitos
 
 **Python 3.11 ou superior** (a leitura de TOML usa o `tomllib`, da biblioteca
 padrão). Nenhuma dependência obrigatória, e nenhuma dependência da pasta
 `PCI-Saude-GroupB`: a parte do Ciclo 2 que o projeto usa está copiada em
-`acsplan/`.
+`backend/acsplan/`.
 
 **O comando do Python muda conforme o sistema.** Os comandos deste guia
 estão escritos com `python`:
 
 | Sistema | Comando | Exemplo |
 |---|---|---|
-| Linux / macOS | `python3` | `python3 -m compilador assistente minhas-regras.toml` |
-| Windows | `python` ou `py` | `python -m compilador assistente minhas-regras.toml` |
+| Linux / macOS | `python3` | `python3 acs.py assistente minhas-regras.toml` |
+| Windows | `python` ou `py` | `python acs.py assistente minhas-regras.toml` |
 
 ### Fast Downward (opcional, recomendado)
 
@@ -47,14 +49,14 @@ python -m pip install -r requirements-opcional.txt     # instala o Fast Downward
 
 Com o ambiente ativado, `python` passa a ser o Python dele, e os comandos
 deste guia funcionam como estão escritos. Sem ativar, usem o caminho direto:
-`.venv/bin/python -m compilador planejar ...`.
+`.venv/bin/python acs.py planejar ...`.
 
 ---
 
 ## Escrevendo regras pelo assistente
 
 ```bash
-python -m compilador assistente minhas-regras.toml
+python acs.py assistente minhas-regras.toml
 ```
 
 O assistente pergunta o que adicionar (recurso, preparo, consumo ou
@@ -86,8 +88,7 @@ Quantos minutos leva para repor na UBS [3]:
   com o horário (usado no teste com usuários).
 
 O arquivo gravado é um TOML comum, com um comentário explicando cada campo, e
-pode ser editado à mão depois. (`python -m compilador.assistente` também
-funciona.)
+pode ser editado à mão depois.
 
 ## Escrevendo regras à mão
 
@@ -187,7 +188,7 @@ Os procedimentos aceitos formam uma lista fechada:
 ### Conferindo um arquivo de regras
 
 ```bash
-python -m compilador minhas-regras.toml -o /dev/null      # só confere (Windows: -o NUL)
+python acs.py compilar minhas-regras.toml -o /dev/null   # só confere (Windows: -o NUL)
 ```
 
 Erros aparecem todos de uma vez, em português, com o campo e o valor aceito.
@@ -199,7 +200,7 @@ compilação.
 ## Planejando o turno e gerando o roteiro do ACS
 
 ```bash
-python -m compilador planejar exemplos/sinteticas-ciclo2.toml --orcamento 240
+python acs.py planejar exemplos/sinteticas-ciclo2.toml --orcamento 240
 ```
 
 Seleciona quem entra no turno, define a rota, compila as regras, planeja e
@@ -252,37 +253,37 @@ Para usar os arquivos PDDL em outro planejador ou inspecioná-los:
 
 ```bash
 # imprime o domínio compilado
-python -m compilador exemplos/higienizacao.toml
+python acs.py compilar exemplos/higienizacao.toml
 
 # grava em arquivo
-python -m compilador exemplos/higienizacao.toml -o dominio-com-regras.pddl
+python acs.py compilar exemplos/higienizacao.toml -o dominio-com-regras.pddl
 
 # outro domínio de entrada ou outro nome para o domínio gerado
-python -m compilador regras.toml --dominio outro.pddl --nome meu-dominio
+python acs.py compilar regras.toml --dominio outro.pddl --nome meu-dominio
 ```
 
 O problema parte de um problema gerado pelo Ciclo 2 **para o domínio legal**;
 com exigências, precisa também dos dados dos pacientes:
 
 ```bash
-python -m compilador exemplos/sinteticas-ciclo2.toml -o dominio.pddl \
+python acs.py compilar exemplos/sinteticas-ciclo2.toml -o dominio.pddl \
     --problema problema-legal.pddl --saida-problema problema.pddl \
-    --dados acsplan/dados/microarea_exemplo.csv
+    --dados backend/acsplan/dados/microarea_exemplo.csv
 ```
 
 O jeito mais simples de obter os dois arquivos de um turno é
-`python -m compilador planejar ... --salvar-pddl PASTA`.
+`python acs.py planejar ... --salvar-pddl PASTA`.
 
-Em Python, `compilador.gerar_problema_com_regras(dados, roteamento, regras,
-caminho, nome_dominio=...)` gera o problema legal e aplica as regras de uma
-vez.
+Em Python (com `backend/` no caminho de importação),
+`compilador.gerar_problema_com_regras(dados, roteamento, regras, caminho,
+nome_dominio=...)` gera o problema legal e aplica as regras de uma vez.
 
 ---
 
 ## Testes e experimentos
 
 ```bash
-python -m unittest discover testes        # todos os testes (cerca de 1 min)
+python acs.py testes        # todos os testes (cerca de 1 min)
 ```
 
 Os testes que dependem do Fast Downward são pulados quando ele não está
@@ -290,11 +291,11 @@ instalado.
 
 | Comando | O que faz | Tempo |
 |---|---|---|
-| `python -m testes.equivalencia` | regras sintéticas compiladas × domínio estendido do Ciclo 2 | ~3 min |
-| `python -m testes.medicoes` | medições da avaliação; grava [`exemplos/avaliacao/resultados.md`](exemplos/avaliacao/resultados.md) (`--rapido` para conferir) | ~25 min |
-| `python -m testes.qualidade_planos` | qualidade dos planos: configurações do FD × janelas (precisa do FD; `--rapido`) | ~40 min |
-| `python -m testes.roteiros_avaliacao ROTEIRO PLANILHA r1 ...` | confere um roteiro contra o esperado de cada regra da avaliação | segundos |
-| `python -m testes.teste_usuario SESSAO.toml --tarefa t1` | confere uma regra do teste com usuário contra o gabarito | segundos |
+| `python acs.py equivalencia` | regras sintéticas compiladas × domínio estendido do Ciclo 2 | ~3 min |
+| `python acs.py medicoes` | medições da avaliação; grava [`exemplos/avaliacao/resultados.md`](exemplos/avaliacao/resultados.md) (`--rapido` para conferir) | ~25 min |
+| `python acs.py qualidade` | qualidade dos planos: configurações do FD × janelas (precisa do FD; `--rapido`) | ~40 min |
+| `python acs.py roteiros ROTEIRO PLANILHA r1 ...` | confere um roteiro contra o esperado de cada regra da avaliação | segundos |
+| `python acs.py conferir-teste SESSAO.toml --tarefa t1` | confere uma regra do teste com usuário contra o gabarito | segundos |
 
 O teste com usuários tem protocolo próprio:
 [`exemplos/avaliacao/teste-usuario/PROTOCOLO.md`](exemplos/avaliacao/teste-usuario/PROTOCOLO.md).

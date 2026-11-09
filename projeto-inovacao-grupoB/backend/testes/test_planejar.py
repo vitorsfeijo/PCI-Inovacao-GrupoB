@@ -1,5 +1,5 @@
 """
-Testes do roteiro do ACS e do comando `python -m compilador planejar`.
+Testes do roteiro do ACS e do comando `python3 acs.py planejar`.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from compilador.planejar import main as planejar
 from compilador.regras import carregar_regras
 from compilador.roteiro import legenda_para, legivel, montar
 
-EXEMPLOS = Path(__file__).resolve().parents[1] / "exemplos"
+EXEMPLOS = Path(__file__).resolve().parents[2] / "exemplos"
 SINTETICAS = EXEMPLOS / "sinteticas-ciclo2.toml"
 
 

@@ -1,7 +1,7 @@
 """
 Conferencia do teste com usuario (etapa 8.5).
 
-    python -m testes.teste_usuario SESSAO.toml --tarefa t1 [--registro SESSAO.jsonl]
+    python3 acs.py conferir-teste SESSAO.toml --tarefa t1 [--registro SESSAO.jsonl]
 
 Compara as regras escritas pela pessoa com o gabarito da tarefa
 (exemplos/avaliacao/teste-usuario/gabarito-tN.toml), IGNORANDO os nomes e
@@ -27,7 +27,7 @@ if str(RAIZ) not in sys.path:
 
 from compilador.regras import ErroRegra, Regras, carregar_regras  # noqa: E402
 
-GABARITOS = RAIZ / "exemplos" / "avaliacao" / "teste-usuario"
+GABARITOS = RAIZ.parent / "exemplos" / "avaliacao" / "teste-usuario"
 
 
 def _recurso(r) -> dict:
@@ -105,7 +105,7 @@ def resumo_do_registro(arquivo: Path) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m testes.teste_usuario")
+    parser = argparse.ArgumentParser(prog="acs.py conferir-teste")
     parser.add_argument("sessao", help="arquivo .toml gravado na tarefa")
     parser.add_argument("--tarefa", required=True, choices=["t1", "t2", "t3"])
     parser.add_argument("--registro", help="arquivo .jsonl gravado pelo assistente")

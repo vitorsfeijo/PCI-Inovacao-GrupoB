@@ -33,7 +33,7 @@ Com a pasta do Ciclo 2 ao lado, a partir da raiz do repositório:
 
 ```bash
 diff -rq --exclude=__pycache__ --exclude=LEIAME.md --exclude=cache_osrm \
-    PCI-Saude-GroupB/acsplan projeto-inovacao-grupoB/acsplan | grep -v "^Only in PCI"
+    PCI-Saude-GroupB/acsplan projeto-inovacao-grupoB/backend/acsplan | grep -v "^Only in PCI"
 ```
 
 Sem saída, a cópia é idêntica ao original.

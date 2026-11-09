@@ -2,7 +2,7 @@
 Testes do compilador de regras.
 
     cd projeto-inovacao-grupoB
-    python -m unittest discover testes
+    python3 acs.py testes
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from compilador import ciclo2
 from compilador.pddl import em_linha, escrever_pddl
 from compilador.regras import sugerir_nome, validar_nome
 
-EXEMPLO = Path(__file__).resolve().parents[1] / "exemplos" / "higienizacao.toml"
+EXEMPLO = Path(__file__).resolve().parents[2] / "exemplos" / "higienizacao.toml"
 
 
 def _ler(caminho) -> list:

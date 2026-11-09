@@ -1,8 +1,8 @@
 """
 Experimento de qualidade dos planos: quao longe do otimo fica cada metodo.
 
-    python -m testes.qualidade_planos            # os quatro casos (cerca de 40 min)
-    python -m testes.qualidade_planos --rapido   # so o caso menor, limites curtos
+    python3 acs.py qualidade            # os quatro casos (cerca de 40 min)
+    python3 acs.py qualidade --rapido   # so o caso menor, limites curtos
 
 Precisa do Fast Downward (pip install up-fast-downward). Compara, na planilha
 de avaliacao, as configuracoes do Fast Downward (primeiro plano, LAMA,
@@ -29,7 +29,7 @@ from compilador.instanciacao import tarefa as criar_tarefa  # noqa: E402
 from compilador.janelas import planejar_por_janelas  # noqa: E402
 from compilador.limpeza import eliminar_redundantes  # noqa: E402
 
-AVALIACAO = RAIZ / "exemplos" / "avaliacao"
+AVALIACAO = RAIZ.parent / "exemplos" / "avaliacao"
 PLANILHA = AVALIACAO / "microarea-avaliacao.csv"
 REGRAS = sorted((AVALIACAO / "regras").glob("r*.toml"))
 
@@ -78,7 +78,7 @@ def custo_limpo(tarefa, plano: list[str]) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="python -m testes.qualidade_planos")
+    parser = argparse.ArgumentParser(prog="acs.py qualidade")
     parser.add_argument("--rapido", action="store_true")
     args = parser.parse_args()
     if not fastdownward.disponivel():

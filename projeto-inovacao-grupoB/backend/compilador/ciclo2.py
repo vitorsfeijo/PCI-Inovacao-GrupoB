@@ -16,9 +16,12 @@ import sys
 from collections.abc import Iterable
 from pathlib import Path
 
-# Pasta do projeto: contem compilador/ e a copia acsplan/.
+# backend/: contem compilador/, a copia acsplan/ e testes/.
 RAIZ = Path(__file__).resolve().parents[1]
 BASE = RAIZ / "acsplan"
+# A pasta do projeto (acima de backend/), com exemplos/ e a documentacao.
+PROJETO = RAIZ.parent
+EXEMPLOS = PROJETO / "exemplos"
 DOMINIOS = BASE / "logica" / "dominios"
 DOMINIO_LEGAL = DOMINIOS / "dominio-legal.pddl"
 DOMINIO_ESTENDIDO = DOMINIOS / "dominio-estendido.pddl"

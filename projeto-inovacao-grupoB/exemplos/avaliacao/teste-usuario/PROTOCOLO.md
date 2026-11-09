@@ -33,7 +33,7 @@ verbal antes de começar.
 
 > **Comando do Python:** os comandos abaixo usam `python`. No **Linux** e no
 > **macOS**, troquem por `python3` (por exemplo,
-> `python3 -m compilador assistente ...`). No Windows, `python` ou `py`.
+> `python3 acs.py assistente ...`). No Windows, `python` ou `py`.
 
 ## Condução (cerca de 30 minutos)
 
@@ -44,7 +44,7 @@ verbal antes de começar.
 2. **Uma tarefa por vez.** Para a tarefa 1, rode:
 
    ```bash
-   python -m compilador assistente sessoes/P1/t1.toml --registro sessoes/P1/t1.jsonl
+   python acs.py assistente sessoes/P1/t1.toml --registro sessoes/P1/t1.jsonl
    ```
 
    Para as tarefas 2 e 3, troque `t1` por `t2` e `t3`. O `--registro` grava
@@ -62,7 +62,7 @@ verbal antes de começar.
 Para cada tarefa:
 
 ```bash
-python -m testes.teste_usuario sessoes/P1/t1.toml --tarefa t1 --registro sessoes/P1/t1.jsonl
+python acs.py conferir-teste sessoes/P1/t1.toml --tarefa t1 --registro sessoes/P1/t1.jsonl
 ```
 
 O conferidor compara a regra com o gabarito ([`gabarito-t1.toml`](gabarito-t1.toml)

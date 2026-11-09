@@ -1,8 +1,8 @@
 """
 Planejamento do turno com regras, de ponta a ponta, e roteiro para o ACS.
 
-    python -m compilador planejar exemplos/sinteticas-ciclo2.toml
-    python -m compilador planejar regras.toml --dados minha-microarea.csv --orcamento 240
+    python3 acs.py planejar exemplos/sinteticas-ciclo2.toml
+    python3 acs.py planejar regras.toml --dados minha-microarea.csv --orcamento 240
 
 Equivale ao `acsplan roteiro` do Ciclo 2, com as regras da equipe aplicadas:
 
@@ -63,7 +63,7 @@ ESTRATEGIAS = {
 
 def construir_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="python -m compilador planejar",
+        prog="acs.py planejar",
         description="Planeja o turno com as regras da equipe e imprime o roteiro do ACS.")
     p.add_argument("regras", nargs="?",
                    help="arquivo .toml com as regras (sem ele, só o domínio legal)")
@@ -241,7 +241,7 @@ def main(argv: list[str] | None = None) -> int:
         pasta.mkdir(parents=True, exist_ok=True)
         caminhos = (str(pasta / "dominio.pddl"), str(pasta / "problema.pddl"))
         Path(caminhos[0]).write_text(
-            escrever_pddl(dominio, ["ARQUIVO GERADO por python -m compilador planejar.",
+            escrever_pddl(dominio, ["ARQUIVO GERADO por acs.py planejar.",
                                     f"Regras: {args.regras or '-'}"]),
             encoding="utf-8")
         try:

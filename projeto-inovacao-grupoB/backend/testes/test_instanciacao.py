@@ -20,7 +20,7 @@ from compilador.pddl import escrever_pddl
 from compilador.regras import regras_para_dados
 
 RAIZ = Path(__file__).resolve().parents[1]
-REGRAS = sorted((RAIZ / "exemplos" / "avaliacao" / "regras").glob("*.toml"))
+REGRAS = sorted((RAIZ.parent / "exemplos" / "avaliacao" / "regras").glob("*.toml"))
 
 
 def _juntar(arquivos) -> object:
@@ -91,7 +91,7 @@ class TestInstanciacaoIdentica(unittest.TestCase):
         self._comparar(None, 3, 2, estendido=True)
 
     def test_regras_sinteticas_compiladas(self):
-        self._comparar(carregar_regras(str(RAIZ / "exemplos" / "sinteticas-ciclo2.toml")), 3, 2)
+        self._comparar(carregar_regras(str(RAIZ.parent / "exemplos" / "sinteticas-ciclo2.toml")), 3, 2)
 
     def test_quantidade_r7(self):
         original, podada = self._comparar(carregar_regras(str(REGRAS[6])), 2, 1)
@@ -106,7 +106,7 @@ class TestInstanciacaoEscala(unittest.TestCase):
     def test_sete_regras_dez_pacientes(self):
         # a instanciacao original passaria de 4 bilhoes de combinacoes aqui
         planejador = ciclo2.planejador()
-        dados = ciclo2.ler_dados(str(RAIZ / "exemplos" / "avaliacao" / "microarea-avaliacao.csv"),
+        dados = ciclo2.ler_dados(str(RAIZ.parent / "exemplos" / "avaliacao" / "microarea-avaliacao.csv"),
                                  ["gestante", "suspeita_tuberculose", "exige_avental"])
         from acsplan.geo import roteirizador
         regras = _juntar(REGRAS)

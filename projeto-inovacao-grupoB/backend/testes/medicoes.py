@@ -1,8 +1,8 @@
 """
 Medicoes da avaliacao (etapa 8.4).
 
-    python -m testes.medicoes            # todas as tabelas
-    python -m testes.medicoes --rapido   # limites menores, para conferir o script
+    python3 acs.py medicoes            # todas as tabelas
+    python3 acs.py medicoes --rapido   # limites menores, para conferir o script
 
 Grava os resultados em exemplos/avaliacao/resultados.md. Todas as medicoes
 usam a planilha de avaliacao (10 pacientes, sem selecao) e a MESMA rota.
@@ -44,10 +44,10 @@ from compilador.regras import Regras, carregar_regras, regras_para_dados  # noqa
 
 from testes.roteiros_avaliacao import verificar  # noqa: E402
 
-AVALIACAO = RAIZ / "exemplos" / "avaliacao"
+AVALIACAO = RAIZ.parent / "exemplos" / "avaliacao"
 PLANILHA = AVALIACAO / "microarea-avaliacao.csv"
 REGRAS = sorted((AVALIACAO / "regras").glob("r*.toml"))
-SINTETICAS = RAIZ / "exemplos" / "sinteticas-ciclo2.toml"
+SINTETICAS = RAIZ.parent / "exemplos" / "sinteticas-ciclo2.toml"
 MARCAS = ["gestante", "suspeita_tuberculose", "exige_avental"]
 SAIDA = AVALIACAO / "resultados.md"
 
@@ -283,7 +283,7 @@ def tabela_c(limite: float, pasta: Path) -> list[str]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="python -m testes.medicoes")
+    parser = argparse.ArgumentParser(prog="acs.py medicoes")
     parser.add_argument("--rapido", action="store_true",
                         help="limites de 5 s, para conferir o script")
     parser.add_argument("--limite", type=float, default=120.0)
@@ -304,7 +304,7 @@ def main() -> int:
          "iguais ao número de pacientes."),
     ]
     saida = ["# Resultados das medições (etapa 8.4)", "",
-             f"Gerado por `python -m testes.medicoes` em {date.today().isoformat()}, "
+             f"Gerado por `python3 acs.py medicoes` em {date.today().isoformat()}, "
              f"Python {platform.python_version()}, "
              f"Fast Downward {'instalado' if fastdownward.disponivel() else 'NÃO instalado'}. "
              "Planilha de avaliação, mesma rota em todas as execuções.", ""]
@@ -317,7 +317,7 @@ def main() -> int:
             saida += [f"## {titulo}", "", nota, ""] + funcao(limite, pasta) + [""]
     if not args.rapido:
         SAIDA.write_text("\n".join(saida), encoding="utf-8")
-        print(f"\nGravado em {SAIDA.relative_to(RAIZ)}")
+        print(f"\nGravado em {SAIDA.relative_to(RAIZ.parent)}")
     return 0
 
 

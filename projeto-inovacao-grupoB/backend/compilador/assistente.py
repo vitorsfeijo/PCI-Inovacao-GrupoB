@@ -1,7 +1,7 @@
 """
 Assistente interativo: pergunta campo a campo e grava o arquivo de regras.
 
-    python -m compilador.assistente regras.toml
+    python3 acs.py assistente regras.toml
 
 Cada resposta e validada na hora, com os mesmos validadores do compilador;
 uma resposta invalida faz a mesma pergunta de novo. Nomes ja usados pelo
@@ -373,7 +373,7 @@ def texto_dos_blocos(blocos: list[tuple[str, dict]]) -> str:
 CABECALHO = """\
 # Regras gravadas pelo assistente do compilador de regras.
 # Pode ser editado à mão; para conferir, rode:
-#     python -m compilador {nome}
+#     python3 acs.py compilar {nome}
 """
 
 
@@ -391,7 +391,7 @@ def gravar(caminho: Path, blocos: list[tuple[str, dict]], *, acrescentar: bool) 
 def main(argv: list[str] | None = None, *, entrada: Callable[[str], str] = input,
          escrever: Callable[[str], None] = print) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m compilador.assistente",
+        prog="acs.py assistente",
         description="Cria ou amplia um arquivo de regras respondendo perguntas.")
     parser.add_argument("arquivo", nargs="?", default="regras.toml",
                         help="arquivo de regras (padrão: regras.toml)")
@@ -491,7 +491,7 @@ def _sessao(caminho: Path, entrada, escrever) -> int:
     escrever(f"\nGravado em {caminho}.")
     for aviso in avisos(regras):
         escrever(f"Aviso: {aviso}")
-    escrever(f"Para gerar o domínio: python -m compilador {caminho} -o dominio.pddl")
+    escrever(f"Para gerar o domínio: python3 acs.py compilar {caminho} -o dominio.pddl")
     return 0
 
 

@@ -5,7 +5,7 @@ Os testes que precisam dele sao pulados quando o pacote nao esta instalado.
 Para roda-los:
 
     pip install up-fast-downward
-    python -m unittest testes.test_fastdownward
+    python3 acs.py testes -p test_fastdownward.py
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from compilador.instanciacao import tarefa as criar_tarefa
 from compilador.planejar import main as planejar
 
 RAIZ = Path(__file__).resolve().parents[1]
-AVALIACAO = RAIZ / "exemplos" / "avaliacao"
+AVALIACAO = RAIZ.parent / "exemplos" / "avaliacao"
 PLANILHA = AVALIACAO / "microarea-avaliacao.csv"
 REGRAS = sorted((AVALIACAO / "regras").glob("*.toml"))
 

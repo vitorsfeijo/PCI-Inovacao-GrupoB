@@ -36,7 +36,7 @@ UBS) e **roteiro** (o que o ACS recebe). O planejador recebe a rota congelada
 e não pode mudá-la.
 
 O compilador entra entre a rota e o planejamento: ele gera o domínio e o
-problema com as regras da equipe. Tudo o que é novo fica em `compilador/`;
+problema com as regras da equipe. Tudo o que é novo fica em `backend/compilador/`;
 o Ciclo 2 é usado como está.
 
 ---
@@ -120,8 +120,8 @@ domínio legal, e o compilador acrescenta o que as regras exigem.
 
 Para a pasta funcionar sozinha, o que o compilador usa do Ciclo 2 (domínios,
 parser e planejador, gerador de problema, roteirizador, seleção de pacientes
-e planilha de exemplo) está copiado em `acsplan/`, **sem nenhuma alteração**.
-O [`acsplan/LEIAME.md`](acsplan/LEIAME.md) lista o que foi copiado, o que
+e planilha de exemplo) está copiado em `backend/acsplan/`, **sem nenhuma
+alteração**. O [`backend/acsplan/LEIAME.md`](backend/acsplan/LEIAME.md) lista o que foi copiado, o que
 ficou de fora e como conferir que a cópia continua idêntica ao original.
 Todos os testes passam com esta pasta copiada sozinha para outro lugar.
 
@@ -173,7 +173,7 @@ vez no turno), arquivo sem regras.
 ### Roteiro próprio
 
 O roteiro do Ciclo 2 tem os textos fixos no código e não mostraria ações
-criadas por regras novas; por isso o roteiro fica em `compilador/roteiro.py`,
+criadas por regras novas; por isso o roteiro fica em `backend/compilador/roteiro.py`,
 adaptado do original. O texto de cada tarefa nova vem do campo `texto` da
 regra (o único com acentos e espaços livres, porque não entra no PDDL). As
 versões de procedimento criadas por `antes_de` aparecem com o texto do
@@ -198,7 +198,7 @@ que violam uma precondição fixa, como `(prox ?n-1 ?n)`. Cada recurso gasto
 numa ação acrescenta parâmetros do tipo nível e multiplica as combinações:
 com as sete regras da avaliação, eram 4,7 bilhões.
 
-`compilador/instanciacao.py` liga os parâmetros um a um, **na mesma ordem**,
+`backend/compilador/instanciacao.py` liga os parâmetros um a um, **na mesma ordem**,
 e testa cada precondição fixa assim que todas as suas variáveis estão
 ligadas; como `(prox ?n-1 ?n)` determina `?n-1` a partir de `?n`, cada
 recurso deixa de multiplicar por 11. O resultado é **idêntico** ao original
@@ -212,7 +212,7 @@ O planejador do Ciclo 2 (Python puro, heurísticas `h_max` e `h_add`) não
 escala com muitas regras. O Fast Downward, planejador de referência da área,
 é usado **se estiver instalado** (pacote `up-fast-downward`, com versões já
 compiladas para Windows, Linux e macOS); senão, tudo funciona com o do
-Ciclo 2. `compilador/fastdownward.py` só **localiza** o executável do pacote
+Ciclo 2. `backend/compilador/fastdownward.py` só **localiza** o executável do pacote
 (importá-lo exigiria o framework Unified Planning, que não usamos), roda-o
 sobre os mesmos arquivos PDDL, e **valida o plano devolvido na tarefa do
 nosso planejador** antes de seguir. Os códigos de saída distinguem "provou
@@ -232,7 +232,7 @@ aí, com garantia. Se não terminar, calcula o plano **por janelas** e um
 **plano global rápido**, e fica com o melhor plano válido depois da limpeza.
 Se a busca ótima *provar* que o turno é impossível, não há segunda tentativa.
 
-**Janelas** (`compilador/janelas.py`). A ordem das visitas já vem pronta, e
+**Janelas** (`backend/compilador/janelas.py`). A ordem das visitas já vem pronta, e
 um turno com poucos pacientes tem plano ótimo em segundos. A partir do estado
 atual (estoques, equipamento vestido, janelas de supervisão), planeja-se de
 forma ótima o atendimento das próximas k visitas; executa-se só até concluir
@@ -247,7 +247,7 @@ encerra a supervisão e obriga a acionar de novo. Sem o Fast Downward (k = 1),
 as sete regras gastaram as janelas cedo demais e a última visita ficou sem
 supervisão. Por isso o `auto` sempre calcula também o plano global.
 
-**Limpeza** (`compilador/limpeza.py`). Eliminação de ações redundantes
+**Limpeza** (`backend/compilador/limpeza.py`). Eliminação de ações redundantes
 (*action elimination*; Fink e Yang, 1992; Nakhost e Müller, 2010): para cada
 ação, tenta-se retirá-la junto com as seguintes que deixam de ser aplicáveis
 sem ela; se o resto ainda atinge o objetivo, a retirada vale. O plano só
@@ -266,7 +266,7 @@ necessidade.
 
 As regras sintéticas, escritas como modelos e compiladas sobre o domínio
 legal, precisam reproduzir o `dominio-estendido.pddl` escrito à mão pelo
-Grupo B do Ciclo 2 (`python -m testes.equivalencia`). Duas comparações:
+Grupo B do Ciclo 2 (`python3 acs.py equivalencia`). Duas comparações:
 
 1. **Estrutura:** mesmos predicados e, em cada ação, os mesmos parâmetros,
    precondições, efeitos e custo, aceitando troca de nomes entre variáveis
@@ -334,7 +334,7 @@ clínica: p3 passa a fazer glicemia, para que a R6 seja exercitada
 
 Cada regra foi planejada no turno completo da planilha de avaliação (10
 pacientes), e o roteiro foi conferido contra o que cada regra deveria
-produzir (`testes/roteiros_avaliacao.py`). O teste revelou quatro falhas,
+produzir (`backend/testes/roteiros_avaliacao.py`). O teste revelou quatro falhas,
 todas corrigidas:
 
 | Falha | Causa | Correção |
@@ -350,7 +350,7 @@ juntas.
 ### Medições
 
 Resultados completos em [`exemplos/avaliacao/resultados.md`](exemplos/avaliacao/resultados.md)
-(`python -m testes.medicoes`). Planilha de avaliação, 10 pacientes, mesma
+(`python3 acs.py medicoes`). Planilha de avaliação, 10 pacientes, mesma
 rota. **Esforço e impacto de cada regra, sozinha** (turno ótimo sem regras:
 386 min):
 
@@ -402,7 +402,7 @@ não termina".
 
 ### Qualidade dos planos: janelas
 
-Experimento `python -m testes.qualidade_planos` (com o Fast Downward; custos
+Experimento `python3 acs.py qualidade` (com o Fast Downward; custos
 depois da limpeza; limite de 60 s, 120 s para o ótimo):
 
 | Caso | Ótimo | 1º plano FD | LAMA | Portfólio 2023 | Janelas k=1 | k=2 | **k=3** | k=4 |
@@ -427,7 +427,7 @@ Protocolo, tarefas e gabaritos em
 [`exemplos/avaliacao/teste-usuario/`](exemplos/avaliacao/teste-usuario/): três
 tarefas de dificuldade crescente (tablet; manguito; luvas para ferida
 exposta), questionário e tabela de resultados. O assistente grava a sessão
-(`--registro`), e `testes/teste_usuario.py` confere cada regra contra o
+(`--registro`), e `backend/testes/teste_usuario.py` confere cada regra contra o
 gabarito **ignorando os nomes escolhidos**, e tira do registro o tempo e as
 recusas.
 
@@ -512,31 +512,37 @@ PDDL; o que muda é o custo de implementar:
 README.md                  ideia geral
 HOWTORUN.md                instalar, escrever regras, planejar, testar
 DESIGN.md                  este arquivo
+acs.py                     ponto de entrada: python3 acs.py <comando>
 requirements-opcional.txt  Fast Downward (opcional)
-compilador/
-  regras.py        modelos, leitura e escrita do TOML, conferência de cada campo
-  assistente.py    assistente interativo que grava o TOML
-  dominio.py       aplica os modelos sobre a árvore do domínio
-  problema.py      acrescenta ao problema os fatos das regras (recursos, marcas)
-  pddl.py          escreve a árvore (domínio ou problema) como PDDL legível
-  ciclo2.py        caminhos e acesso à cópia do Ciclo 2 (acsplan/)
-  planejar.py      comando planejar: turno inteiro com as regras
-  roteiro.py       roteiro do ACS, com os textos das regras
-  instanciacao.py  instanciação com poda (resultado idêntico ao do Ciclo 2)
-  limpeza.py       retira ações redundantes do plano
-  fastdownward.py  Fast Downward opcional, com validação do plano
-  janelas.py       planejamento por janelas
-  __main__.py      linha de comando
-acsplan/           cópia parcial, sem alterações, do pacote do Ciclo 2 (ver LEIAME.md)
+backend/
+  compilador/
+    regras.py        modelos, leitura e escrita do TOML, conferência de cada campo
+    assistente.py    assistente interativo que grava o TOML
+    dominio.py       aplica os modelos sobre a árvore do domínio
+    problema.py      acrescenta ao problema os fatos das regras (recursos, marcas)
+    pddl.py          escreve a árvore (domínio ou problema) como PDDL legível
+    ciclo2.py        caminhos e acesso à cópia do Ciclo 2 (acsplan/)
+    planejar.py      comando planejar: turno inteiro com as regras
+    roteiro.py       roteiro do ACS, com os textos das regras
+    instanciacao.py  instanciação com poda (resultado idêntico ao do Ciclo 2)
+    limpeza.py       retira ações redundantes do plano
+    fastdownward.py  Fast Downward opcional, com validação do plano
+    janelas.py       planejamento por janelas
+    __main__.py      linha de comando (chamada pelo acs.py)
+  acsplan/           cópia parcial, sem alterações, do pacote do Ciclo 2 (ver LEIAME.md)
+  testes/
+    test_*.py              testes automáticos (python3 acs.py testes)
+    equivalencia.py        comparações com o domínio estendido
+    medicoes.py            medições da avaliação
+    qualidade_planos.py    experimento de qualidade dos planos
+    roteiros_avaliacao.py  confere um roteiro contra o esperado de cada regra
+    teste_usuario.py       confere as regras do teste com usuário
 exemplos/
-  higienizacao.toml         regra sintética da higienização, como no Ciclo 2
-  sinteticas-ciclo2.toml    as três regras sintéticas, com os cinco modelos
-  avaliacao/                planilha, regras R1–R7, resultados e teste com usuário
-testes/
-  test_*.py                 testes automáticos (python -m unittest discover testes)
-  equivalencia.py           comparações com o domínio estendido
-  medicoes.py               medições da avaliação
-  qualidade_planos.py       experimento de qualidade dos planos
-  roteiros_avaliacao.py     confere um roteiro contra o esperado de cada regra
-  teste_usuario.py          confere as regras do teste com usuário
+  higienizacao.toml        regra sintética da higienização, como no Ciclo 2
+  sinteticas-ciclo2.toml   as três regras sintéticas, com os cinco modelos
+  avaliacao/               planilha, regras R1–R7, resultados e teste com usuário
 ```
+
+O lançador `acs.py` põe `backend/` no caminho de importação e despacha cada
+comando; de dentro de `backend/`, `python3 -m compilador ...` e
+`python3 -m unittest discover testes` também funcionam.

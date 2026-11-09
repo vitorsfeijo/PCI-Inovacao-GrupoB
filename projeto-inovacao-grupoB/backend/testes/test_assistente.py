@@ -13,7 +13,7 @@ from compilador import ciclo2, compilar_dominio
 from compilador.assistente import main
 from compilador.regras import carregar_regras, ler_regras, regras_para_toml
 
-EXEMPLO = Path(__file__).resolve().parents[1] / "exemplos" / "higienizacao.toml"
+EXEMPLO = Path(__file__).resolve().parents[2] / "exemplos" / "higienizacao.toml"
 SINTETICAS = EXEMPLO.with_name("sinteticas-ciclo2.toml")
 
 
