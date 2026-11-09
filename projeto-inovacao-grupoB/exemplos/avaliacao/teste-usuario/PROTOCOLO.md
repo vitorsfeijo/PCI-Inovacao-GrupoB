@@ -15,7 +15,8 @@ pessoa pediu ajuda. No fim, um questionário curto.
   enfermagem, gestão da UBS); colegas de outros cursos também servem, e isso
   fica registrado.
 - Três a cinco pessoas já mostram os problemas mais comuns.
-- Ninguém do grupo, e ninguém que tenha visto o formato TOML ou o README.
+- Ninguém do grupo, e ninguém que tenha visto o formato TOML ou a documentação
+  do projeto (README, HOWTORUN, DESIGN).
 
 **Consentimento:** explique que o teste avalia o **sistema**, não a pessoa;
 que é anônimo (os arquivos levam só um código, como P1, P2); que nenhum dado
@@ -29,6 +30,10 @@ verbal antes de começar.
 2. Uma pasta vazia para a sessão, por exemplo `sessoes/P1/`.
 3. O arquivo [`TAREFAS.md`](TAREFAS.md) impresso ou aberto numa janela à parte.
 4. O terminal aberto em `projeto-inovacao-grupoB`.
+
+> **Comando do Python:** os comandos abaixo usam `python`. No **Linux** e no
+> **macOS**, troquem por `python3` (por exemplo,
+> `python3 -m compilador assistente ...`). No Windows, `python` ou `py`.
 
 ## Condução (cerca de 30 minutos)
 
