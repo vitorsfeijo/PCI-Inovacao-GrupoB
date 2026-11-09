@@ -7,12 +7,16 @@ Continuação do projeto do Grupo B do Ciclo 2, em [`../PCI-Saude-GroupB`](../PC
 Esta pasta funciona sozinha: a parte do Ciclo 2 que o compilador usa está
 copiada, sem alterações, em [`acsplan/`](acsplan/LEIAME.md).
 
-> **Estado:** etapas 1 a 7 concluídas. Os cinco modelos (A a E) funcionam, e
-> as três regras sintéticas do Ciclo 2, escritas como modelos, reproduzem o
-> domínio estendido **inteiro**: mesma estrutura e mesmo comportamento em 24 de
-> 24 instâncias. As regras podem ser escritas à mão ou pelo assistente
-> interativo, e `python -m compilador planejar` vai da planilha de pacientes ao
-> roteiro do ACS com as regras aplicadas. Falta a avaliação (etapa 8).
+> **Estado:** etapas 1 a 7 concluídas, e a etapa 8 (avaliação) quase toda:
+> falta só aplicar o teste com usuários, cujo material está pronto. Os cinco
+> modelos (A a E) funcionam, e as três regras sintéticas do Ciclo 2, escritas
+> como modelos, reproduzem o domínio estendido **inteiro**: mesma estrutura e
+> mesmo comportamento em 24 de 24 instâncias. Sete regras novas foram
+> avaliadas: escrever uma regra custa de 7 a 18 linhas de TOML, e cada uma
+> acrescenta de 1 a 9 minutos ao turno ótimo. As regras podem ser escritas à
+> mão ou pelo assistente interativo, e `python -m compilador planejar` vai da
+> planilha de pacientes ao roteiro do ACS com as regras aplicadas (com o Fast
+> Downward opcional, até as sete regras juntas com 10 pacientes).
 
 ---
 
@@ -86,7 +90,15 @@ Como as regras sintéticas do Ciclo 2 se escrevem com eles:
 | Coletor de perfurocortante | A (coletor) + D (glicemia consome coletor) |
 
 Os cinco modelos estão implementados. A, B e C vieram primeiro (suficientes
-para a higienização); D e E completaram as outras duas regras.
+para a higienização); D e E completaram as outras duas regras. Na avaliação
+(etapa 8), D e E ganharam um campo opcional cada, sem virar modelos novos,
+porque continuam expressando a mesma ideia:
+
+- **D** ganhou `quantidade`: o procedimento pode gastar mais de uma unidade
+  (ex.: a glicemia gasta 2 de algodão, a temperatura gasta 1 do mesmo estoque).
+- **E** ganhou `antes_de`: a exigência pode valer antes de certos
+  procedimentos, e não só no início da visita (ex.: luvas só na glicemia de
+  gestantes).
 
 ## Formato do arquivo de regras
 
