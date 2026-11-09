@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+backend/acsplan/dados/cache_osrm/
+.venv/
+
+# regras de teste criadas com o assistente (nome usado nos exemplos do HOWTORUN)
+/minhas-regras.toml

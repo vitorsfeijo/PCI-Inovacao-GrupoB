@@ -1,0 +1,19 @@
+# Gabarito da tarefa T3 (luvas para ferida exposta). A marca precisa ser
+# exatamente "ferida-exposta", porque vem da coluna ferida_exposta.
+[[recurso]]
+nome = "luvas"
+capacidade = 6
+custo_reposicao = 3
+
+[[preparo]]
+nome = "calcar-luvas"
+estado = "luvas-calcadas"
+consome = "luvas"
+custo = 1
+desfeito_ao_sair = true
+
+[[exigencia]]
+nome = "luvas-ferida"
+marca = "ferida-exposta"
+preparo = "calcar-luvas"
+antes_de = ["antropometria"]

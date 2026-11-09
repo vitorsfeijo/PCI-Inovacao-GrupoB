@@ -1,0 +1,31 @@
+{
+  "_meta": {
+    "descricao": "Planilha de AVALIACAO do compilador de regras (Ciclo 3). Copia da microarea de exemplo do Ciclo 2, com tres colunas novas de marcas de paciente e uma alteracao clinica. Todos os pacientes, condicoes e marcas sao ficticios.",
+    "colunas_novas": {
+      "gestante": "p3, a gestante da planilha (grupo gestante)",
+      "suspeita_tuberculose": "p7, ja descrito como sintomatico respiratorio em investigacao",
+      "exige_avental": "p6 e p8, pessoas idosas tratadas como acamadas"
+    },
+    "alteracao_clinica": "p3 passa a ter requer_glicemia = sim (rastreamento de diabetes gestacional), para que a regra de luvas na glicemia de gestantes seja exercitada. Na planilha original, p3 nao faz glicemia.",
+    "intervalo_maximo_padrao_dias": 30
+  },
+  "ubs": {
+    "id": "ubs",
+    "nome": "UBS Santa Cecilia (ficticia)",
+    "lat": -30.0397,
+    "lon": -51.2189
+  },
+  "recursos": {
+    "fitas_glicemia_por_carga": 2,
+    "janelas_supervisao_no_turno": 10,
+    "doses_alcool_por_carga": 6,
+    "mascaras_por_carga": 2,
+    "capacidade_coletor": 3
+  },
+  "agente": {
+    "id": "acs1",
+    "nome": "ACS da microarea 3",
+    "curso_tecnico_concluido": true,
+    "equipamento_disponivel": true
+  }
+}

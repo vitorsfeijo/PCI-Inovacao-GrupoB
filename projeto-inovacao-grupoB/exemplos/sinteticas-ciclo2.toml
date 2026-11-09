@@ -1,0 +1,68 @@
+# As tres regras SINTETICAS do dominio estendido do Ciclo 2, escritas com os
+# modelos. Nao sao norma: existem para testar o compilador. Compiladas sobre o
+# dominio legal, devem reproduzir o dominio-estendido.pddl escrito a mao.
+#
+# Custos copiados do dominio estendido; capacidades iguais aos padroes do
+# gerador de instancias do Ciclo 2 (acsplan/dados/gerador.py).
+
+# ---------------------------------------------------------------------------
+# 1. Higienizacao das maos antes de cada procedimento do art. 3o par. 4o,
+#    com solucao alcoolica reposta so na UBS.
+# ---------------------------------------------------------------------------
+
+[[recurso]]
+nome = "alcool"
+capacidade = 6
+custo_reposicao = 3
+texto = "solução alcoólica"
+
+[[preparo]]
+nome = "higienizar-maos"
+estado = "maos-higienizadas"
+consome = "alcool"
+custo = 2
+desfeito_ao_sair = true
+exigido_antes_de = ["pressao", "glicemia", "temperatura", "medicacao", "antropometria"]
+texto = "Higienizar as mãos"
+
+# ---------------------------------------------------------------------------
+# 2. Protecao respiratoria: residencias sinalizadas exigem mascara vestida
+#    para iniciar a visita; a mascara e descartada ao sair.
+# ---------------------------------------------------------------------------
+
+[[recurso]]
+nome = "mascaras"
+capacidade = 2
+custo_reposicao = 3
+texto = "máscaras"
+
+[[preparo]]
+nome = "vestir-mascara"
+estado = "mascara-vestida"
+consome = "mascaras"
+custo = 2
+desfeito_ao_sair = true
+texto = "Colocar máscara de proteção respiratória"
+
+[[exigencia]]
+nome = "protecao"
+marca = "exige-protecao-respiratoria"   # coluna exige_protecao_respiratoria
+preparo = "vestir-mascara"
+custo = 1
+texto = "Conferir a proteção antes de entrar"
+
+# ---------------------------------------------------------------------------
+# 3. Descarte de perfurocortante: cada glicemia ocupa uma posicao no
+#    coletor, trocado so na UBS.
+# ---------------------------------------------------------------------------
+
+[[recurso]]
+nome = "coletor"
+capacidade = 3
+custo_reposicao = 3
+acao_reposicao = "trocar-coletor"
+texto = "coletor de perfurocortante"
+
+[[consumo]]
+procedimento = "glicemia"
+recurso = "coletor"

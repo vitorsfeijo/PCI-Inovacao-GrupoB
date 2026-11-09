@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planejador do ACS</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<header class="cabecalho">
+  <div class="cabecalho__conteudo">
+    <h1>Planejador do ACS</h1>
+    <p>Planejamento das visitas domiciliares · as regras da equipe, sem escrever PDDL</p>
+    <nav class="abas" role="tablist" aria-label="Telas">
+      <button class="aba" role="tab" id="aba-regras" aria-selected="true" aria-controls="tela-regras">Regras</button>
+      <button class="aba" role="tab" id="aba-planejar" aria-selected="false" aria-controls="tela-planejar">Planejar</button>
+      <button class="aba" role="tab" id="aba-comparar" aria-selected="false" aria-controls="tela-comparar">Antes × depois</button>
+      <button class="aba" role="tab" id="aba-mapa" aria-selected="false" aria-controls="tela-mapa">Mapa</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div id="erro-geral" class="aviso-topo oculto" role="alert"></div>
+
+  <section id="tela-regras" class="tela" role="tabpanel" aria-labelledby="aba-regras">
+    <div class="barra">
+      <button class="botao" id="botao-novo" type="button">Novo</button>
+      <button class="botao" id="botao-abrir" type="button">Abrir arquivo…</button>
+      <input type="file" id="arquivo" accept=".toml,text/plain" class="oculto">
+      <label class="sr-only" for="exemplos">Abrir um exemplo</label>
+      <select id="exemplos"><option value="">Abrir um exemplo…</option></select>
+      <span class="barra__espaco"></span>
+      <span id="estado-regras" class="selo selo--neutro" aria-live="polite">Sem regras</span>
+      <button class="botao botao--primario" id="botao-baixar" type="button" disabled>Baixar regras.toml</button>
+    </div>
+
+    <div class="regras">
+      <section class="painel" aria-labelledby="titulo-lista">
+        <h2 id="titulo-lista">Regras da equipe</h2>
+        <p class="painel__intro">Cada regra é um bloco simples. As normas da lei já estão no
+          planejador; aqui entram as regras próprias da equipe.</p>
+        <div id="lista"></div>
+      </section>
+
+      <section class="painel" id="formulario" aria-live="polite">
+        <div class="formulario__vazio">Escolha uma regra na lista ou adicione uma nova.</div>
+      </section>
+    </div>
+
+    <div class="situacao">
+      <div id="problemas" class="caixa caixa--erro oculto" role="status">
+        <h3>Problemas a corrigir</h3>
+        <ul class="lista-problemas"></ul>
+      </div>
+      <div id="avisos" class="caixa caixa--aviso oculto" role="status">
+        <h3>Avisos (as regras funcionam, mas confira)</h3>
+        <ul class="lista-problemas"></ul>
+      </div>
+      <details class="previa">
+        <summary>Prévia do arquivo de regras (TOML)</summary>
+        <pre id="previa">(as regras aparecem aqui quando estiverem válidas)</pre>
+      </details>
+    </div>
+  </section>
+
+  <section id="tela-planejar" class="tela oculto" role="tabpanel" aria-labelledby="aba-planejar">
+    <div class="planejar">
+      <form class="painel pedido" id="pedido" novalidate>
+        <h2>Planejar o turno</h2>
+
+        <fieldset class="secao">
+          <legend>1. Regras</legend>
+          <label class="opcao"><input type="radio" name="regras" value="equipe" checked>
+            <span>Regras da equipe <span class="campo__ajuda" id="situacao-regras"></span></span></label>
+          <label class="opcao"><input type="radio" name="regras" value="nenhuma">
+            <span>Só as normas da lei, sem regras da equipe</span></label>
+          <button type="button" class="botao botao--texto" id="ir-para-regras">Editar as regras</button>
+        </fieldset>
+
+        <fieldset class="secao">
+          <legend>2. Pacientes</legend>
+          <label class="opcao"><input type="radio" name="fonte" value="exemplo" checked>
+            <span>Planilha de exemplo</span></label>
+          <div class="secao__detalhe" data-fonte="exemplo">
+            <label class="sr-only" for="planilha-exemplo">Planilha de exemplo</label>
+            <select id="planilha-exemplo" name="exemplo"></select>
+          </div>
+          <label class="opcao"><input type="radio" name="fonte" value="csv">
+            <span>Planilha da equipe (.csv)</span></label>
+          <div class="secao__detalhe oculto" data-fonte="csv">
+            <button type="button" class="botao botao--pequeno" id="escolher-csv">Escolher arquivo…</button>
+            <span class="campo__ajuda" id="nome-csv">nenhum arquivo escolhido</span>
+            <input type="file" id="arquivo-csv" accept=".csv,text/csv" class="oculto">
+          </div>
+          <label class="opcao"><input type="radio" name="fonte" value="sintetica">
+            <span>Pacientes inventados (para testar)</span></label>
+          <div class="secao__detalhe oculto linha" data-fonte="sintetica">
+            <label>Quantos <input type="number" name="pacientes_sinteticos" min="1" value="6"></label>
+            <label>Semente <input type="number" name="semente_sintetica" min="0" value="1"></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="secao">
+          <legend>3. Turno</legend>
+          <div class="linha">
+            <label>Início <input type="time" name="inicio" value="08:00"></label>
+            <label>Duração (min) <input type="number" name="orcamento" min="1" placeholder="sem limite"></label>
+            <label>Máx. de pacientes <input type="number" name="max_pacientes" min="1" placeholder="todos"></label>
+          </div>
+          <p class="campo__ajuda">Com duração ou máximo, os pacientes mais prioritários entram
+            no turno e os demais ficam para outro dia.</p>
+        </fieldset>
+
+        <details class="avancadas">
+          <summary>Opções avançadas</summary>
+          <div class="linha">
+            <label>Tempo máximo de busca (s) <input type="number" name="limite" min="1" max="300" placeholder="60"></label>
+            <label>Semente da rota <input type="number" name="semente" min="0" placeholder="0"></label>
+          </div>
+          <label class="campo__rotulo" for="estrategia">Estratégia de busca</label>
+          <select id="estrategia" name="estrategia">
+            <option value="padrao">automática (recomendada)</option>
+            <option value="janelas">por janelas (rápida)</option>
+            <option value="astar-hmax">A* com h_max (ótimo, lenta)</option>
+            <option value="astar-hadd">A* com h_add</option>
+            <option value="gbfs">gulosa (GBFS)</option>
+          </select>
+          <label class="campo__rotulo" for="planejador">Planejador</label>
+          <select id="planejador" name="planejador">
+            <option value="padrao">automático (Fast Downward, se instalado)</option>
+            <option value="fast-downward">Fast Downward</option>
+            <option value="ciclo2">planejador do Ciclo 2</option>
+          </select>
+          <label class="campo__rotulo" for="metodo">Rota</label>
+          <select id="metodo" name="metodo">
+            <option value="padrao">algoritmo genético (padrão)</option>
+            <option value="nn2opt">vizinho mais próximo + 2-opt</option>
+          </select>
+          <label class="opcao"><input type="checkbox" name="sem_selecao">
+            <span>Visitar todos os pacientes (sem seleção por prioridade)</span></label>
+          <label class="opcao"><input type="checkbox" name="sem_precedencia">
+            <span>Ignorar a ordem por urgência na rota</span></label>
+          <label class="opcao"><input type="checkbox" name="sem_limpeza">
+            <span>Não limpar ações redundantes do plano</span></label>
+        </details>
+
+        <div id="erro-pedido" class="campo__erro" role="alert"></div>
+        <button class="botao botao--primario botao--grande" id="botao-planejar" type="submit">Planejar o turno</button>
+      </form>
+
+      <div class="saida">
+        <div id="progresso" class="painel progresso oculto" aria-live="polite">
+          <div class="progresso__topo"><span class="girando" aria-hidden="true"></span>
+            <strong id="progresso-titulo">Planejando…</strong></div>
+          <ol id="progresso-mensagens" class="mensagens"></ol>
+        </div>
+        <div id="resultado">
+          <div class="painel formulario__vazio">O roteiro aparece aqui depois de planejar.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tela-comparar" class="tela oculto" role="tabpanel" aria-labelledby="aba-comparar">
+    <div class="planejar">
+      <div class="painel pedido">
+        <h2>Antes × depois</h2>
+        <p class="painel__intro">O mesmo turno planejado duas vezes, com os mesmos pacientes e a
+          mesma rota: <strong>antes</strong>, só com as normas da lei; <strong>depois</strong>, com
+          as regras da equipe. Mostra o que as regras acrescentam ao dia do ACS.</p>
+        <dl class="resumo-pedido">
+          <dt>Regras da equipe</dt>
+          <dd><span id="comparar-regras"></span>
+            <button type="button" class="botao botao--texto" id="comparar-ir-regras">Editar</button></dd>
+          <dt>Pacientes e turno</dt>
+          <dd><span id="comparar-turno"></span>
+            <button type="button" class="botao botao--texto" id="comparar-ir-planejar">Mudar na aba Planejar</button></dd>
+        </dl>
+        <label class="opcao"><input type="checkbox" id="so-mudancas">
+          <span>Mostrar só as tarefas que mudaram</span></label>
+        <div id="erro-comparar" class="campo__erro" role="alert"></div>
+        <button class="botao botao--primario botao--grande" id="botao-comparar" type="button">Comparar</button>
+      </div>
+
+      <div class="saida">
+        <div id="comparar-progresso" class="painel progresso oculto" aria-live="polite">
+          <div class="progresso__topo"><span class="girando" aria-hidden="true"></span>
+            <strong>Planejando os dois turnos…</strong></div>
+          <ul class="mensagens progresso__lados">
+            <li>Só com as normas da lei: <span id="progresso-antes"></span></li>
+            <li>Com as regras da equipe: <span id="progresso-depois"></span></li>
+          </ul>
+        </div>
+        <div id="comparacao">
+          <div class="painel formulario__vazio">A comparação aparece aqui.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tela-mapa" class="tela oculto" role="tabpanel" aria-labelledby="aba-mapa">
+    <div id="mapa-vazio" class="painel formulario__vazio">
+      <p>O mapa mostra a rota do último roteiro planejado.</p>
+      <button type="button" class="botao botao--primario" id="mapa-ir-planejar">Planejar um turno</button>
+    </div>
+    <div id="mapa-conteudo" class="oculto">
+      <div class="barra">
+        <div class="mapa__titulo"><strong>Rota do turno</strong>
+          <span id="mapa-resumo" class="campo__ajuda"></span></div>
+        <span class="barra__espaco"></span>
+        <div class="modos" role="radiogroup" aria-label="Tipo de mapa">
+          <label class="opcao"><input type="radio" name="modo-mapa" value="ruas" checked>
+            <span>Mapa de ruas <small class="campo__ajuda">(OpenStreetMap, usa a internet)</small></span></label>
+          <label class="opcao"><input type="radio" name="modo-mapa" value="desenho">
+            <span>Desenho simples <small class="campo__ajuda">(sem internet)</small></span></label>
+        </div>
+      </div>
+      <div id="mapa-aviso" class="aviso-topo oculto" role="status"></div>
+      <div class="mapa-layout">
+        <ol id="mapa-lista" class="painel mapa__lista" aria-label="Pontos da rota"></ol>
+        <div class="painel mapa__caixa">
+          <div id="mapa" class="mapa"></div>
+          <p class="mapa__legenda">
+            <span class="legenda-linha"></span> rota ·
+            <span class="legenda-linha legenda-linha--desvio"></span> passagem pela UBS para repor ·
+            <span class="legenda-adiado"></span> fica para outro turno.
+            Linhas retas entre os pontos (o planejador usa distâncias em linha reta); o caminho
+            pelas ruas pode ser outro. No mapa de ruas, só as imagens da região são baixadas;
+            nomes e dados dos pacientes não saem do computador.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

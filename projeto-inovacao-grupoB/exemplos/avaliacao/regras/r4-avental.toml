@@ -1,0 +1,24 @@
+# R4 [SINTETICA] Pacientes acamados exigem avental descartavel para iniciar a
+# visita. Um avental por carga: com dois acamados, o ACS precisa repor.
+# Testa: segunda exigencia na porta (E), com marca nova (coluna exige_avental).
+
+[[recurso]]
+nome = "aventais"
+capacidade = 1
+custo_reposicao = 3
+texto = "aventais descartáveis"
+
+[[preparo]]
+nome = "vestir-avental"
+estado = "avental-vestido"
+consome = "aventais"
+custo = 2
+desfeito_ao_sair = true
+texto = "Vestir avental descartável"
+
+[[exigencia]]
+nome = "avental"
+marca = "exige-avental"
+preparo = "vestir-avental"
+custo = 1
+texto = "Conferir o avental antes de entrar"

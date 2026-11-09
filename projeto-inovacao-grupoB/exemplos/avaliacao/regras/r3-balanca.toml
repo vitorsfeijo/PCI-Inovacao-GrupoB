@@ -1,0 +1,11 @@
+# R3 [SINTETICA] Zerar (tarar) a balanca portatil antes da primeira
+# antropometria do turno; vale para o turno inteiro.
+# Testa: preparo sem recurso e com desfeito_ao_sair = false.
+
+[[preparo]]
+nome = "zerar-balanca"
+estado = "balanca-zerada"
+custo = 2
+desfeito_ao_sair = false
+exigido_antes_de = ["antropometria"]
+texto = "Zerar a balança portátil"

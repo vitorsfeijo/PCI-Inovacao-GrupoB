@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "description": "Interface web do compilador de regras (sem dependencias; package.json so declara modulos ES para os testes com node --test)",
+  "type": "module"
+}

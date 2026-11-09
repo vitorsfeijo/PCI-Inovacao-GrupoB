@@ -4,3 +4,7 @@
 
 05/11/2026
 - Versão final do pitch feita
+
+09/11/2026
+- Compilador para criação de regras do planejamento em pddl criado
+- Resultados iniciais de testes do novo planejador gerados

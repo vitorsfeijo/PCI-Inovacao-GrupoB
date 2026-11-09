@@ -1,0 +1,18 @@
+# R7 [SINTETICA] Algodao: a glicemia gasta 2 bolas (antissepsia e compressao)
+# e a temperatura gasta 1 (limpar o termometro depois); estoque reposto na UBS.
+# Testa: o mesmo estoque gasto em quantidades diferentes (D com quantidade).
+
+[[recurso]]
+nome = "algodao"
+capacidade = 6
+custo_reposicao = 3
+texto = "algodão"
+
+[[consumo]]
+procedimento = "glicemia"
+recurso = "algodao"
+quantidade = 2
+
+[[consumo]]
+procedimento = "temperatura"
+recurso = "algodao"

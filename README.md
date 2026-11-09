@@ -1,4 +1,4 @@
-# PCI-Inovacao-GrupoC
+# PCI-Inovacao-GrupoB
 
 Projeto em Ciência e Inovação (INF99003), Ciclo 3 - 
 Inovação no planejamento de visitas domiciliares de Agentes Comunitários de Saúde na APS/SUS.

@@ -1,6 +1,6 @@
 # Pitch para stakeholders — semana 1
 
-Apresentação de **11 slides, para cerca de 10 minutos**, organizada em **Problema → Solução → Exemplos → Próximos passos**. O problema (slides 2–3) e a solução (slides 4–5) aparecem explicitamente, cada um numa frase, antes de qualquer detalhe técnico. O pitch termina com perguntas aos stakeholders; **a inovação do Grupo C será definida depois da escuta**.
+Apresentação de **11 slides, para cerca de 10 minutos**, organizada em **Problema → Solução → Exemplos → Próximos passos**. O problema (slides 2–3) e a solução (slides 4–5) aparecem explicitamente, cada um numa frase, antes de qualquer detalhe técnico. O pitch termina com perguntas aos stakeholders; **a inovação do Grupo B (Ciclo 3) será definida depois da escuta**.
 
 - `pitch.tex`: fonte principal Beamer, 16:9, tema Singapore e cores da referência fornecida.
 - `pitch.pdf`: apresentação compilada.

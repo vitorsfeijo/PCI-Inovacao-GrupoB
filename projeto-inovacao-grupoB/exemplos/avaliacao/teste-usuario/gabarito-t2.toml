@@ -1,0 +1,13 @@
+# Gabarito da tarefa T2 (manguito).
+[[recurso]]
+nome = "lencos"
+capacidade = 10
+custo_reposicao = 3
+
+[[preparo]]
+nome = "limpar-manguito"
+estado = "manguito-limpo"
+consome = "lencos"
+custo = 1
+desfeito_ao_sair = true
+exigido_antes_de = ["pressao"]
