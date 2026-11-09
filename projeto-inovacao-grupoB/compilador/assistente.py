@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -394,8 +395,56 @@ def main(argv: list[str] | None = None, *, entrada: Callable[[str], str] = input
         description="Cria ou amplia um arquivo de regras respondendo perguntas.")
     parser.add_argument("arquivo", nargs="?", default="regras.toml",
                         help="arquivo de regras (padrão: regras.toml)")
+    parser.add_argument("--registro", metavar="ARQUIVO.jsonl",
+                        help="grava a sessão (perguntas, respostas, recusas e "
+                             "horários), para o teste com usuários")
     args = parser.parse_args(argv)
     caminho = Path(args.arquivo)
+    if args.registro:
+        entrada, escrever, fechar = _com_registro(Path(args.registro), entrada, escrever)
+        try:
+            return _sessao(caminho, entrada, escrever)
+        finally:
+            fechar()
+    return _sessao(caminho, entrada, escrever)
+
+
+def _com_registro(arquivo: Path, entrada, escrever):
+    """Envolve entrada e saída para gravar cada evento da sessão em JSON Lines:
+    {"t": segundos desde o início, "tipo": "pergunta"|"resposta"|"mensagem"|
+    "recusa"|"fim", "texto": ...}. Recusa = mensagem de erro do assistente."""
+    import json
+    registro = arquivo.open("w", encoding="utf-8")
+    inicio = time.perf_counter()
+
+    def gravar(tipo: str, texto: str) -> None:
+        registro.write(json.dumps({"t": round(time.perf_counter() - inicio, 2),
+                                   "tipo": tipo, "texto": texto},
+                                  ensure_ascii=False) + "\n")
+        registro.flush()
+
+    def entrada_registrada(pergunta: str) -> str:
+        gravar("pergunta", pergunta)
+        try:
+            resposta = entrada(pergunta)
+        except (EOFError, KeyboardInterrupt):
+            gravar("fim", "cancelado")
+            raise
+        gravar("resposta", resposta)
+        return resposta
+
+    def escrever_registrado(texto: str) -> None:
+        gravar("recusa" if texto.lstrip().startswith("!") else "mensagem", texto)
+        escrever(texto)
+
+    def fechar() -> None:
+        gravar("fim", "encerrado")
+        registro.close()
+
+    return entrada_registrada, escrever_registrado, fechar
+
+
+def _sessao(caminho: Path, entrada, escrever) -> int:
 
     dominio = ciclo2.planejador().ler_sexp(str(ciclo2.DOMINIO_LEGAL))
     existentes = None

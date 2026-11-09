@@ -376,6 +376,45 @@ As sete regras compilam e os sete roteiros passam na conferência.
    limpeza). É uma estimativa, porque as regras interagem, mas indica espaço
    para melhorar a qualidade dos planos.
 
+### Qualidade dos planos: planejamento por janelas
+
+As medições da 8.4 mostraram que, com muitas regras, o primeiro plano do Fast
+Downward fica de 7% a 45% acima do ótimo, e que o ótimo não termina a partir
+de cinco regras. Para melhorar isso sem depender do ótimo do turno inteiro,
+o planejador passou a ter um modo **por janelas** (`compilador/janelas.py`):
+a ordem das visitas já vem do roteirizador, então, a partir do estado atual,
+planeja-se de forma ótima o atendimento das próximas k visitas, executa-se só
+até concluir a primeira, e a janela avança uma casa.
+
+Experimento (`python -m testes.qualidade_planos`, com o Fast Downward; custos
+depois da limpeza; limite de 60 s, 120 s para o ótimo):
+
+| Caso | Ótimo | 1º plano FD | LAMA | Portfólio 2023 | Janelas k=1 | k=2 | **k=3** | k=4 |
+|---|---|---|---|---|---|---|---|---|
+| R1–R4, 10 pacientes | 401 (31 s) | 427 | 401 (33 s) | 406 | 409 (1 s) | 409 | **403 (0,9 s)** | 421 |
+| 7 regras, p3 p6 p7 | 156 (1 s) | 179 | 156 (59 s) | 156 | 156 (0,3 s) | 156 | **156 (1 s)** | 156 |
+| 7 regras, p6 p7 p8 | 199 (7 s) | 217 | 199 (14 s) | 200 | 199 (0,3 s) | 199 | **199 (7 s)** | 199 |
+| 7 regras, 10 pacientes | não termina | 477 | 477 | 469 | 436 (1 s) | 436 | **430 (16 s)** | 428 (153 s) |
+
+- No caso difícil, o turno cai de **477 para 430 min** (−10%); a estimativa
+  do ótimo (soma dos acréscimos de cada regra) é ~408.
+- Onde o ótimo é conhecido, as janelas o alcançam ou ficam a 0,5% dele, em
+  cerca de 1 s.
+- k = 3 é o melhor equilíbrio: k = 4 melhora 2 minutos e leva dez vezes mais.
+
+**Limitação encontrada: beco sem saída.** Janelas não enxergam o turno todo.
+As janelas de supervisão não se repõem (uma por visita na planilha), e um
+desvio à UBS no meio de uma visita encerra a supervisão e obriga a acionar
+de novo. Sem o Fast Downward (k = 1, com `h_max` do Ciclo 2 por janela), as
+sete regras gastaram as janelas cedo demais e a última visita ficou sem
+supervisão: plano impossível a partir dali. Com o Fast Downward e k = 3, isso
+não aconteceu. Por isso o modo `auto` não confia só nas janelas: quando o
+ótimo não termina em 1/4 do limite, ele calcula as janelas **e** um plano
+global rápido, e fica com o melhor plano válido.
+
+Os números da seção de medições (8.4) são anteriores às janelas; com o `auto`
+atual e o Fast Downward, o turno das sete regras sai com 430 min em ~30 s.
+
 ### Controle negativo
 
 Para mostrar que o teste detecta diferenças, ele também roda com regras
@@ -437,7 +476,11 @@ python -m unittest discover testes     # inclui uma versão rápida (cerca de 20
           planejamento com as regras acumuladas (0 a 7, e 10) e com 1 a 10
           pacientes ([resultados](exemplos/avaliacao/resultados.md)).
    5. [ ] Teste com alguém que não programa: escrever 2 ou 3 regras pelo
-          assistente, medindo tempo e erros.
+          assistente, medindo tempo e erros. **Material pronto, aplicação
+          pendente** (pelo grupo): [protocolo](exemplos/avaliacao/teste-usuario/PROTOCOLO.md),
+          [tarefas](exemplos/avaliacao/teste-usuario/TAREFAS.md), gabaritos,
+          registro da sessão no assistente (`--registro`) e conferidor
+          (`python -m testes.teste_usuario`).
 
 ## Em aberto
 
@@ -576,7 +619,8 @@ tenha feito antes.
 | `--orcamento MIN`, `--max-pacientes`, `--sem-selecao` | — | seleção de quem entra no turno |
 | `--metodo`, `--distancias`, `--modal`, `--semente`, `--sem-precedencia` | como no Ciclo 2 | roteirização |
 | `--planejador` | `auto` | `auto` (Fast Downward se instalado, senão o do Ciclo 2), `fast-downward` ou `ciclo2` |
-| `--estrategia` | `auto` | `auto` (ótimo se der tempo, senão um plano bom), `astar-hmax` (só o ótimo: `h_max` ou LM-cut), `astar-hadd` (plano bom: `h_add` ou LAMA) ou `gbfs` (primeiro plano) |
+| `--estrategia` | `auto` | `auto` (ótimo se terminar em 1/4 do limite; senão, o melhor entre janelas e um plano global rápido), `janelas`, `astar-hmax` (só o ótimo: `h_max` ou LM-cut), `astar-hadd` (plano bom: `h_add` ou LAMA) ou `gbfs` (primeiro plano) |
+| `--janela K` | 3 com o FD, 1 sem | visitas enxergadas por janela |
 | `--limite S` | 60 | limite de tempo da busca |
 | `--salvar ARQUIVO` | — | grava o roteiro em vez de imprimir |
 | `--salvar-pddl PASTA` | — | grava o domínio e o problema compilados |
@@ -590,6 +634,8 @@ ações cumpre as regras) da busca que só parou no limite de tempo, o que não
 prova nada.
 
 O assistente também pode ser chamado como `python -m compilador assistente`.
+Com `--registro sessao.jsonl`, ele grava cada pergunta, resposta e recusa com
+o horário, para o teste com usuários.
 
 ### Compilando
 
@@ -664,6 +710,7 @@ compilador/
   instanciacao.py  instanciação com poda (resultado idêntico ao do Ciclo 2)
   limpeza.py     retira ações redundantes do plano
   fastdownward.py  Fast Downward opcional, com validação do plano
+  janelas.py     planejamento por janelas (visita por visita, olhando as próximas)
   __main__.py    linha de comando
 acsplan/         cópia parcial, sem alterações, do pacote do Ciclo 2 (ver LEIAME.md)
 requirements-opcional.txt  Fast Downward (opcional)
@@ -679,8 +726,12 @@ testes/
   test_extensoes.py     quantidade no consumo e exigência antes de procedimento
   test_instanciacao.py  instanciação podada idêntica à original, e escala
   test_fastdownward.py  Fast Downward (pulados se ele não estiver instalado)
+  test_janelas.py       janelas: validade, qualidade e o beco sem saída
+  qualidade_planos.py   experimento de qualidade dos planos (precisa do FD)
   roteiros_avaliacao.py confere um roteiro contra o esperado de cada regra
   medicoes.py           medições da avaliação (gera exemplos/avaliacao/resultados.md)
+  teste_usuario.py      confere as regras do teste com usuário contra o gabarito
+  test_teste_usuario.py participantes simulados no teste com usuário
 ```
 
 Para rodar os testes, dentro desta pasta:

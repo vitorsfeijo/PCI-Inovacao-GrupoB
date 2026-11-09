@@ -31,6 +31,7 @@ from pathlib import Path
 
 from . import ciclo2, fastdownward, roteiro
 from .instanciacao import TarefaPlanejamentoPodada
+from .janelas import planejar_por_janelas
 from .limpeza import eliminar_redundantes
 from .dominio import NOME_PADRAO, compilar_dominio
 from .pddl import escrever_pddl
@@ -44,8 +45,16 @@ from .regras import ErroRegra, Regras, avisos, carregar_regras
 # 35% com exigencias na porta; a limpeza do plano reduz isso para ~10%.
 # "auto" tenta h_max na primeira metade do limite e, se o tempo acabar, usa
 # h_add na outra metade, avisando que o plano nao e garantidamente otimo.
+# Tamanho padrao da janela (visitas enxergadas a frente). Com o Fast Downward,
+# k=3 deu os melhores planos na avaliacao (403 contra o otimo de 401 com
+# R1-R4; 430 contra 477 do LAMA com as sete regras). Sem ele, so k=1 cabe no
+# tempo, e pode cair em beco sem saida com muitas regras.
+JANELA_COM_FD = 3
+JANELA_SEM_FD = 1
+
 ESTRATEGIAS = {
-    "auto": "ótimo se terminar na metade do limite; senão, um plano bom",
+    "auto": "ótimo se terminar em 1/4 do limite; senão, o melhor entre janelas e plano global",
+    "janelas": "visita por visita, cada janela ótima, olhando as próximas",
     "astar-hmax": "só o ótimo (Ciclo 2: h_max; Fast Downward: LM-cut)",
     "astar-hadd": "plano bom e rápido (Ciclo 2: h_add; Fast Downward: LAMA)",
     "gbfs": "o primeiro plano (Ciclo 2: busca gulosa; Fast Downward: LAMA, 1º plano)",
@@ -75,6 +84,9 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument("--modal", choices=["pe", "carro"], default="pe")
     p.add_argument("--semente", type=int, default=0)
     p.add_argument("--estrategia", choices=list(ESTRATEGIAS), default="auto")
+    p.add_argument("--janela", type=int, metavar="K",
+                   help=f"visitas enxergadas por janela (padrão: {JANELA_COM_FD} com o "
+                        f"Fast Downward, {JANELA_SEM_FD} sem)")
     p.add_argument("--planejador", choices=["auto", "fast-downward", "ciclo2"],
                    default="auto",
                    help="auto: Fast Downward se estiver instalado, senão o do Ciclo 2")
@@ -118,8 +130,8 @@ def _escolher_planejador(escolha: str) -> bool | None:
 
 
 def _buscar(planejador, tarefa, estrategia: str, limite: float, usar_fd: bool,
-            caminhos: tuple[str, str]):
-    """Devolve (resultado, configuracao usada, se o plano e garantidamente otimo)."""
+            caminhos: tuple[str, str], rota: list[str], agente: str, janela: int | None):
+    """Devolve (resultado, metodo usado, se o plano e garantidamente otimo)."""
     def rodar(configuracao: str, segundos: float):
         if usar_fd:
             return fastdownward.resolver(*caminhos, tarefa, configuracao=configuracao,
@@ -127,16 +139,46 @@ def _buscar(planejador, tarefa, estrategia: str, limite: float, usar_fd: bool,
         return planejador.resolver(tarefa, configuracao, limite_segundos=segundos)
 
     otima = fastdownward.OTIMO if usar_fd else "astar-hmax"
+    tamanho = janela or (JANELA_COM_FD if usar_fd else JANELA_SEM_FD)
+    if estrategia == "janelas":
+        return (planejar_por_janelas(tarefa, *caminhos, rota, agente, tamanho=tamanho,
+                                     usar_fd=usar_fd, limite_janela=max(5.0, limite / 4)),
+                f"janelas (k={tamanho})", False)
     if estrategia != "auto":
         configuracao = FD_POR_ESTRATEGIA[estrategia] if usar_fd else estrategia
         return rodar(configuracao, limite), configuracao, configuracao == otima
-    resultado = rodar(otima, limite / 2)
+
+    # 1. o otimo, se terminar em um quarto do limite
+    resultado = rodar(otima, limite / 4)
     if resultado.sucesso or not _interrompida(resultado.motivo):
         return resultado, otima, True          # plano otimo, ou impossibilidade provada
-    boa = fastdownward.BOM if usar_fd else "astar-hadd"
-    _info(f"    {otima} não terminou em {limite / 2:g} s; buscando com {boa} "
-          f"(o plano pode não ser ótimo)")
-    return rodar(boa, limite / 2), boa, False
+    _info(f"    {otima} não terminou em {limite / 4:g} s; planejando por janelas "
+          f"(k={tamanho}) e por um plano global rápido, e fica o melhor")
+    # 2. janelas: em geral o melhor plano, mas podem cair num beco sem saida
+    #    (ex.: janelas de supervisao gastas cedo demais)
+    por_janelas = planejar_por_janelas(tarefa, *caminhos, rota, agente, tamanho=tamanho,
+                                       usar_fd=usar_fd, limite_janela=max(5.0, limite / 4))
+    # 3. plano global rapido, como rede de seguranca
+    global_ = rodar(fastdownward.PRIMEIRO if usar_fd else "astar-hadd", limite / 4)
+    candidatos = []
+    for metodo, r in ((f"janelas (k={tamanho})", por_janelas),
+                      (fastdownward.PRIMEIRO if usar_fd else "astar-hadd", global_)):
+        if r.sucesso:
+            limpo = eliminar_redundantes(tarefa, r.plano)
+            candidatos.append((sum(a.custo for a in _acoes(tarefa, limpo)), metodo, r))
+        else:
+            _info(f"    {metodo}: sem plano ({r.motivo})")
+    if not candidatos:
+        return global_, "nenhum método", False
+    _, metodo, melhor = min(candidatos, key=lambda c: c[0])
+    for custo, nome, _ in sorted(candidatos):
+        _info(f"    {nome}: {custo} min depois da limpeza")
+    return melhor, metodo, False
+
+
+def _acoes(tarefa, plano: list[str]):
+    por_nome = {acao.assinatura: acao for acao in tarefa.acoes}
+    return [por_nome[passo] for passo in plano]
 
 
 def _interrompida(motivo: str) -> bool:
@@ -221,8 +263,10 @@ def main(argv: list[str] | None = None) -> int:
         _info(f"    Busca: {nome_planejador}, {ESTRATEGIAS[args.estrategia]}, "
               f"limite de {args.limite:g} s")
         try:
+            visitas = [p for p in roteamento["rota"] if p != dados["ubs"]["id"]]
             resultado, usada, otimo = _buscar(planejador, tarefa, args.estrategia,
-                                              args.limite, usar_fd, caminhos)
+                                              args.limite, usar_fd, caminhos, visitas,
+                                              dados["agente"]["id"], args.janela)
         except RuntimeError as erro:
             _info(f"Erro: {erro}")
             return 1

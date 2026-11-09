@@ -1,0 +1,8 @@
+# Gabarito da tarefa T1 (tablet). Os NOMES sao livres: o conferidor so compara
+# o que importa (custo, quando vale, antes de que procedimento).
+[[preparo]]
+nome = "ligar-tablet"
+estado = "tablet-ligado"
+custo = 2
+desfeito_ao_sair = false
+exigido_antes_de = ["vacinal"]

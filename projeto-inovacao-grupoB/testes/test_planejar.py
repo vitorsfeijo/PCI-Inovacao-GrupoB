@@ -226,7 +226,7 @@ class TestCorrecoesDaAvaliacao(unittest.TestCase):
     def test_auto_recorre_ao_h_add(self):
         codigo, _, info = rodar(str(SINTETICAS), "--orcamento", "240", "--limite", "0.02",
                                 "--planejador", "ciclo2")
-        self.assertIn("buscando com astar-hadd", info)
+        self.assertIn("planejando por janelas", info)
 
     def test_auto_e_otimo_quando_h_max_termina(self):
         codigo, roteiro, info = rodar(str(SINTETICAS), "--instancia-sintetica", "3", "1",
