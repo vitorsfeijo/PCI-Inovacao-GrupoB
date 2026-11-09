@@ -4,26 +4,67 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Regras do ACS</title>
-<style>
-  body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem;
-         color: #1f2328; background: #fff; line-height: 1.5; }
-  code { background: #f2f2f2; padding: 0 .3em; border-radius: 3px; }
-  .ok { color: #1a7f37; } .erro { color: #cf222e; }
-</style>
+<link rel="stylesheet" href="estilo.css">
 </head>
 <body>
-<h1>Regras do ACS</h1>
-<p>Interface em construção (passo 3). O servidor e a API já funcionam:</p>
-<p id="estado">Consultando a API…</p>
-<script>
-  fetch("/api/modelos").then(r => r.json()).then(d => {
-    const nomes = d.modelos.map(m => m.titulo).join(", ");
-    document.getElementById("estado").innerHTML =
-      `<span class="ok">API respondendo.</span> ${d.modelos.length} modelos (${nomes}) e ` +
-      `${d.procedimentos.length} procedimentos.`;
-  }).catch(e => {
-    document.getElementById("estado").innerHTML = `<span class="erro">API sem resposta: ${e}</span>`;
-  });
-</script>
+<header class="cabecalho">
+  <div class="cabecalho__conteudo">
+    <h1>Regras do ACS</h1>
+    <p>Planejamento das visitas domiciliares · as regras da equipe, sem escrever PDDL</p>
+    <nav class="abas" role="tablist" aria-label="Telas">
+      <button class="aba" role="tab" id="aba-regras" aria-selected="true" aria-controls="tela-regras">Regras</button>
+      <button class="aba" role="tab" id="aba-planejar" aria-selected="false" disabled>Planejar <small>(em breve)</small></button>
+      <button class="aba" role="tab" id="aba-comparar" aria-selected="false" disabled>Antes × depois <small>(em breve)</small></button>
+      <button class="aba" role="tab" id="aba-mapa" aria-selected="false" disabled>Mapa <small>(em breve)</small></button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div id="erro-geral" class="aviso-topo oculto" role="alert"></div>
+
+  <section id="tela-regras" role="tabpanel" aria-labelledby="aba-regras">
+    <div class="barra">
+      <button class="botao" id="botao-novo" type="button">Novo</button>
+      <button class="botao" id="botao-abrir" type="button">Abrir arquivo…</button>
+      <input type="file" id="arquivo" accept=".toml,text/plain" class="oculto">
+      <label class="sr-only" for="exemplos">Abrir um exemplo</label>
+      <select id="exemplos"><option value="">Abrir um exemplo…</option></select>
+      <span class="barra__espaco"></span>
+      <span id="estado-regras" class="selo selo--neutro" aria-live="polite">Sem regras</span>
+      <button class="botao botao--primario" id="botao-baixar" type="button" disabled>Baixar regras.toml</button>
+    </div>
+
+    <div class="regras">
+      <section class="painel" aria-labelledby="titulo-lista">
+        <h2 id="titulo-lista">Regras da equipe</h2>
+        <p class="painel__intro">Cada regra é um bloco simples. As normas da lei já estão no
+          planejador; aqui entram as regras próprias da equipe.</p>
+        <div id="lista"></div>
+      </section>
+
+      <section class="painel" id="formulario" aria-live="polite">
+        <div class="formulario__vazio">Escolha uma regra na lista ou adicione uma nova.</div>
+      </section>
+    </div>
+
+    <div class="situacao">
+      <div id="problemas" class="caixa caixa--erro oculto" role="status">
+        <h3>Problemas a corrigir</h3>
+        <ul class="lista-problemas"></ul>
+      </div>
+      <div id="avisos" class="caixa caixa--aviso oculto" role="status">
+        <h3>Avisos (as regras funcionam, mas confira)</h3>
+        <ul class="lista-problemas"></ul>
+      </div>
+      <details class="previa">
+        <summary>Prévia do arquivo de regras (TOML)</summary>
+        <pre id="previa">(as regras aparecem aqui quando estiverem válidas)</pre>
+      </details>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

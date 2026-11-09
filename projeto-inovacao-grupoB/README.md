@@ -62,7 +62,7 @@ Detalhes, números e limitações no [DESIGN.md](DESIGN.md#avaliação).
 
 ```
 acs.py        ponto de entrada: python3 acs.py <comando> (veja o HOWTORUN)
-web/          a interface web (em construção): python3 acs.py web
+web/          a interface web: python3 acs.py web (tela de regras pronta; as demais em construção)
 backend/      o código
   compilador/   o compilador, o assistente e o comando planejar
   servidor/     servidor local e API da interface web

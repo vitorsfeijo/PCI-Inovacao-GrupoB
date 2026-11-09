@@ -256,6 +256,30 @@ que não há plano" de "parou no limite".
 | `POST /api/planejar` | `{regras_toml, planilha: {exemplo \| csv \| sintetica}, opcoes}` → `{id}` |
 | `GET /api/tarefas/<id>` | estado, mensagens de progresso e, no fim, o resultado |
 
+### Tela de regras
+
+JavaScript em módulos, sem bibliotecas nem *build*. A lógica que não depende
+da página (estado, limpeza dos blocos, resumos, quem usa cada recurso,
+renomear em cascata) fica em `regras-logica.js`, testada com `node --test`;
+`tela-regras.js` só desenha e reage. Escolhas:
+
+- **Formulários gerados pelos metadados** de `GET /api/modelos`: um modelo
+  novo em `regras.py` aparece na tela sem mexer no JavaScript. Cada tipo de
+  campo vira um controle: texto, número, sim/não, lista de procedimentos
+  (caixas de marcar) ou referência a outra regra (lista de escolha).
+- **Duas validações:** cada campo é conferido sozinho enquanto se digita
+  (com sugestão de nome), e o conjunto é conferido inteiro, inclusive
+  compilando contra o domínio, a cada mudança. O TOML da prévia e do download
+  vem do servidor, escrito pelo mesmo código do assistente.
+- **Nada se perde ao recarregar:** um rascunho fica no `localStorage` do
+  navegador (se ele permitir); salvar de verdade é baixar o arquivo.
+- **Textos da pessoa entram como texto**, nunca como HTML.
+- **Teste de ponta a ponta sem dependências:** `web/testes/e2e-regras.mjs`
+  abre um Chrome sem janela e o controla pelo protocolo de depuração (o
+  WebSocket já vem no Node 22). Ele cria regras como uma pessoa faria, erra de
+  propósito, abre um exemplo, recarrega, troca para o tema escuro e para a
+  largura de celular; `test_web.py` sobe o servidor e confere o relato.
+
 ### Estratégia de busca: `auto`, janelas e limpeza
 
 | Estratégia | Ciclo 2 | Fast Downward |
@@ -517,7 +541,7 @@ recusas.
 9. [ ] Interface web:
    1. [x] Reorganização: `backend/` e o lançador `acs.py`.
    2. [x] Servidor local e API.
-   3. [ ] Tela de regras.
+   3. [x] Tela de regras.
    4. [ ] Tela de planejamento e roteiro.
    5. [ ] Antes × depois.
    6. [ ] Mapa da rota.
@@ -559,7 +583,16 @@ HOWTORUN.md                instalar, escrever regras, planejar, testar
 DESIGN.md                  este arquivo
 acs.py                     ponto de entrada: python3 acs.py <comando>
 requirements-opcional.txt  Fast Downward (opcional)
-web/                       a interface (HTML, CSS e JavaScript, servidos pelo backend)
+web/                       a interface (servida pelo backend)
+  index.html, estilo.css   página e estilos (tema claro e escuro)
+  js/
+    app.js           carrega os metadados e monta as telas
+    api.js           chamadas à API
+    regras-logica.js lógica da tela de regras, sem DOM
+    tela-regras.js   tela de regras
+  testes/
+    regras-logica.test.mjs  lógica da tela (node --test)
+    e2e-regras.mjs          ponta a ponta num Chrome sem janela
 backend/
   compilador/
     regras.py        modelos, leitura e escrita do TOML, conferência de cada campo
@@ -581,7 +614,7 @@ backend/
     tarefas.py       planejamentos em segundo plano
   acsplan/           cópia parcial, sem alterações, do pacote do Ciclo 2 (ver LEIAME.md)
   testes/
-    test_*.py              testes automáticos (python3 acs.py testes)
+    test_*.py              testes automáticos (python3 acs.py testes; test_web.py roda os da interface)
     equivalencia.py        comparações com o domínio estendido
     medicoes.py            medições da avaliação
     qualidade_planos.py    experimento de qualidade dos planos

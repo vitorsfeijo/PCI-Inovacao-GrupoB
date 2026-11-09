@@ -64,8 +64,17 @@ a seguinte). A interface roda **só neste computador**: o servidor não aceita
 conexões de outras máquinas, e nada é enviado para a internet. Ctrl+C no
 terminal encerra. Opções: `--porta N` e `--sem-navegador`.
 
-Por enquanto, a página só confirma que o servidor e a API funcionam; as telas
-de regras, planejamento, comparação e mapa vêm nos próximos passos. A API
+**Tela de regras (pronta).** Cada modelo (recurso, preparo, consumo,
+exigência) tem um botão "+ Adicionar"; o formulário ao lado explica cada
+campo e confere enquanto vocês digitam. Nome com acento ou espaço ganha uma
+sugestão ("Usar “alcool-gel”"); renomear um recurso ou preparo atualiza as
+regras que o usam; os problemas aparecem no campo, no cartão da regra e numa
+lista embaixo. Com tudo válido, o selo fica verde e "Baixar regras.toml"
+salva o arquivo, que serve para o `planejar` do terminal. Também dá para
+abrir um `.toml` existente ou um dos exemplos. O que estiver na tela fica
+guardado no navegador até clicar em "Novo".
+
+As telas de planejamento, comparação e mapa vêm nos próximos passos. A API
 está descrita no [DESIGN](DESIGN.md#servidor-e-api-da-interface-web).
 
 ## Escrevendo regras pelo assistente
@@ -302,7 +311,11 @@ python acs.py testes        # todos os testes (cerca de 1 min)
 ```
 
 Os testes que dependem do Fast Downward são pulados quando ele não está
-instalado.
+instalado. Os da interface web precisam do Node 22 ou mais novo (lógica da
+tela) e do Chrome ou Chromium (teste de ponta a ponta, num navegador sem
+janela) e também são pulados sem eles; outro navegador pode ser indicado com
+`CHROME=chromium python acs.py testes`. Só a lógica da tela:
+`node --test web/testes/*.test.mjs`.
 
 | Comando | O que faz | Tempo |
 |---|---|---|
