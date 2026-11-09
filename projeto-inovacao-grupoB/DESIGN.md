@@ -303,6 +303,25 @@ meio segundo, mostrando as mensagens de progresso. Escolhas:
 - **Impressão:** uma folha de estilos de impressão esconde tudo menos o
   roteiro, com caixas de marcar para levar em papel.
 
+### Antes × depois
+
+Dois pedidos iguais ao da tela de planejamento, um sem regras e outro com as
+regras da equipe, rodando ao mesmo tempo (o servidor aceita dois). A
+comparação (`comparar-logica.js`, testada com `node --test`) casa as visitas
+pelo paciente e compara as listas de tarefas como multiconjuntos: tarefa nova,
+igual ou que saiu. Escolhas:
+
+- **Mesmos pacientes e mesma rota por construção:** a seleção e o
+  roteirizador do Ciclo 2 não dependem das regras (e a semente é a mesma),
+  então a diferença é só o que as regras acrescentam. A tela confere e avisa
+  se a rota tiver mudado.
+- **Sem formulário próprio:** pacientes e turno vêm da aba Planejar, regras da
+  aba Regras; a tela mostra o resumo dos dois com atalhos para mudar.
+- O efeito das regras é contado por **tarefa** ("Higienizar as mãos: 5
+  vezes") e por **reposição** na UBS, não por minutos de cada regra: o
+  resultado traz o custo total do plano, e o atraso de cada chegada mostra
+  como o tempo se acumula ao longo do turno.
+
 ### Estratégia de busca: `auto`, janelas e limpeza
 
 | Estratégia | Ciclo 2 | Fast Downward |
@@ -566,7 +585,7 @@ recusas.
    2. [x] Servidor local e API.
    3. [x] Tela de regras.
    4. [x] Tela de planejamento e roteiro.
-   5. [ ] Antes × depois.
+   5. [x] Antes × depois.
    6. [ ] Mapa da rota.
 
 ---
@@ -616,11 +635,14 @@ web/                       a interface (servida pelo backend)
     tela-regras.js     tela de regras
     planejar-logica.js lógica da tela de planejamento, sem DOM
     tela-planejar.js   tela de planejamento e roteiro
+    comparar-logica.js lógica da tela antes × depois, sem DOM
+    tela-comparar.js   tela antes × depois
   testes/
     *.test.mjs         lógica das telas (node --test)
     navegador.mjs      Chrome sem janela controlado pelo CDP
     e2e-regras.mjs     ponta a ponta da tela de regras
     e2e-planejar.mjs   ponta a ponta da tela de planejamento (planeja de verdade)
+    e2e-comparar.mjs   ponta a ponta da tela antes × depois
 backend/
   compilador/
     regras.py        modelos, leitura e escrita do TOML, conferência de cada campo

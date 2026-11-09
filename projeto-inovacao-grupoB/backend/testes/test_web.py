@@ -192,5 +192,45 @@ class TestTelaDePlanejamento(CenarioNoNavegador):
         self.assertIn("exige_protecao_respiratoria", self.relato["falha"])
 
 
+class TestTelaAntesDepois(CenarioNoNavegador):
+    """Compara de verdade: 5 pacientes da avaliacao, sem e com as regras sinteticas."""
+
+    CENARIO = "e2e-comparar.mjs"
+    PRAZO = 400
+
+    def test_percorreu_todos_os_passos(self):
+        self.assertEqual(self.relato["passos"], ["comparar", "so-mudancas", "aparencia"])
+
+    def test_sem_regras_nao_compara(self):
+        self.assertIn("nenhuma regra", self.relato["regras_sem_regras"])
+        self.assertTrue(self.relato["botao_sem_regras"])
+
+    def test_usa_regras_e_turno_das_outras_abas(self):
+        self.assertEqual(self.relato["regras_com_regras"], "7 regras válidas")
+        self.assertIn("Avaliação", self.relato["turno"])
+        self.assertIn("até 5 pacientes", self.relato["turno"])
+        self.assertFalse(self.relato["botao_com_regras"])
+
+    def test_numeros_da_comparacao(self):
+        self.assertEqual(self.relato["estado"], "comparacao")
+        duracao, tarefas, voltas, visitas = self.relato["numeros"]
+        self.assertRegex(duracao, r"^Duração \| \dh\d\d → \dh\d\d \| \+\d+ min \(\+\d+%\)$")
+        self.assertEqual(tarefas, "Tarefas | 29 → 34 | +5")      # higienizar em cada visita
+        self.assertRegex(voltas, r"^Voltas à UBS \| \d → \d")
+        self.assertEqual(visitas, "Visitas | 5 | mesmos pacientes, mesma rota")
+
+    def test_o_que_as_regras_mudaram(self):
+        self.assertIn("Higienizar as mãos — 5 vezes", self.relato["mudancas"])
+        self.assertEqual(self.relato["paradas"], 5)
+        self.assertEqual(self.relato["tarefas_novas"], 5)
+        self.assertEqual(self.relato["tarefas_todas"], 34)
+        self.assertRegex(self.relato["primeira_chegada"],
+                         r"chegada ≈ 07:\d\d → 07:\d\d \(\+\d+ min\)")
+
+    def test_so_mudancas_e_aparencia(self):
+        self.assertEqual(self.relato["tarefas_so_mudancas"], 5)
+        self.assertFalse(self.relato["rolagem_horizontal"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -85,7 +85,15 @@ material e quem ficou para outro turno. "Imprimir" imprime só o roteiro;
 "Baixar (.txt)" salva o mesmo texto do terminal. As opções avançadas
 (estratégia, planejador, rota) são as mesmas do `planejar`.
 
-As telas de comparação e mapa vêm nos próximos passos. A API está descrita no
+**Antes × depois (pronta).** Planeja o mesmo turno duas vezes, com os mesmos
+pacientes e a mesma rota: só com as normas da lei e com as regras da equipe.
+As regras vêm da aba Regras e os pacientes e o turno, da aba Planejar. Mostra
+a diferença de duração, de tarefas e de voltas à UBS; o que as regras
+acrescentaram ("Higienizar as mãos: 5 vezes"); e, visita a visita, as tarefas
+novas destacadas e o atraso na chegada. "Mostrar só as tarefas que mudaram"
+esconde o resto.
+
+O mapa vem no próximo passo. A API está descrita no
 [DESIGN](DESIGN.md#servidor-e-api-da-interface-web).
 
 ## Escrevendo regras pelo assistente

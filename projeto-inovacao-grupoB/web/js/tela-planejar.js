@@ -2,14 +2,12 @@
 // planejamento ao servidor, acompanha o progresso e mostra o roteiro.
 // A logica sem DOM fica em planejar-logica.js.
 
-import { api } from "./api.js";
+import { planejarEAguardar } from "./api.js";
 import { baixar, el } from "./dom.js";
 import {
-  TAMANHO_MAXIMO_PLANILHA, duracao, explicarFalha, horario, pedidoDe, resumoDoResultado,
-  rotuloGrupo, ubsDo,
+  TAMANHO_MAXIMO_PLANILHA, explicarFalha, horario, pedidoDe, resumoDoResultado, rotuloGrupo,
+  ubsDo,
 } from "./planejar-logica.js";
-
-const INTERVALO_CONSULTA = 500;     // ms entre consultas ao andamento da tarefa
 
 export class TelaPlanejar {
   // situacaoDasRegras: () => { total, ok, conferindo, problemas, toml } (da tela de regras)
@@ -102,28 +100,47 @@ export class TelaPlanejar {
 
   // ---- planejar e acompanhar ----------------------------------------------
 
+  // Pedido montado com o formulario atual (usado tambem pela tela antes x
+  // depois, que troca so as regras). Formulario invalido: Error com a explicacao.
+  pedidoAtual(alteracoes = {}) {
+    return pedidoDe({ ...this.lerFormulario(), ...alteracoes });
+  }
+
+  // Resumo do que sera planejado, para outras telas mostrarem.
+  descricaoDoTurno() {
+    const f = this.form.elements;
+    const pacientes = {
+      exemplo: () => `planilha de exemplo: ${f.exemplo.selectedOptions[0]?.textContent ?? f.exemplo.value}`,
+      csv: () => (this.csv ? `planilha da equipe (${this.$("#nome-csv").textContent})`
+                           : "planilha da equipe (nenhum arquivo escolhido)"),
+      sintetica: () => `${f.pacientes_sinteticos.value} pacientes inventados (semente ${f.semente_sintetica.value || 0})`,
+    }[f.fonte.value]();
+    const turno = [f.orcamento.value && `turno de ${f.orcamento.value} min`,
+                   f.max_pacientes.value && `até ${f.max_pacientes.value} pacientes`,
+                   f.inicio.value && `início ${f.inicio.value}`].filter(Boolean);
+    return [pacientes, ...turno].join(" · ");
+  }
+
+  get inicioDoTurno() {
+    return this.form.elements.inicio.value;
+  }
+
   async planejar() {
     if (this.rodando) return;
     const erro = this.$("#erro-pedido");
     erro.textContent = "";
     let pedido;
     try {
-      pedido = pedidoDe(this.lerFormulario());
+      pedido = this.pedidoAtual();
     } catch (e) {
       erro.textContent = e.message;
       return;
     }
-    const inicio = this.form.elements.inicio.value;
+    const inicio = this.inicioDoTurno;
     this.definirRodando(true);
-    const comeco = Date.now();
     try {
-      const { id } = await api.planejar(pedido);
-      let tarefa;
-      do {
-        await new Promise((r) => setTimeout(r, INTERVALO_CONSULTA));
-        tarefa = await api.tarefa(id);
-        this.mostrarProgresso(tarefa.mensagens, Math.round((Date.now() - comeco) / 1000));
-      } while (tarefa.estado === "na fila" || tarefa.estado === "rodando");
+      const tarefa = await planejarEAguardar(pedido, (mensagens, segundos) =>
+        this.mostrarProgresso(mensagens, segundos));
       this.mostrarTarefa(tarefa, inicio);
     } catch (e) {
       erro.textContent = `Não foi possível planejar: ${e.message}`;
@@ -243,7 +260,7 @@ export class TelaPlanejar {
   parada(p, quando) {
     const desvio = p.desvio_ubs
       ? el("div", { class: "parada__desvio" },
-          el("strong", {}, "Antes: passar na UBS"),
+          el("strong", {}, "Passar na UBS antes desta visita"),
           p.repor.length ? ` para repor ${p.repor.join(", ")}` : null)
       : null;
     const grupo = rotuloGrupo(p.paciente.grupo);

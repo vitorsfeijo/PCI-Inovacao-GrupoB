@@ -14,7 +14,7 @@
     <nav class="abas" role="tablist" aria-label="Telas">
       <button class="aba" role="tab" id="aba-regras" aria-selected="true" aria-controls="tela-regras">Regras</button>
       <button class="aba" role="tab" id="aba-planejar" aria-selected="false" aria-controls="tela-planejar">Planejar</button>
-      <button class="aba" role="tab" id="aba-comparar" aria-selected="false" disabled>Antes × depois <small>(em breve)</small></button>
+      <button class="aba" role="tab" id="aba-comparar" aria-selected="false" aria-controls="tela-comparar">Antes × depois</button>
       <button class="aba" role="tab" id="aba-mapa" aria-selected="false" disabled>Mapa <small>(em breve)</small></button>
     </nav>
   </div>
@@ -157,6 +157,43 @@
         </div>
         <div id="resultado">
           <div class="painel formulario__vazio">O roteiro aparece aqui depois de planejar.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tela-comparar" class="tela oculto" role="tabpanel" aria-labelledby="aba-comparar">
+    <div class="planejar">
+      <div class="painel pedido">
+        <h2>Antes × depois</h2>
+        <p class="painel__intro">O mesmo turno planejado duas vezes, com os mesmos pacientes e a
+          mesma rota: <strong>antes</strong>, só com as normas da lei; <strong>depois</strong>, com
+          as regras da equipe. Mostra o que as regras acrescentam ao dia do ACS.</p>
+        <dl class="resumo-pedido">
+          <dt>Regras da equipe</dt>
+          <dd><span id="comparar-regras"></span>
+            <button type="button" class="botao botao--texto" id="comparar-ir-regras">Editar</button></dd>
+          <dt>Pacientes e turno</dt>
+          <dd><span id="comparar-turno"></span>
+            <button type="button" class="botao botao--texto" id="comparar-ir-planejar">Mudar na aba Planejar</button></dd>
+        </dl>
+        <label class="opcao"><input type="checkbox" id="so-mudancas">
+          <span>Mostrar só as tarefas que mudaram</span></label>
+        <div id="erro-comparar" class="campo__erro" role="alert"></div>
+        <button class="botao botao--primario botao--grande" id="botao-comparar" type="button">Comparar</button>
+      </div>
+
+      <div class="saida">
+        <div id="comparar-progresso" class="painel progresso oculto" aria-live="polite">
+          <div class="progresso__topo"><span class="girando" aria-hidden="true"></span>
+            <strong>Planejando os dois turnos…</strong></div>
+          <ul class="mensagens progresso__lados">
+            <li>Só com as normas da lei: <span id="progresso-antes"></span></li>
+            <li>Com as regras da equipe: <span id="progresso-depois"></span></li>
+          </ul>
+        </div>
+        <div id="comparacao">
+          <div class="painel formulario__vazio">A comparação aparece aqui.</div>
         </div>
       </div>
     </div>

@@ -22,3 +22,17 @@ export const api = {
   planejar: (pedido) => pedir("/api/planejar", pedido),
   tarefa: (id) => pedir(`/api/tarefas/${encodeURIComponent(id)}`),
 };
+
+// Cria a tarefa de planejamento e consulta o andamento ate terminar.
+// aoProgresso(mensagens, segundos) e chamado a cada consulta.
+export async function planejarEAguardar(pedido, aoProgresso = () => {}, intervalo = 500) {
+  const comeco = Date.now();
+  const { id } = await api.planejar(pedido);
+  let tarefa;
+  do {
+    await new Promise((r) => setTimeout(r, intervalo));
+    tarefa = await api.tarefa(id);
+    aoProgresso(tarefa.mensagens, Math.round((Date.now() - comeco) / 1000));
+  } while (tarefa.estado === "na fila" || tarefa.estado === "rodando");
+  return tarefa;
+}

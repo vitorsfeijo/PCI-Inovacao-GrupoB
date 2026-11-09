@@ -2,10 +2,12 @@
 // exemplos do servidor, monta as telas e cuida das abas.
 
 import { api } from "./api.js";
+import { TelaComparar } from "./tela-comparar.js";
 import { TelaPlanejar } from "./tela-planejar.js";
 import { TelaRegras } from "./tela-regras.js";
 
-const TELAS = ["regras", "planejar"];        // as demais abas vem nos proximos passos
+const TELAS = ["regras", "planejar", "comparar"];   // o mapa vem no proximo passo
+const aoMostrar = {};                                 // tela -> funcao chamada ao aparecer
 
 function mostrarTela(nome, { focar = false } = {}) {
   if (!TELAS.includes(nome)) nome = "regras";
@@ -16,6 +18,7 @@ function mostrarTela(nome, { focar = false } = {}) {
     document.getElementById(`tela-${tela}`).classList.toggle("oculto", !ativa);
   }
   if (location.hash !== `#${nome}`) history.replaceState(null, "", `#${nome}`);
+  aoMostrar[nome]?.();
   if (focar) document.getElementById(`aba-${nome}`).focus();
 }
 
@@ -36,14 +39,25 @@ async function iniciar() {
   try {
     const [meta, exemplos] = await Promise.all([api.modelos(), api.exemplos()]);
     let telaPlanejar = null;
+    let telaComparar = null;
     const telaRegras = new TelaRegras(document.getElementById("tela-regras"), meta, exemplos, {
-      aoMudar: () => telaPlanejar?.atualizarFormulario(),
+      aoMudar: () => {
+        telaPlanejar?.atualizarFormulario();
+        telaComparar?.atualizar();
+      },
     });
+    const situacaoDasRegras = () => telaRegras.situacao();
     telaPlanejar = new TelaPlanejar(document.getElementById("tela-planejar"), exemplos, {
-      situacaoDasRegras: () => telaRegras.situacao(),
+      situacaoDasRegras,
       irParaRegras: () => mostrarTela("regras", { focar: true }),
     });
-    Object.assign(window, { telaRegras, telaPlanejar });
+    telaComparar = new TelaComparar(document.getElementById("tela-comparar"), {
+      situacaoDasRegras,
+      planejar: telaPlanejar,
+      irPara: (tela) => mostrarTela(tela, { focar: true }),
+    });
+    aoMostrar.comparar = () => telaComparar.atualizar();
+    Object.assign(window, { telaRegras, telaPlanejar, telaComparar });
     ligarAbas();
     document.body.dataset.pronto = "sim";            // usado pelos testes de ponta a ponta
   } catch (erro) {

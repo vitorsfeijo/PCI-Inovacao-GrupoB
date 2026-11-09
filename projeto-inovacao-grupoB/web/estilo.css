@@ -263,10 +263,25 @@ details.previa pre {
 .mensagens-finais { margin-top: 14px; }
 .mensagens-finais pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 
+/* ---- antes x depois -------------------------------------------------------- */
+
+.resumo-pedido { margin: 0 0 12px; font-size: .9rem; }
+.resumo-pedido dt { font-weight: 600; margin-top: 8px; }
+.resumo-pedido dd { margin: 2px 0 0; color: var(--texto-suave); }
+.resumo-pedido .botao--texto { padding: 0 4px; font-size: .85rem; }
+.progresso__lados { list-style: none; padding-left: 0; }
+.numero__variacao { font-weight: 600; font-size: .85rem !important; color: var(--texto) !important; }
+.legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; margin: 14px 0 4px; }
+.tarefas--comparacao li { padding: 1px 6px; border-radius: 4px; }
+.tarefa--nova { color: var(--sucesso); background: var(--sucesso-claro); font-weight: 600; }
+.tarefa--saiu { color: var(--erro); background: var(--erro-claro); text-decoration: line-through; }
+.legenda .tarefa--nova, .legenda .tarefa--saiu { padding: 1px 6px; border-radius: 4px; }
+.parada__desvio--novo { font-weight: 600; }
+
 /* Impressao: so o roteiro, para o ACS levar em papel */
 @media print {
   body { background: #fff; color: #000; font-size: 12px; }
-  .cabecalho, .barra, #tela-regras, .pedido, .progresso, .roteiro__acoes,
+  .cabecalho, .barra, #tela-regras, .pedido, .progresso, .roteiro__acoes, .legenda,
   .mensagens-finais, #erro-geral { display: none !important; }
   main { padding: 0; max-width: none; }
   .planejar { display: block; }
