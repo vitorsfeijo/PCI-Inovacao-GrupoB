@@ -146,6 +146,21 @@ class TestServidor(unittest.TestCase):
         self.assertTrue(all(p["paciente"]["lat"] is not None for p in r["paradas"]))
         self.assertIn("ubs", r["pontos"])
         self.assertTrue(any(m.startswith("[4] Plano") for m in tarefa["mensagens"]))
+        # caminhos internos do servidor nao aparecem para quem usa a interface
+        self.assertIn("Regras: regras.toml", tarefa["mensagens"])
+        self.assertEqual(r["regras"], "regras.toml")
+        self.assertFalse(any(ciclo2.PROJETO.as_posix() in m or "/tmp" in m
+                             for m in tarefa["mensagens"]))
+
+    def test_adiados_tambem_tem_nome_e_coordenadas(self):
+        tarefa = self.planejar({"planilha": {"exemplo": "exemplo-ciclo2"},
+                                "opcoes": {"max_pacientes": 3}})
+        r = tarefa["resultado"]
+        self.assertEqual(r["origem"], "backend/acsplan/dados/microarea_exemplo.csv")
+        self.assertEqual(len(r["selecao"]["adiados"]), 7)
+        for paciente in r["selecao"]["adiados"] + r["selecao"]["selecionados"]:
+            self.assertIsNotNone(r["pontos"][paciente]["lat"])
+            self.assertTrue(r["pontos"][paciente]["nome"])
 
     def test_planejar_planilha_enviada_com_marcas(self):
         regras = (AVALIACAO / "regras" / "r6-luvas-gestante.toml").read_text(encoding="utf-8")

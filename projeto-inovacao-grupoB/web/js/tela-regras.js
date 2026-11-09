@@ -2,38 +2,13 @@
 // avisos e previa do TOML. A logica sem DOM fica em regras-logica.js.
 
 import { api } from "./api.js";
+import { adiar, baixar, el } from "./dom.js";
 import {
   MODELOS, dadosParaApi, estadoDe, estadoVazio, problemasDaRegra, propagarNome, quemUsa,
   regraNova, resumo, textoPadrao, tituloDoCartao, valorDoCampo,
 } from "./regras-logica.js";
 
 const CHAVE_RASCUNHO = "acs-regras-rascunho";
-
-// ---- utilitarios de DOM (texto sempre como texto, nunca como HTML) --------
-
-function el(tag, atributos = {}, ...filhos) {
-  const elemento = document.createElement(tag);
-  for (const [chave, valor] of Object.entries(atributos)) {
-    if (valor === undefined || valor === null || valor === false) continue;
-    if (chave === "class") elemento.className = valor;
-    else if (chave.startsWith("on")) elemento.addEventListener(chave.slice(2), valor);
-    else if (valor === true) elemento.setAttribute(chave, "");
-    else elemento.setAttribute(chave, valor);
-  }
-  for (const filho of filhos.flat()) {
-    if (filho === null || filho === undefined || filho === false) continue;
-    elemento.append(filho instanceof Node ? filho : document.createTextNode(String(filho)));
-  }
-  return elemento;
-}
-
-function adiar(funcao, ms) {
-  let relogio;
-  return (...argumentos) => {
-    clearTimeout(relogio);
-    relogio = setTimeout(() => funcao(...argumentos), ms);
-  };
-}
 
 export class TelaRegras {
   constructor(raiz, meta, exemplos, { aoMudar } = {}) {
@@ -108,12 +83,7 @@ export class TelaRegras {
 
   baixar() {
     if (!this.validacao.ok || !this.validacao.toml) return;
-    const blob = new Blob([this.validacao.toml], { type: "text/plain;charset=utf-8" });
-    const link = el("a", { href: URL.createObjectURL(blob), download: "regras.toml" });
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(link.href);
+    baixar(this.validacao.toml, "regras.toml");
   }
 
   mostrarErroGeral(titulo, itens = []) {
@@ -445,6 +415,14 @@ export class TelaRegras {
 
   tomlAtual() {
     return this.validacao.ok ? this.validacao.toml : null;
+  }
+
+  // O que a tela de planejamento precisa saber: quantas regras, se valem.
+  situacao() {
+    const total = MODELOS.reduce((soma, m) => soma + this.estado[m].length, 0);
+    const conferindo = total > 0 && this.validacao.ok === null;
+    return { total, conferindo, ok: total > 0 && this.validacao.ok === true,
+             problemas: this.validacao.problemas.length, toml: this.tomlAtual() };
   }
 }
 

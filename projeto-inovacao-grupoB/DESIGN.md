@@ -280,6 +280,29 @@ renomear em cascata) fica em `regras-logica.js`, testada com `node --test`;
   propósito, abre um exemplo, recarrega, troca para o tema escuro e para a
   largura de celular; `test_web.py` sobe o servidor e confere o relato.
 
+### Tela de planejamento
+
+Monta o pedido de `POST /api/planejar` a partir do formulário
+(`planejar-logica.js`, testada com `node --test`) e consulta a tarefa a cada
+meio segundo, mostrando as mensagens de progresso. Escolhas:
+
+- **As regras vêm da tela Regras**, já validadas; se estiverem com problemas,
+  a opção fica desabilitada e o planejamento usa só as normas da lei, com o
+  motivo escrito ao lado. Não há um segundo lugar para abrir regras.
+- **O roteiro é desenhado a partir do resultado estruturado** de `executar`
+  (paradas, tarefas, passagens pela UBS, seleção), não do texto do terminal.
+  O horário de início do turno é só da interface: os minutos do planejador
+  viram horários de chegada.
+- **Falhas explicadas pelo tipo:** erro nas regras ou na planilha,
+  busca interrompida no limite ("não quer dizer que o turno é impossível") e
+  turno impossível têm títulos e dicas diferentes.
+- **Caminhos internos não aparecem:** as mensagens e o resultado da tarefa
+  dizem "Regras: regras.toml", não a pasta temporária do servidor.
+- `pontos` traz também os pacientes adiados (nome, grupo, coordenadas), para
+  a lista "ficam para outro turno" e, depois, o mapa.
+- **Impressão:** uma folha de estilos de impressão esconde tudo menos o
+  roteiro, com caixas de marcar para levar em papel.
+
 ### Estratégia de busca: `auto`, janelas e limpeza
 
 | Estratégia | Ciclo 2 | Fast Downward |
@@ -542,7 +565,7 @@ recusas.
    1. [x] Reorganização: `backend/` e o lançador `acs.py`.
    2. [x] Servidor local e API.
    3. [x] Tela de regras.
-   4. [ ] Tela de planejamento e roteiro.
+   4. [x] Tela de planejamento e roteiro.
    5. [ ] Antes × depois.
    6. [ ] Mapa da rota.
 
@@ -586,13 +609,18 @@ requirements-opcional.txt  Fast Downward (opcional)
 web/                       a interface (servida pelo backend)
   index.html, estilo.css   página e estilos (tema claro e escuro)
   js/
-    app.js           carrega os metadados e monta as telas
-    api.js           chamadas à API
-    regras-logica.js lógica da tela de regras, sem DOM
-    tela-regras.js   tela de regras
+    app.js             carrega os metadados, monta as telas e cuida das abas
+    api.js             chamadas à API
+    dom.js             utilitários de DOM (texto sempre como texto)
+    regras-logica.js   lógica da tela de regras, sem DOM
+    tela-regras.js     tela de regras
+    planejar-logica.js lógica da tela de planejamento, sem DOM
+    tela-planejar.js   tela de planejamento e roteiro
   testes/
-    regras-logica.test.mjs  lógica da tela (node --test)
-    e2e-regras.mjs          ponta a ponta num Chrome sem janela
+    *.test.mjs         lógica das telas (node --test)
+    navegador.mjs      Chrome sem janela controlado pelo CDP
+    e2e-regras.mjs     ponta a ponta da tela de regras
+    e2e-planejar.mjs   ponta a ponta da tela de planejamento (planeja de verdade)
 backend/
   compilador/
     regras.py        modelos, leitura e escrita do TOML, conferência de cada campo

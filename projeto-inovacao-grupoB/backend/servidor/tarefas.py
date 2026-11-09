@@ -13,6 +13,7 @@ recusadas do mesmo jeito, sem uma segunda validacao para manter.
 from __future__ import annotations
 
 import itertools
+import os
 import tempfile
 import threading
 import time
@@ -20,6 +21,7 @@ import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from compilador import ciclo2
 from compilador.planejar import com_mensagens, construir_parser, executar
 
 from .api import PedidoInvalido, caminho_da_planilha
@@ -84,6 +86,12 @@ def argumentos(pedido: dict, pasta: Path) -> list[str]:
     return argv
 
 
+def _sem_prefixos(texto: str, prefixos: tuple[str, ...]) -> str:
+    for prefixo in prefixos:
+        texto = texto.replace(prefixo, "")
+    return texto
+
+
 def analisar(argv: list[str]):
     """Os argumentos passam pelo analisador da linha de comando, que, em vez
     de encerrar o programa num erro, recusa o pedido."""
@@ -136,13 +144,20 @@ class Gerenciador:
             return self._tarefas.get(identificador)
 
     def _rodar(self, tarefa: Tarefa, pedido: dict) -> None:
-        with self._vagas:
+        with self._vagas, tempfile.TemporaryDirectory() as pasta:
             tarefa.estado = "rodando"
-            com_mensagens(tarefa.mensagens.append)
+            # caminhos internos (pasta temporaria, pasta do projeto) nao
+            # interessam a quem usa a interface: "Regras: regras.toml"
+            prefixos = (str(Path(pasta)) + os.sep, str(ciclo2.PROJETO) + os.sep)
+            limpar = lambda texto: _sem_prefixos(texto, prefixos)
+            com_mensagens(lambda mensagem: tarefa.mensagens.append(limpar(mensagem)))
             try:
-                with tempfile.TemporaryDirectory() as pasta:
-                    args = analisar(argumentos(pedido, Path(pasta)))
-                    tarefa.resultado = executar(args)
+                args = analisar(argumentos(pedido, Path(pasta)))
+                resultado = executar(args)
+                for chave in ("regras", "origem"):
+                    if isinstance(resultado.get(chave), str):
+                        resultado[chave] = limpar(resultado[chave])
+                tarefa.resultado = resultado
                 tarefa.estado = "pronta"
             except Exception as erro:     # nao derruba o servidor; vai para a tarefa
                 tarefa.erro = f"{type(erro).__name__}: {erro}"

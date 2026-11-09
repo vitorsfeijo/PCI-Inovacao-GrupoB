@@ -118,9 +118,9 @@ def _arquivos_de_regras() -> dict[str, Path]:
 
 
 PLANILHAS = {
-    "exemplo-ciclo2": ("Planilha de exemplo do Ciclo 2 (10 pacientes)",
+    "exemplo-ciclo2": ("Ciclo 2 (10 pacientes)",
                        lambda: ciclo2.PLANILHA_EXEMPLO),
-    "avaliacao": ("Planilha de avaliação (10 pacientes, com as marcas das regras novas)",
+    "avaliacao": ("Avaliação (10 pacientes, com as marcas das regras novas)",
                   lambda: ciclo2.EXEMPLOS / "avaliacao" / "microarea-avaliacao.csv"),
 }
 

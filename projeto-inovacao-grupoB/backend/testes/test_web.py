@@ -63,8 +63,12 @@ class TestLogicaDaTela(unittest.TestCase):
 
 
 @unittest.skipUnless(NODE and CHROME, "precisa de Node 22+ e Chrome/Chromium")
-class TestTelaDeRegras(unittest.TestCase):
-    """Uma pessoa usando a tela: cria regras, erra, abre exemplo, recarrega."""
+class CenarioNoNavegador(unittest.TestCase):
+    """Sobe o servidor, roda um cenario de web/testes/ no Chrome e guarda o
+    relato; cada teste confere uma parte dele."""
+
+    CENARIO = ""
+    PRAZO = 180
 
     @classmethod
     def setUpClass(cls):
@@ -73,8 +77,9 @@ class TestTelaDeRegras(unittest.TestCase):
         threading.Thread(target=cls.servidor.serve_forever, daemon=True).start()
         cls.pasta = tempfile.mkdtemp(prefix="acs-capturas-")
         r = subprocess.run(
-            [NODE, str(TESTES_WEB / "e2e-regras.mjs"), f"http://localhost:{porta}/", cls.pasta],
-            capture_output=True, text=True, timeout=180, env={**os.environ, "CHROME": CHROME})
+            [NODE, str(TESTES_WEB / cls.CENARIO), f"http://localhost:{porta}/", cls.pasta],
+            capture_output=True, text=True, timeout=cls.PRAZO,
+            env={**os.environ, "CHROME": CHROME})
         cls.saida = r.stdout + r.stderr
         try:
             cls.relato = json.loads(r.stdout.strip().splitlines()[-1])
@@ -91,6 +96,12 @@ class TestTelaDeRegras(unittest.TestCase):
     def setUp(self):
         self.assertTrue(self.relato.get("ok"),
                         f"{self.relato.get('erro')} (capturas em {self.pasta})")
+
+
+class TestTelaDeRegras(CenarioNoNavegador):
+    """Uma pessoa usando a tela: cria regras, erra, abre exemplo, recarrega."""
+
+    CENARIO = "e2e-regras.mjs"
 
     def test_percorreu_todos_os_passos(self):
         self.assertEqual(self.relato["passos"],
@@ -131,6 +142,54 @@ class TestTelaDeRegras(unittest.TestCase):
         self.assertEqual(self.relato["fundo_escuro"], "rgb(18, 22, 28)")
         self.assertFalse(self.relato["rolagem_horizontal"])
         self.assertLess(self.relato["altura_exemplos_celular"], 60)
+
+
+class TestTelaDePlanejamento(CenarioNoNavegador):
+    """Planeja de verdade pela tela: sem regras, com regras e com uma planilha
+    a que falta uma coluna."""
+
+    CENARIO = "e2e-planejar.mjs"
+    PRAZO = 400
+
+    def test_percorreu_todos_os_passos(self):
+        self.assertEqual(self.relato["passos"], ["sem-regras", "com-regras", "impressao", "falha"])
+        self.assertTrue(self.relato["aba_pelo_endereco"])
+        self.assertEqual(self.relato["endereco_planejar"], "#planejar")
+
+    def test_sem_regras_a_opcao_da_equipe_fica_desabilitada(self):
+        self.assertIn("nenhuma regra", self.relato["situacao_sem_regras"])
+        self.assertTrue(self.relato["equipe_desabilitada"])
+
+    def test_preenchimento_errado_nem_vai_ao_servidor(self):
+        self.assertIn("pelo menos 1", self.relato["erro_preenchimento"])
+        self.assertTrue(self.relato["detalhe_sintetica_visivel"])
+
+    def test_roteiro_sem_regras(self):
+        self.assertEqual(self.relato["estado_sem_regras"], "roteiro")
+        self.assertEqual(self.relato["paradas_sem_regras"], 4)
+        self.assertEqual(self.relato["adiados_sem_regras"], 6)
+        self.assertIn("Só com as normas da lei", self.relato["origem_sem_regras"])
+        self.assertRegex(self.relato["hora_primeira"], r"chegada ≈ 08:\d\d \(\d+ min de turno\)")
+
+    def test_roteiro_com_as_regras_da_tela_de_regras(self):
+        self.assertIn("7 regras válidas", self.relato["situacao_com_regras"])
+        self.assertTrue(self.relato["equipe_marcada"])
+        self.assertEqual(self.relato["estado_com_regras"], "roteiro")
+        self.assertEqual(self.relato["paradas_com_regras"], 4)
+        self.assertIn("Com as regras da equipe", self.relato["origem_com_regras"])
+        self.assertIn("Higienizar as mãos", self.relato["tarefas_com_regras"])
+
+    def test_impressao_mostra_so_o_roteiro(self):
+        self.assertEqual(self.relato["impressao"],
+                         {"formulario": "none", "cabecalho": "none", "roteiro": "block"})
+        self.assertFalse(self.relato["rolagem_horizontal"])
+
+    def test_planilha_sem_coluna_explica_o_erro(self):
+        self.assertEqual(self.relato["nome_csv"], "pacientes.csv · 10 pacientes")
+        self.assertEqual(self.relato["fonte_csv"], "csv")
+        self.assertEqual(self.relato["estado_falha"], "falha")
+        self.assertIn("As regras ou a planilha têm problemas", self.relato["falha"])
+        self.assertIn("exige_protecao_respiratoria", self.relato["falha"])
 
 
 if __name__ == "__main__":

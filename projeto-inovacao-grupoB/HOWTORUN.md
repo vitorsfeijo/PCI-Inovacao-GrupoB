@@ -74,8 +74,19 @@ salva o arquivo, que serve para o `planejar` do terminal. Também dá para
 abrir um `.toml` existente ou um dos exemplos. O que estiver na tela fica
 guardado no navegador até clicar em "Novo".
 
-As telas de planejamento, comparação e mapa vêm nos próximos passos. A API
-está descrita no [DESIGN](DESIGN.md#servidor-e-api-da-interface-web).
+**Tela de planejamento (pronta).** Escolham as regras (as da tela Regras,
+quando válidas, ou só as normas da lei), os pacientes (uma planilha de
+exemplo, a planilha da equipe em `.csv` ou pacientes inventados para testar)
+e o turno (horário de início, duração e máximo de pacientes, todos
+opcionais). "Planejar o turno" mostra o andamento com as mesmas mensagens do
+terminal e, no fim, o roteiro: visitas em ordem com horário estimado de
+chegada, a lista de tarefas de cada uma, as passagens pela UBS para repor
+material e quem ficou para outro turno. "Imprimir" imprime só o roteiro;
+"Baixar (.txt)" salva o mesmo texto do terminal. As opções avançadas
+(estratégia, planejador, rota) são as mesmas do `planejar`.
+
+As telas de comparação e mapa vêm nos próximos passos. A API está descrita no
+[DESIGN](DESIGN.md#servidor-e-api-da-interface-web).
 
 ## Escrevendo regras pelo assistente
 

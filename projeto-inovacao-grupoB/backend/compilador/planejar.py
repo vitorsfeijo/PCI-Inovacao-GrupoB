@@ -221,7 +221,8 @@ def executar(args: argparse.Namespace) -> dict:
 
         codigo        0 com roteiro, 1 sem
         falha         {tipo, mensagens, motivo?} quando codigo == 1
-        selecao, rota, pontos (coordenadas), instanciacao, busca, limpeza,
+        selecao, rota, pontos (UBS e todos os pacientes, inclusive os adiados,
+        com coordenadas), instanciacao, busca, limpeza,
         custo_total, orcamento, paradas (visitas com tarefas), plano, texto
         (o roteiro como o terminal o imprime)
 
@@ -255,6 +256,7 @@ def executar(args: argparse.Namespace) -> dict:
     _info(f"Pacientes: {origem}")
 
     # [1] selecao
+    todos_os_pacientes = list(dados["pacientes"])      # os adiados tambem vao para `pontos`
     dados = politica.selecionar(dados, orcamento_minutos=args.orcamento,
                                 maximo_pacientes=args.max_pacientes,
                                 ativar=not args.sem_selecao)
@@ -353,7 +355,7 @@ def executar(args: argparse.Namespace) -> dict:
     texto = roteiro.imprimir(paradas, dados, custo_total=custo_total,
                              orcamento=args.orcamento)
     pontos = {dados["ubs"]["id"]: _ponto(dados["ubs"])}
-    pontos.update({p["id"]: _ponto(p) for p in dados["pacientes"]})
+    pontos.update({p["id"]: _ponto(p) for p in todos_os_pacientes})
     return {
         "codigo": 0,
         "regras": args.regras,
