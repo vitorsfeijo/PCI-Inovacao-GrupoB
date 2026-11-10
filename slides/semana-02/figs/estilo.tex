@@ -1,0 +1,16 @@
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\renewcommand{\familydefault}{\sfdefault}
+\definecolor{ink}{HTML}{202124}
+\definecolor{muted}{HTML}{666666}
+\definecolor{blue}{RGB}{30,80,160}
+\definecolor{green}{RGB}{30,130,60}
+\definecolor{red}{RGB}{190,60,60}
+\definecolor{light}{HTML}{E8E8E8}
+\tikzset{flow/.style={-{Stealth[length=2.5mm]},line width=1pt,draw=blue},
+  label/.style={font=\normalsize,text=ink,align=center},
+  stop/.style={circle,minimum size=9mm,inner sep=0pt,line width=1pt,font=\bfseries},
+  every node/.style={text=ink}}

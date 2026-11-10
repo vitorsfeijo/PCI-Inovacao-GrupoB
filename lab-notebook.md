@@ -8,3 +8,6 @@
 09/11/2026
 - Compilador para criação de regras do planejamento em pddl criado
 - Resultados iniciais de testes do novo planejador gerados
+
+10/11/2026
+- Versão incial dos slides para a semana 2 criados
