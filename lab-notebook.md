@@ -16,5 +16,4 @@
 - Integração do Tech Report do Overleaf no repositório git
 
 23/11/2026
-- Resumo do Tech Report feito
-
+- Resumo, Formulação das Hipóteses e Implementação da Solução do Tech Report feitos
