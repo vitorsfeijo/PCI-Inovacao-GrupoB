@@ -133,14 +133,19 @@ Uma hipótese em computação experimental deve ser mensurável, precisa e pass�
 
 \subsection{Hipóteses Formuladas}
 \begin{itemize}
-    \item \textbf{Hipótese Principal ($H_1$):} Premissa central sobre a viabilidade, eficiência ou qualidade da solução proposta. \\
-    \textit{Exemplo: ``A representação da malha por lista de adjacências associada ao algoritmo de Dijkstra permite consultas de menor caminho com tempo de resposta inferior a 50\,ms para o grafo da cidade.''}
-    \item \textbf{Hipótese Secundária ou Comparativa ($H_2$):} Se aplicável, comparação entre abordagens ou estruturas alternativas. \\
-    \textit{Exemplo: ``A ordenação prévia das demandas por uma heurística gulosa atinge custo de solução dentro de 10\% da solução exata, com consumo de memória 60\% menor.''}
+    \item \textbf{Hipótese Principal ($H_1$, correção):} regras descritas nos cinco modelos fixos e compiladas de forma determinística sobre o domínio legal produzem um domínio equivalente ao escrito à mão em PDDL, em estrutura e em comportamento, em todas as instâncias de teste.
+    \item \textbf{Hipótese Secundária ($H_2$, esforço):} descrever uma regra nos modelos exige menos linhas do que as alterações correspondentes no domínio PDDL.
+    \item \textbf{Hipótese Secundária ($H_3$, viabilidade):} com as regras ativas, o sistema gera um roteiro válido para um turno de 10 pacientes dentro do limite de 120\,s por busca.
+    \item \textbf{Hipótese de Extensão ($H_4$):} alternativas (``ou'') e restrições de horário podem ser incorporadas aos modelos preservando $H_1$ a $H_3$, e um modelo de linguagem consegue traduzir regras descritas em linguagem natural em regras equivalentes às escritas por uma pessoa.
 \end{itemize}
 
 \subsection{Métricas de Sucesso}
-Quais métricas foram estabelecidas previamente para determinar se as hipóteses foram confirmadas ou refutadas? (Ex.: tempo de execução em milissegundos, consumo de memória, taxa de erro/acurácia, custo de processamento).
+\begin{itemize}
+    \item \textbf{Equivalência ($H_1$):} igualdade de predicados e, em cada ação, de parâmetros, precondições, efeitos e custo; e, em cada instância, mesmo custo ótimo nos dois domínios, com o plano de um válido no outro. Como controle negativo, regras alteradas de propósito devem ser acusadas.
+    \item \textbf{Esforço ($H_2$):} linhas escritas no arquivo de regras, sem comentários, contra linhas alteradas no domínio PDDL.
+    \item \textbf{Custo e escala ($H_3$):} acréscimo em minutos ao turno ótimo e tempo até o roteiro, variando de 1 a 10 pacientes e de nenhuma a sete regras.
+    \item \textbf{Tradução ($H_4$):} proporção de regras geradas pelo modelo de linguagem que compilam e coincidem com um gabarito, desconsiderando os nomes escolhidos.
+\end{itemize}
 
 % ------------------------------------------------------------------------------
 \section{Desenvolvimento e Implementação da Solução}
