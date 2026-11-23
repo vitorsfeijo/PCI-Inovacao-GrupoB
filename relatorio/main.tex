@@ -75,10 +75,10 @@
 \author{
     \textbf{Luis} (Cartão: 000000) -- \texttt{aluno1@inf.ufrgs.br}\\
     \textbf{Manuela} (Cartão: 000000) -- \texttt{aluno2@inf.ufrgs.br}\\
-    \textbf{Vítor} (Cartão: 000000) -- \texttt{aluno3@inf.ufrgs.br}\\[0.3cm]
+    \textbf{Vítor Feijó} (Cartão: 588403) -- \texttt{vsfeijo@inf.ufrgs.br}\\[0.3cm]
     \normalsize Instituto de Informática -- Universidade Federal do Rio Grande do Sul (UFRGS)\\
     \normalsize Disciplina: Projeto em Ciência e Inovação (2026/2)\\
-    \small Repositório do Projeto: \url{https://github.com/usuario/repositorio}
+    \small Repositório do Projeto: \url{https://github.com/vitorsfeijo/inf99003-project_2-group_A}
 }
 
 \date{Porto Alegre, \today}
@@ -97,9 +97,9 @@
 \begin{instrucao}
 O resumo deve sintetizar o ciclo completo de P\&D (máximo de 250 palavras): (1) O problema real investigado; (2) As hipóteses centrais de solução; (3) A implementação computacional (estruturas de dados e algoritmos); e (4) A metodologia experimental, com os principais resultados e conclusões obtidas.
 \end{instrucao}
-[Insira aqui o texto do resumo executivo. Exemplo: Este relatório descreve o ciclo de P\&D conduzido para o problema de otimização de rotas de transporte coletivo a partir de dados abertos municipais. Formulou-se a hipótese de que a modelagem via grafo esparso em lista de adjacências combinada ao algoritmo de Dijkstra proporciona tempo sub-segundo para mais de 95\% das consultas reais. A solução foi implementada e validada através de baterias experimentais com 42 linhas urbanas, confirmando a hipótese com redução de 38\% no tempo de consulta frente à matriz de adjacência.]
+O planejamento das visitas domiciliares do Agente Comunitário de Saúde (ACS) precisa conciliar a ordem das visitas, as condições da Lei 11.350/2006 e materiais finitos, repostos apenas na Unidade Básica de Saúde. No ciclo anterior, outro grupo modelou essas condições em PDDL e mostrou que o planejamento automatizado incorpora regras novas sem alterar código; escrever cada regra, porém, exige dominar PDDL. Este relatório descreve o ciclo atual, cuja hipótese central é que regras descritas em cinco modelos fixos (recurso, preparo, pré-requisito, consumo e exigência por paciente), acrescidos de alternativas (``ou'') e de restrições de horário (turnos da manhã e da noite), podem ser compiladas de forma determinística em PDDL equivalente ao escrito à mão, com menos esforço e sem inviabilizar o planejamento. Implementou-se um compilador que estende um domínio legal travado, instanciação com poda, planejamento por janelas com o Fast Downward e uma interface web para escrever regras e visualizar o roteiro. Na avaliação, com regras e pacientes sintéticos, as três regras do ciclo anterior reescritas como modelos reproduziram o domínio original em 24 de 24 instâncias; sete regras novas exigiram de 7 a 18 linhas de TOML, contra 13 a 60 linhas de PDDL, e acrescentaram de 1 a 9 minutos a um turno ótimo de 386 minutos. Com as sete regras e 10 pacientes, o roteiro é obtido em cerca de 30 segundos. Também se propõe a opção de um modelo de linguagem, pequeno (SLM) ou grande (LLM), traduzir regras em linguagem natural diretamente para PDDL.
 \\[0.3cm]
-\textbf{Palavras-chave:} Pesquisa e Desenvolvimento (P\&D); Método Científico; Hipóteses; Avaliação Experimental; Estruturas de Dados; Dados Abertos.
+\textbf{Palavras-chave:} Agentes Comunitários de Saúde; Atenção Primária à Saúde; Planejamento Automatizado; PDDL; Compilação de Regras; Modelos de Linguagem.
 \end{abstract}
 
 \vspace{0.3cm}
