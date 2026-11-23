@@ -1,0 +1,317 @@
+\documentclass[11pt,a4paper]{article}
+
+% --- Pacotes Fundamentais ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage[most]{tcolorbox}
+\usepackage{hyperref}
+
+% --- Configurações de Cores e Links ---
+\definecolor{primary}{RGB}{16, 54, 98}      % Azul institucional
+\definecolor{secondary}{RGB}{41, 128, 185}  % Azul médio
+\definecolor{boxbg}{RGB}{245, 248, 252}     % Fundo para caixas de instrução
+\definecolor{boxframe}{RGB}{180, 205, 230}  % Borda das caixas de instrução
+\definecolor{codebg}{RGB}{248, 249, 250}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    citecolor=secondary,
+    urlcolor=secondary
+}
+
+% --- Caixa de Instrução para os Alunos ---
+\newtcolorbox{instrucao}{
+    enhanced,
+    colback=boxbg,
+    colframe=boxframe,
+    arc=3mm,
+    boxrule=0.8pt,
+    left=4mm, right=4mm, top=3mm, bottom=3mm,
+    fonttitle=\bfseries\small\color{primary},
+    title={Orientações para esta seção:},
+    fontupper=\small\itshape\color{black!80}
+}
+
+% --- Configurações para Código-Fonte (Listings) ---
+\lstset{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    rulecolor=\color{black!20},
+    numbers=left,
+    numberstyle=\tiny\color{black!40},
+    keywordstyle=\color{primary}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{orange!80!black}
+}
+
+% --- Cabeçalho e Rodapé ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\footnotesize Projeto em Ciência e Inovação -- 2026/2}
+\rhead{\footnotesize Relatório Técnico - Ciclo 3}
+\cfoot{\thepage}
+
+% ==============================================================================
+% DADOS DO TRABALHO
+% ==============================================================================
+\title{
+    \vspace{-1.0cm}
+    \textbf{\Large [Título do Projeto / Solução]}\\[0.3cm]
+    \large Relatório Técnico de Pesquisa e Desenvolvimento (P\&D)
+}
+
+\author{
+    \textbf{Luis} (Cartão: 000000) -- \texttt{aluno1@inf.ufrgs.br}\\
+    \textbf{Manuela} (Cartão: 000000) -- \texttt{aluno2@inf.ufrgs.br}\\
+    \textbf{Vítor Feijó} (Cartão: 588403) -- \texttt{vsfeijo@inf.ufrgs.br}\\[0.3cm]
+    \normalsize Instituto de Informática -- Universidade Federal do Rio Grande do Sul (UFRGS)\\
+    \normalsize Disciplina: Projeto em Ciência e Inovação (2026/2)\\
+    \small Repositório do Projeto: \url{https://github.com/vitorsfeijo/PCI-Inovacao-GrupoB}
+}
+
+\date{Porto Alegre, \today}
+
+% ==============================================================================
+% INÍCIO DO DOCUMENTO
+% ==============================================================================
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+\begin{abstract}
+\noindent
+\textbf{Resumo.} 
+\begin{instrucao}
+O resumo deve sintetizar o ciclo completo de P\&D (máximo de 250 palavras): (1) O problema real investigado; (2) As hipóteses centrais de solução; (3) A implementação computacional (estruturas de dados e algoritmos); e (4) A metodologia experimental, com os principais resultados e conclusões obtidas.
+\end{instrucao}
+O planejamento das visitas domiciliares do Agente Comunitário de Saúde (ACS) precisa conciliar a ordem das visitas, as condições da Lei 11.350/2006 e materiais finitos, repostos apenas na Unidade Básica de Saúde. Este relatório apresenta um sistema que modela essas condições em PDDL, de modo que o planejamento automatizado incorpore regras novas sem alterar código. Como escrever cada regra exige dominar PDDL, a hipótese central é que regras descritas em cinco modelos fixos (recurso, preparo, pré-requisito, consumo e exigência por paciente), acrescidos de alternativas (``ou'') e de restrições de horário (turnos da manhã e da noite), podem ser compiladas de forma determinística em PDDL equivalente ao escrito à mão, com menos esforço e sem inviabilizar o planejamento. Implementou-se um compilador que estende um domínio legal travado, instanciação com poda, planejamento por janelas com o Fast Downward e uma interface web para escrever regras e visualizar o roteiro. Na avaliação, com regras e pacientes sintéticos, três regras escritas à mão em PDDL, reescritas como modelos, reproduziram o domínio original em 24 de 24 instâncias; sete regras novas exigiram de 7 a 18 linhas de TOML, contra 13 a 60 linhas de PDDL, e acrescentaram de 1 a 9 minutos a um turno ótimo de 386 minutos. Com as sete regras e 10 pacientes, o roteiro é obtido em cerca de 30 segundos. Também se propõe a opção de um modelo de linguagem, pequeno (SLM) ou grande (LLM), traduzir regras em linguagem natural diretamente para PDDL.
+\\[0.3cm]
+\textbf{Palavras-chave:} Agentes Comunitários de Saúde; Atenção Primária à Saúde; Planejamento Automatizado; PDDL; Compilação de Regras; Modelos de Linguagem.
+\end{abstract}
+
+\vspace{0.3cm}
+\hrule
+\vspace{0.4cm}
+
+% ------------------------------------------------------------------------------
+\section{Contexto e Definição do Problema}
+
+\begin{instrucao}
+Apresente o cenário prático real que motivou a investigação e a formalização computacional do problema.
+\end{instrucao}
+
+Na Atenção Primária à Saúde do SUS, cada Agente Comunitário de Saúde (ACS) responde por uma microárea e tem na visita domiciliar sua atividade central. Planejar um turno de visitas não se reduz a escolher um percurso: procedimentos como aferir a pressão e medir a glicemia exigem curso técnico, equipamento e assistência de profissional de nível superior (art.~3º, §~4º, da Lei 11.350/2006), e os insumos consumidos só são repostos na Unidade Básica de Saúde (UBS). Cada equipe adota ainda regras próprias, como higienizar as mãos antes dos procedimentos ou usar máscara N95 com pacientes com suspeita de tuberculose. Modeladas como um domínio PDDL, as condições legais são cumpridas pelo planejador sem código específico, mas cada regra nova exige editar o domínio em vários pontos, o que restringe sua manutenção a quem programa.
+
+Como dados clínicos reais são sensíveis, usou-se uma planilha sintética de 10 pacientes fictícios, com marcas como gestante e suspeita de tuberculose; só as coordenadas são reais.
+
+\subsection{Formulação do Problema Computacional}
+\begin{itemize}
+    \item \textbf{Entradas:} a planilha de pacientes (localização, procedimentos requeridos e marcas), os parâmetros do turno (insumos e janelas de supervisão), a ordem das visitas dada pelo roteirizador e as regras da equipe nos modelos fixos.
+    \item \textbf{Restrições:} as condições legais, que as regras não podem afrouxar; a ordem das visitas, que é fixa; e os estoques finitos, repostos só na UBS.
+    \item \textbf{Saída:} o plano válido de menor custo em minutos que se consiga obter, apresentado ao ACS como roteiro com o horário e as tarefas de cada visita.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\section{Formulação das Hipóteses de Solução}
+
+\begin{instrucao}
+Uma hipótese em computação experimental deve ser mensurável, precisa e passível de validação/falsificação. Defina o que o grupo esperava observar antes de realizar os experimentos.
+\end{instrucao}
+
+\subsection{Hipóteses Formuladas}
+\begin{itemize}
+    \item \textbf{Hipótese Principal ($H_1$, correção):} regras descritas nos cinco modelos fixos e compiladas de forma determinística sobre o domínio legal produzem um domínio equivalente ao escrito à mão em PDDL, em estrutura e em comportamento, em todas as instâncias de teste.
+    \item \textbf{Hipótese Secundária ($H_2$, esforço):} descrever uma regra nos modelos exige menos linhas do que as alterações correspondentes no domínio PDDL.
+    \item \textbf{Hipótese Secundária ($H_3$, viabilidade):} com as regras ativas, o sistema gera um roteiro válido para um turno de 10 pacientes dentro do limite de 120\,s por busca.
+    \item \textbf{Hipótese de Extensão ($H_4$):} alternativas (``ou'') e restrições de horário podem ser incorporadas aos modelos preservando $H_1$ a $H_3$, e um modelo de linguagem consegue traduzir regras descritas em linguagem natural em regras equivalentes às escritas por uma pessoa.
+\end{itemize}
+
+\subsection{Métricas de Sucesso}
+\begin{itemize}
+    \item \textbf{Equivalência ($H_1$):} igualdade de predicados e, em cada ação, de parâmetros, precondições, efeitos e custo; e, em cada instância, mesmo custo ótimo nos dois domínios, com o plano de um válido no outro. Como controle negativo, regras alteradas de propósito devem ser acusadas.
+    \item \textbf{Esforço ($H_2$):} linhas escritas no arquivo de regras, sem comentários, contra linhas alteradas no domínio PDDL.
+    \item \textbf{Custo e escala ($H_3$):} acréscimo em minutos ao turno ótimo e tempo até o roteiro, variando de 1 a 10 pacientes e de nenhuma a sete regras.
+    \item \textbf{Tradução ($H_4$):} proporção de regras geradas pelo modelo de linguagem que compilam e coincidem com um gabarito, desconsiderando os nomes escolhidos.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\section{Desenvolvimento e Implementação da Solução}
+
+\begin{instrucao}
+Descreva a realização técnica: como as entidades reais foram mapeadas em estruturas de dados e quais algoritmos foram desenvolvidos.
+\end{instrucao}
+
+\subsection{Modelagem Computacional e Arquitetura}
+Explique a representação formal em estruturas de dados:
+\begin{itemize}
+    \item Vértices $V$ e arestas $E$ no caso de grafos (o que representam no domínio real?);
+    \item Estruturas de indexação rápida (tabelas hash, árvores);
+    \item Filas de prioridade/heaps para seleção de menor custo.
+    \item entre outros.
+\end{itemize}
+
+\subsection{Algoritmos e Análise de Custo/Complexidade}
+Apresente a lógica dos algoritmos implementados para testar as hipóteses. Justifique as escolhas e apresente uma análise de custo/complexidade da solução.
+
+\subsection{Tratamento e Pré-processamento dos Dados}
+Quanod pertinente, descreva o pipeline de obtenção e preparação dos dados brutos: limpeza de registros nulos, normalização, filtros de consistência e geração das estruturas necessárias para os experimentos.
+
+% ------------------------------------------------------------------------------
+\section{Projeto Experimental e Metodologia de Validação}
+
+\begin{instrucao}
+Descreva com rigor o protocolo experimental para assegurar a reprodutibilidade dos resultados.
+\end{instrucao}
+
+\subsection{Ambiente Experimental e Variáveis}
+\begin{itemize}
+    \item \textbf{Ambiente:} Especificações de hardware (processador, memória RAM) e software (sistema operacional, versão da linguagem).
+    \item \textbf{Variáveis Independentes:} O que foi manipulado nos experimentos (tamanho da entrada $N$, densidade do grafo, etc.).
+    \item \textbf{Variáveis Dependentes:} O que foi medido como resposta (tempo de execução, memória de pico, etc.).
+    \item \textbf{Variáveis de Controle:} Condições mantidas constantes (número de repetições, descarte de \textit{warm-up}, condições de teste).
+\end{itemize}
+
+\subsection{Cenários e Protocolo de Coleta}
+Descreva os cenários de teste aplicados (dados sintéticos controlados vs. dados reais completos) e, quando pertinente, a metodologia estatística de consolidação (cálculo de médias, desvios-padrão).
+
+% ------------------------------------------------------------------------------
+\section{Resultados Experimentais e Discussão}
+
+\begin{instrucao}
+Apresente os dados quantitativos em tabelas e gráficos, confrontando-os diretamente com as hipóteses formuladas na Seção 2.
+\end{instrucao}
+
+\subsection{Apresentação dos Dados Coletados}
+Apresente os resultados por meio de tabelas estruturadas e gráficos de desempenho.
+
+\begin{table}[ht]
+\centering
+\caption{Desempenho comparativo de tempo e memória em função do tamanho da entrada $N$}
+\label{tab:experimentos}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+\textbf{Entrada ($N$)} & \textbf{Tempo } & \textbf{Tempo} & \textbf{Desvio} &
+\textbf{Pico de} \\
+    & \textbf{Abordagem 1 (ms)} & \textbf{Abordagem 2 (ms)} & \textbf{Padrão} &
+\textbf{Memória} \\ \midrule
+1.000                  & 8,2                             & 4,1                             & $\pm$ 0,3 ms           & 12 MB                    \\
+5.000                  & 45,7                            & 18,3                            & $\pm$ 1,1 ms           & 24 MB                    \\
+10.000                 & 110,4                           & 39,6                            & $\pm$ 2,4 ms           & 48 MB                    \\ \bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Validação ou Refutação das Hipóteses}
+\begin{itemize}
+    \item \textbf{Hipótese $H_1$:} Foi confirmada ou refutada? Indique explicitamente as evidências empíricas obtidas.
+    \item \textbf{Complexidade Empírica vs. Teórica:} A curva de crescimento do tempo nos gráficos acompanhou a ordem $\mathcal{O}$ calculada?
+\end{itemize}
+
+\subsection{Discussão Técnica e Limitações Observadas}
+Quais gargalos de desempenho e limitações de implementação surgiram ao longo dos experimentos? Ocorreram comportamentos inesperados?
+
+% ------------------------------------------------------------------------------
+\section{Análise de Impacto e Transferência Tecnológica}
+
+\begin{instrucao}
+Esta seção avalia o valor gerado além do laboratório. Como a solução computacional impacta a sociedade, a gestão de dados e qual é o caminho para sua aplicação prática?
+\end{instrucao}
+
+\subsection{Análise Multidimensional de Impacto}
+\begin{itemize}
+    \item \textbf{Impacto Social e Cidadania:} De que forma a solução melhora o serviço prestado, a qualidade de vida da comunidade ou a transparência pública? Quem são os beneficiários diretos e indiretos?
+    \item \textbf{Impacto Econômico e Eficiência Operacional:} Quais ganhos de produtividade, otimização de tempo ou redução de custos a automação/algoritmo proporciona em comparação aos processos manuais ou legados?
+    \item \textbf{Dimensão Ética, Legal e Governança de Dados (LGPD):}
+    \begin{itemize}
+        \item Há uso de dados pessoais ou sensíveis? Como a privacidade e a anonimização foram tratadas em conformidade com a LGPD?
+        \item Há riscos de viés, discriminação algorítmica ou exclusão decorrentes da forma como os dados foram coletados ou ponderados?
+        \item A solução garante rastreabilidade e explicabilidade das decisões/saídas geradas?
+    \end{itemize}
+    \item \textbf{Impacto Ambiental:} Há contribuição direta ou indireta para sustentabilidade (ex.: redução de emissões por otimização logística, uso eficiente de energia e recursos computacionais)?
+\end{itemize}
+
+\subsection{Viabilidade de Implantação e Transferência Tecnológica}
+\begin{itemize}
+    \item \textbf{Aderência ao Setor de Aplicação:} A solução possui potencial de ser adotada por órgãos públicos (prefeituras, secretarias municipais), empresas ou organizações da sociedade civil? Quem seriam os parceiros naturais para transferência de tecnologia?
+    \item \textbf{Desafios para Ambiente de Produção:} Quais são os requisitos mínimos de infraestrutura (servidores, bancos de dados, conectividade) e os gargalos para migrar o protótipo experimental para um sistema contínuo em operação?
+    \item \textbf{Manutenibilidade e Sustentabilidade da Base:} Como os dados devem ser atualizados e higienizados periodicamente para garantir que a solução permaneça útil ao longo do tempo?
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\section{Conclusões e Lições Aprendidas do Processo de P\&D}
+
+\begin{instrucao}
+Sintetize os aprendizados do ciclo de P\&D: o que deu certo, o que não funcionou e quais seriam as próximas investigações.
+\end{instrucao}
+
+\subsection{Síntese dos Resultados Técnicos}
+O que os resultados comprovaram a respeito da viabilidade e eficiência da solução computacional desenvolvida para o problema prático?
+
+\subsection{O Que Funcionou vs. O Que Não Funcionou}
+Relate com transparência as estratégias bem-sucedidas e as tentativas iniciais que falharam ou precisaram ser reformuladas ao longo do projeto.
+
+\subsection{Próximos Passos de Pesquisa e Desenvolvimento}
+Quais melhorias algorítmicas, heurísticas mais refinadas ou novas estruturas de dados deveriam ser exploradas em uma próxima iteração de P\&D?
+
+% ------------------------------------------------------------------------------
+\begin{thebibliography}{99}
+
+\bibitem{dadosabertos}
+[Nome da Base / Portal de Dados Abertos]. 
+\textit{[Título do Conjunto de Dados Utilizado]}. Disponível em: \url{https://dados.gov.br}. Acesso em: \today.
+
+\bibitem{cormen}
+T. H. Cormen, C. E. Leiserson, R. L. Rivest, and C. Stein. 
+\textit{Introduction to Algorithms}. 3rd ed. MIT Press, 2009.
+
+\bibitem{metodologia}
+[Referência Metodológica de Computação Experimental / Métodos Científicos].
+
+\end{thebibliography}
+
+% ------------------------------------------------------------------------------
+\section*{Créditos}
+
+Este trabalho foi desenvolvido em dois ciclos da disciplina Projeto em Ciência e Inovação (INF99003) da UFRGS.
+
+\begin{itemize}
+    \item \textbf{Ciclo 2:} Gabriel Pieruccini Knopp, Arthur Andrade da Silva e Izadora Candotti de Oliveira desenvolveram o planejador original: a seleção dos pacientes do turno, o roteamento das visitas, os domínios PDDL legal e estendido, o planejador e a planilha de pacientes. Esse código está preservado na pasta \texttt{PCI-Saude-GroupB} do repositório.
+    \item \textbf{Ciclo 3:} Luis Henrique Caselani Macedo Junior, Manuela Cristina Zen Dalmonte e Vítor Santana Feijó desenvolveram o compilador de regras, a instanciação com poda, o planejamento por janelas com o Fast Downward, a interface web e a avaliação experimental, além das extensões para alternativas, restrições de horário e tradução de regras por modelos de linguagem.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\appendix
+\section{Guia de Reprodutibilidade}
+
+\begin{instrucao}
+Forneça os comandos e requisitos necessários para executar o código e reproduzir os experimentos descritos.
+\end{instrucao}
+
+\begin{lstlisting}[language=bash, caption={Instruções de Execução dos Experimentos}]
+# 1. Clonar o repositorio
+git clone https://github.com/usuario/repositorio.git
+cd repositorio
+
+# 2. Instalar dependencias
+pip install -r requirements.txt
+
+# 3. Executar preparacao dos dados e baterias de teste
+python main.py --preparar-dados
+python main.py --executar-experimentos --gerar-graficos
+\end{lstlisting}
+
+\end{document}

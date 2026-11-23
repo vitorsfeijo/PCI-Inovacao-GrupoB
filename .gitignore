@@ -1,0 +1,6 @@
+relatorio/*.aux
+relatorio/*.log
+relatorio/*.out
+relatorio/*.toc
+relatorio/*.synctex.gz
+relatorio/*.pdf
