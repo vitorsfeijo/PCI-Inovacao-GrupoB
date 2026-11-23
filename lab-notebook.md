@@ -11,3 +11,10 @@
 
 10/11/2026
 - Versão incial dos slides para a semana 2 criados
+
+22/11/2026
+- Integração do Tech Report do Overleaf no repositório git
+
+23/11/2026
+- Resumo do Tech Report feito
+
