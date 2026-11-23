@@ -97,7 +97,7 @@
 \begin{instrucao}
 O resumo deve sintetizar o ciclo completo de P\&D (máximo de 250 palavras): (1) O problema real investigado; (2) As hipóteses centrais de solução; (3) A implementação computacional (estruturas de dados e algoritmos); e (4) A metodologia experimental, com os principais resultados e conclusões obtidas.
 \end{instrucao}
-O planejamento das visitas domiciliares do Agente Comunitário de Saúde (ACS) precisa conciliar a ordem das visitas, as condições da Lei 11.350/2006 e materiais finitos, repostos apenas na Unidade Básica de Saúde. No ciclo anterior, outro grupo modelou essas condições em PDDL e mostrou que o planejamento automatizado incorpora regras novas sem alterar código; escrever cada regra, porém, exige dominar PDDL. Este relatório descreve o ciclo atual, cuja hipótese central é que regras descritas em cinco modelos fixos (recurso, preparo, pré-requisito, consumo e exigência por paciente), acrescidos de alternativas (``ou'') e de restrições de horário (turnos da manhã e da noite), podem ser compiladas de forma determinística em PDDL equivalente ao escrito à mão, com menos esforço e sem inviabilizar o planejamento. Implementou-se um compilador que estende um domínio legal travado, instanciação com poda, planejamento por janelas com o Fast Downward e uma interface web para escrever regras e visualizar o roteiro. Na avaliação, com regras e pacientes sintéticos, as três regras do ciclo anterior reescritas como modelos reproduziram o domínio original em 24 de 24 instâncias; sete regras novas exigiram de 7 a 18 linhas de TOML, contra 13 a 60 linhas de PDDL, e acrescentaram de 1 a 9 minutos a um turno ótimo de 386 minutos. Com as sete regras e 10 pacientes, o roteiro é obtido em cerca de 30 segundos. Também se propõe a opção de um modelo de linguagem, pequeno (SLM) ou grande (LLM), traduzir regras em linguagem natural diretamente para PDDL.
+O planejamento das visitas domiciliares do Agente Comunitário de Saúde (ACS) precisa conciliar a ordem das visitas, as condições da Lei 11.350/2006 e materiais finitos, repostos apenas na Unidade Básica de Saúde. Este relatório apresenta um sistema que modela essas condições em PDDL, de modo que o planejamento automatizado incorpore regras novas sem alterar código. Como escrever cada regra exige dominar PDDL, a hipótese central é que regras descritas em cinco modelos fixos (recurso, preparo, pré-requisito, consumo e exigência por paciente), acrescidos de alternativas (``ou'') e de restrições de horário (turnos da manhã e da noite), podem ser compiladas de forma determinística em PDDL equivalente ao escrito à mão, com menos esforço e sem inviabilizar o planejamento. Implementou-se um compilador que estende um domínio legal travado, instanciação com poda, planejamento por janelas com o Fast Downward e uma interface web para escrever regras e visualizar o roteiro. Na avaliação, com regras e pacientes sintéticos, três regras escritas à mão em PDDL, reescritas como modelos, reproduziram o domínio original em 24 de 24 instâncias; sete regras novas exigiram de 7 a 18 linhas de TOML, contra 13 a 60 linhas de PDDL, e acrescentaram de 1 a 9 minutos a um turno ótimo de 386 minutos. Com as sete regras e 10 pacientes, o roteiro é obtido em cerca de 30 segundos. Também se propõe a opção de um modelo de linguagem, pequeno (SLM) ou grande (LLM), traduzir regras em linguagem natural diretamente para PDDL.
 \\[0.3cm]
 \textbf{Palavras-chave:} Agentes Comunitários de Saúde; Atenção Primária à Saúde; Planejamento Automatizado; PDDL; Compilação de Regras; Modelos de Linguagem.
 \end{abstract}
@@ -113,10 +113,16 @@ O planejamento das visitas domiciliares do Agente Comunitário de Saúde (ACS) p
 Apresente o cenário prático real que motivou a investigação e a formalização computacional do problema.
 \end{instrucao}
 
-Descreva o domínio de aplicação investigado (ex.: mobilidade urbana, saúde, alocação de recursos, transparência). Por que esse problema é relevante e demanda uma solução computacional? Quando pertinente, apresente a base de dados reais ou abertos utilizada: órgão provedor, volume de registros, principais atributos e formato.
+Na Atenção Primária à Saúde do SUS, cada Agente Comunitário de Saúde (ACS) responde por uma microárea e tem na visita domiciliar sua atividade central. Planejar um turno de visitas não se reduz a escolher um percurso: procedimentos como aferir a pressão e medir a glicemia exigem curso técnico, equipamento e assistência de profissional de nível superior (art.~3º, §~4º, da Lei 11.350/2006), e os insumos consumidos só são repostos na Unidade Básica de Saúde (UBS). Cada equipe adota ainda regras próprias, como higienizar as mãos antes dos procedimentos ou usar máscara N95 com pacientes com suspeita de tuberculose. Modeladas como um domínio PDDL, as condições legais são cumpridas pelo planejador sem código específico, mas cada regra nova exige editar o domínio em vários pontos, o que restringe sua manutenção a quem programa.
+
+Como dados clínicos reais são sensíveis, usou-se uma planilha sintética de 10 pacientes fictícios, com marcas como gestante e suspeita de tuberculose; só as coordenadas são reais.
 
 \subsection{Formulação do Problema Computacional}
-Como o cenário do mundo real foi formalizado como um problema computacional bem definido? Quais são as entradas (\textit{inputs}), restrições operacionais e saídas esperadas (\textit{outputs})?
+\begin{itemize}
+    \item \textbf{Entradas:} a planilha de pacientes (localização, procedimentos requeridos e marcas), os parâmetros do turno (insumos e janelas de supervisão), a ordem das visitas dada pelo roteirizador e as regras da equipe nos modelos fixos.
+    \item \textbf{Restrições:} as condições legais, que as regras não podem afrouxar; a ordem das visitas, que é fixa; e os estoques finitos, repostos só na UBS.
+    \item \textbf{Saída:} o plano válido de menor custo em minutos que se consiga obter, apresentado ao ACS como roteiro com o horário e as tarefas de cada visita.
+\end{itemize}
 
 % ------------------------------------------------------------------------------
 \section{Formulação das Hipóteses de Solução}
@@ -271,6 +277,16 @@ T. H. Cormen, C. E. Leiserson, R. L. Rivest, and C. Stein.
 [Referência Metodológica de Computação Experimental / Métodos Científicos].
 
 \end{thebibliography}
+
+% ------------------------------------------------------------------------------
+\section*{Créditos}
+
+Este trabalho foi desenvolvido em dois ciclos da disciplina Projeto em Ciência e Inovação (INF99003) da UFRGS.
+
+\begin{itemize}
+    \item \textbf{Ciclo 2:} Gabriel Pieruccini Knopp, Arthur Andrade da Silva e Izadora Candotti de Oliveira desenvolveram o planejador original: a seleção dos pacientes do turno, o roteamento das visitas, os domínios PDDL legal e estendido, o planejador e a planilha de pacientes. Esse código está preservado na pasta \texttt{PCI-Saude-GroupB} do repositório.
+    \item \textbf{Ciclo 3:} Luis Henrique Caselani Macedo Junior, Manuela Cristina Zen Dalmonte e Vítor Santana Feijó desenvolveram o compilador de regras, a instanciação com poda, o planejamento por janelas com o Fast Downward, a interface web e a avaliação experimental, além das extensões para alternativas, restrições de horário e tradução de regras por modelos de linguagem.
+\end{itemize}
 
 % ------------------------------------------------------------------------------
 \appendix
