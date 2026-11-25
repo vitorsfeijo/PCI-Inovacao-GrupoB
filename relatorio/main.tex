@@ -55,6 +55,7 @@
     commentstyle=\color{green!50!black}\itshape,
     stringstyle=\color{orange!80!black}
 }
+\renewcommand{\lstlistingname}{Listagem}
 
 % --- Cabeçalho e Rodapé ---
 \pagestyle{fancy}
@@ -360,17 +361,29 @@ Este trabalho foi desenvolvido em dois ciclos da disciplina Projeto em Ciência 
 Forneça os comandos e requisitos necessários para executar o código e reproduzir os experimentos descritos.
 \end{instrucao}
 
-\begin{lstlisting}[language=bash, caption={Instruções de Execução dos Experimentos}]
+\textbf{Requisitos:} Python 3.11 ou superior, sem dependências obrigatórias. O Fast Downward é opcional, mas necessário para reproduzir as colunas ``FD'' da Tabela~\ref{tab:acumuladas} e o experimento de qualidade das janelas; ele é instalado pelo pacote \texttt{up-fast-downward} (versão 1.0.0), que tem versões compiladas para Windows, Linux e macOS. Sem ele, o sistema usa o planejador em Python. No Linux, use um ambiente virtual (\texttt{python3 -m venv .venv}). Os comandos abaixo usam \texttt{python}; no Linux e no macOS, o comando costuma ser \texttt{python3}.
+
+\begin{lstlisting}[language=bash, caption={Instalação e reprodução dos experimentos}]
 # 1. Clonar o repositorio
-git clone https://github.com/usuario/repositorio.git
-cd repositorio
+git clone https://github.com/vitorsfeijo/PCI-Inovacao-GrupoB.git
+cd PCI-Inovacao-GrupoB/projeto-inovacao-grupoB
 
-# 2. Instalar dependencias
-pip install -r requirements.txt
+# 2. Instalar o Fast Downward (opcional)
+python -m pip install -r requirements-opcional.txt
 
-# 3. Executar preparacao dos dados e baterias de teste
-python main.py --preparar-dados
-python main.py --executar-experimentos --gerar-graficos
+# 3. Testes automaticos (cerca de 1 min)
+python acs.py testes
+
+# 4. Experimentos
+python acs.py equivalencia   # H1: equivalencia e controle negativo (~3 min)
+python acs.py medicoes       # H2 e H3: Tabelas 1 e 2 (~25 min)
+python acs.py qualidade      # qualidade das janelas, requer o FD (~40 min)
+
+# 5. Planejar um turno com regras e ver o roteiro
+python acs.py planejar exemplos/sinteticas-ciclo2.toml --orcamento 240
+python acs.py web            # interface web em http://localhost:8000
 \end{lstlisting}
+
+O comando \texttt{medicoes} regrava o arquivo \texttt{exemplos/avaliacao/resultados.md}, de onde vêm as Tabelas~\ref{tab:regras} e~\ref{tab:acumuladas}; a opção \texttt{-{}-rapido} usa limites menores, para conferir o script. As regras R1 a R7 estão em \texttt{exemplos/avaliacao/regras/}, e o \texttt{HOWTORUN.md} detalha todas as opções.
 
 \end{document}
