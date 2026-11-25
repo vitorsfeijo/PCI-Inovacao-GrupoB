@@ -155,19 +155,18 @@ Descreva a realização técnica: como as entidades reais foram mapeadas em estr
 \end{instrucao}
 
 \subsection{Modelagem Computacional e Arquitetura}
-Explique a representação formal em estruturas de dados:
-\begin{itemize}
-    \item Vértices $V$ e arestas $E$ no caso de grafos (o que representam no domínio real?);
-    \item Estruturas de indexação rápida (tabelas hash, árvores);
-    \item Filas de prioridade/heaps para seleção de menor custo.
-    \item entre outros.
-\end{itemize}
+O sistema é um \textit{pipeline}: seleção dos pacientes, roteamento (vizinho mais próximo com 2-opt), compilação das regras, busca do plano, limpeza e geração do roteiro. As regras, em TOML, são aplicadas sobre o domínio legal, que nunca é alterado. Na busca, uma tabela \textit{hash} dá a cada fato um inteiro; um estado é um conjunto imutável desses inteiros, e cada ação instanciada guarda precondições, adições e remoções como conjuntos. Estoques viram níveis discretos encadeados por um predicado de sucessor, mantendo o domínio em STRIPS sem números.
 
 \subsection{Algoritmos e Análise de Custo/Complexidade}
-Apresente a lógica dos algoritmos implementados para testar as hipóteses. Justifique as escolhas e apresente uma análise de custo/complexidade da solução.
+\begin{itemize}
+    \item \textbf{Compilação:} cada modelo acrescenta predicados, ações ou precondições, com custo linear no número de regras e de ações, exceto $k$ exigências sobre um mesmo procedimento, que geram $2^k$ versões dele.
+    \item \textbf{Instanciação com poda:} em vez de enumerar o produto cartesiano dos parâmetros, liga-os um a um e descarta a combinação assim que uma precondição estática falha. Com sete regras, 4,7 bilhões de combinações viram 9.449 ações.
+    \item \textbf{Busca:} A* com $h_{max}$ (admissível) ou Fast Downward com LM-cut, ambos sobre fila de prioridade. Como o planejamento STRIPS é PSPACE-completo, o planejamento por janelas resolve de forma ótima as próximas $k$ visitas e avança uma por vez: custo linear no número de visitas e exponencial só em $k$.
+    \item \textbf{Limpeza:} remove ações redundantes, sem aumentar o custo.
+\end{itemize}
 
 \subsection{Tratamento e Pré-processamento dos Dados}
-Quanod pertinente, descreva o pipeline de obtenção e preparação dos dados brutos: limpeza de registros nulos, normalização, filtros de consistência e geração das estruturas necessárias para os experimentos.
+A planilha CSV e os parâmetros JSON são validados na leitura; uma marca sem coluna na planilha é erro. As regras passam por validação em três níveis (campo, regras entre si e conflito com o domínio), com mensagens em português.
 
 % ------------------------------------------------------------------------------
 \section{Projeto Experimental e Metodologia de Validação}
