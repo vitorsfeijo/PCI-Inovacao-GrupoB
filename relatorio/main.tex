@@ -276,13 +276,18 @@ Sintetize os aprendizados do ciclo de P\&D: o que deu certo, o que não funciono
 \end{instrucao}
 
 \subsection{Síntese dos Resultados Técnicos}
-O que os resultados comprovaram a respeito da viabilidade e eficiência da solução computacional desenvolvida para o problema prático?
+Regras descritas em modelos fixos podem ser compiladas em PDDL equivalente ao escrito à mão, com cerca de um terço das linhas e sem afrouxar a lei. O planejamento continua viável com muitas regras, desde que se use um planejador de referência e o planejamento por janelas, ao custo de abrir mão da garantia de ótimo.
 
 \subsection{O Que Funcionou vs. O Que Não Funcionou}
-Relate com transparência as estratégias bem-sucedidas e as tentativas iniciais que falharam ou precisaram ser reformuladas ao longo do projeto.
+A tese inicial, de que o planejamento encontraria planos que um programa procedural não encontra, foi refutada: corrigido, o procedural acha os mesmos planos. O que se sustentou foi o custo de manutenção: diante de regras novas, a correção procedural falha, e o domínio PDDL se adapta sem mudar código. Isso motivou o compilador. Também foram reformulados: a instanciação, que não terminava com sete regras; a heurística padrão $h_{add}$, que gerava turnos até 35\% mais longos; e o planejamento só por janelas, que podia esgotar a supervisão antes da última visita.
 
 \subsection{Próximos Passos de Pesquisa e Desenvolvimento}
-Quais melhorias algorítmicas, heurísticas mais refinadas ou novas estruturas de dados deveriam ser exploradas em uma próxima iteração de P\&D?
+\begin{itemize}
+    \item \textbf{Alternativas (``ou''):} uma versão da ação para cada alternativa, controlando o crescimento das combinações.
+    \item \textbf{Restrições de horário (manhã e noite):} um relógio discreto no domínio, um planejador temporal ou a ordenação das visitas pelo roteirizador.
+    \item \textbf{Tradução por modelo de linguagem:} um SLM ou LLM traduzindo regras em linguagem natural para PDDL, avaliado contra gabaritos.
+    \item \textbf{Teste com usuários} que não programam, cujo material já está pronto, e a escolha da rota considerando as regras.
+\end{itemize}
 
 % ------------------------------------------------------------------------------
 \begin{thebibliography}{99}
