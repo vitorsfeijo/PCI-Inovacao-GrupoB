@@ -177,14 +177,14 @@ Descreva com rigor o protocolo experimental para assegurar a reprodutibilidade d
 
 \subsection{Ambiente Experimental e Variáveis}
 \begin{itemize}
-    \item \textbf{Ambiente:} Especificações de hardware (processador, memória RAM) e software (sistema operacional, versão da linguagem).
-    \item \textbf{Variáveis Independentes:} O que foi manipulado nos experimentos (tamanho da entrada $N$, densidade do grafo, etc.).
-    \item \textbf{Variáveis Dependentes:} O que foi medido como resposta (tempo de execução, memória de pico, etc.).
-    \item \textbf{Variáveis de Controle:} Condições mantidas constantes (número de repetições, descarte de \textit{warm-up}, condições de teste).
+    \item \textbf{Ambiente:} Intel Core Ultra 5 245KF (14 núcleos), 16\,GB de RAM, Windows 11, Python 3.14 e Fast Downward pelo pacote \texttt{up-fast-downward}.
+    \item \textbf{Variáveis Independentes:} o conjunto de regras ativas (nenhuma, cada uma sozinha ou acumuladas), o número de pacientes (1 a 10), a capacidade dos recursos e a estratégia de busca (A* com $h_{max}$ ou $h_{add}$, Fast Downward com LM-cut ou LAMA e janelas com $k$ de 1 a 4).
+    \item \textbf{Variáveis Dependentes:} a equivalência estrutural e comportamental, as linhas de TOML e de PDDL alterado, o custo do turno em minutos, o número de ações instanciadas e o tempo de busca.
+    \item \textbf{Variáveis de Controle:} a mesma planilha, a mesma rota em todas as execuções, sementes fixas e, nas medições, limite de 120\,s por busca.
 \end{itemize}
 
 \subsection{Cenários e Protocolo de Coleta}
-Descreva os cenários de teste aplicados (dados sintéticos controlados vs. dados reais completos) e, quando pertinente, a metodologia estatística de consolidação (cálculo de médias, desvios-padrão).
+Todos os cenários usam dados sintéticos. A equivalência compara, em 24 instâncias geradas com 2 a 4 pacientes e capacidades reduzidas para forçar reposições, o domínio compilado com o escrito à mão; oito alterações propositais nas regras servem de controle negativo. As medições usam sete regras novas (R1 a R7) sobre a planilha de avaliação de 10 pacientes, aplicadas sozinhas, acumuladas uma a uma e com 1 a 10 pacientes. Como planos e custos são determinísticos, cada configuração foi executada uma vez, e os tempos indicam ordem de grandeza. Os planos do Fast Downward são validados no modelo do próprio sistema, e os roteiros das sete regras foram conferidos contra o comportamento esperado de cada uma.
 
 % ------------------------------------------------------------------------------
 \section{Resultados Experimentais e Discussão}
