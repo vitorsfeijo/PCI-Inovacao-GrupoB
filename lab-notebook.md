@@ -17,3 +17,6 @@
 
 23/11/2026
 - Resumo, Formulação das Hipóteses e Implementação da Solução do Tech Report feitos
+
+25/11/2026
+- Versão preliminar do Tech Report finalizado
