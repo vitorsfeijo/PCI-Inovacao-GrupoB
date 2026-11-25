@@ -194,34 +194,57 @@ Apresente os dados quantitativos em tabelas e gráficos, confrontando-os diretam
 \end{instrucao}
 
 \subsection{Apresentação dos Dados Coletados}
-Apresente os resultados por meio de tabelas estruturadas e gráficos de desempenho.
+A Tabela~\ref{tab:regras} mostra o esforço e o impacto de cada regra sozinha, e a Tabela~\ref{tab:acumuladas}, o comportamento do sistema com as regras acumuladas, ambas no turno de 10 pacientes.
 
 \begin{table}[ht]
 \centering
-\caption{Desempenho comparativo de tempo e memória em função do tamanho da entrada $N$}
-\label{tab:experimentos}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}ccccc@{}}
+\caption{Cada regra sozinha: esforço de escrita e impacto no turno ótimo (sem regras: 386 min)}
+\label{tab:regras}
+\small
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Entrada ($N$)} & \textbf{Tempo } & \textbf{Tempo} & \textbf{Desvio} &
-\textbf{Pico de} \\
-    & \textbf{Abordagem 1 (ms)} & \textbf{Abordagem 2 (ms)} & \textbf{Padrão} &
-\textbf{Memória} \\ \midrule
-1.000                  & 8,2                             & 4,1                             & $\pm$ 0,3 ms           & 12 MB                    \\
-5.000                  & 45,7                            & 18,3                            & $\pm$ 1,1 ms           & 24 MB                    \\
-10.000                 & 110,4                           & 39,6                            & $\pm$ 2,4 ms           & 48 MB                    \\ \bottomrule
+\textbf{Regra} & \textbf{TOML} & \textbf{PDDL alterado} & \textbf{Turno ótimo} & \textbf{$\Delta$} & \textbf{Busca ótima} \\
+ & (linhas) & (linhas) & (min) & (min) & (s) \\ \midrule
+R1 lancetas        & 8  & 27 & 389 & +3 & 0,6 \\
+R2 termômetro      & 13 & 36 & 387 & +1 & 1,3 \\
+R3 balança         & 7  & 13 & 388 & +2 & 0,3 \\
+R4 avental         & 18 & 60 & 395 & +9 & 0,6 \\
+R5 N95             & 18 & 60 & 389 & +3 & 1,0 \\
+R6 luvas/gestante  & 17 & 52 & 387 & +1 & 1,3 \\
+R7 algodão         & 12 & 41 & 389 & +3 & 0,6 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Regras acumuladas: instanciação e busca (custo do turno em minutos e tempo; limite de 120\,s). A última linha acrescenta as três regras usadas no teste de equivalência.}
+\label{tab:acumuladas}
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lrrccc@{}}
+\toprule
+\textbf{Regras} & \textbf{Combinações sem poda} & \textbf{Ações com poda} & \textbf{A* com $h_{add}$} & \textbf{FD, 1º plano} & \textbf{FD ótimo (LM-cut)} \\ \midrule
+nenhuma          & 33.325          & 266    & 427 min, 0,1\,s  & 412 min, 0,1\,s & 386 min, 0,2\,s \\
+R1               & 1.777.177       & 1.188  & 444 min, 0,5\,s  & 415 min, 0,1\,s & 389 min, 0,6\,s \\
+R1--R4           & 1.780.564       & 1.263  & 537 min, 6,1\,s  & 429 min, 0,1\,s & 401 min, 31\,s \\
+R1--R5           & 1.782.377       & 1.305  & 601 min, 34,5\,s & 479 min, 0,1\,s & $>$ 120\,s \\
+R1--R7           & 4.676.963.922   & 9.449  & $>$ 120\,s       & 486 min, 0,1\,s & $>$ 120\,s \\
+R1--R7 + 3 regras & 565.907.493.560 & 90.545 & $>$ 120\,s      & 550 min, 0,2\,s & $>$ 120\,s \\ \bottomrule
 \end{tabular}%
 }
 \end{table}
 
 \subsection{Validação ou Refutação das Hipóteses}
 \begin{itemize}
-    \item \textbf{Hipótese $H_1$:} Foi confirmada ou refutada? Indique explicitamente as evidências empíricas obtidas.
-    \item \textbf{Complexidade Empírica vs. Teórica:} A curva de crescimento do tempo nos gráficos acompanhou a ordem $\mathcal{O}$ calculada?
+    \item \textbf{$H_1$ confirmada:} estrutura igual e 24 de 24 instâncias equivalentes; as oito alterações propositais foram acusadas pela comparação estrutural, enquanto a comportamental só as revela quando a instância exercita a regra.
+    \item \textbf{$H_2$ confirmada:} 7 a 18 linhas de TOML contra 13 a 60 de PDDL; cada linha escrita evita, em média, 3,1 linhas de PDDL espalhadas por até nove ações.
+    \item \textbf{$H_3$ confirmada com o Fast Downward:} o primeiro plano sai em até 0,2\,s em todos os casos, e as janelas ($k=3$) dão 430 min em 16\,s com as sete regras; sem ele, a busca não termina a partir de seis regras.
+    \item \textbf{$H_4$:} ainda não avaliada.
+    \item \textbf{Complexidade empírica:} as combinações crescem multiplicativamente com os parâmetros, e a poda as torna tratáveis; a busca ótima salta de 31\,s para mais de 120\,s ao passar de quatro para cinco regras, e $k=4$ leva dez vezes mais que $k=3$, como esperado para custo exponencial.
 \end{itemize}
 
 \subsection{Discussão Técnica e Limitações Observadas}
-Quais gargalos de desempenho e limitações de implementação surgiram ao longo dos experimentos? Ocorreram comportamentos inesperados?
+O ótimo com muitas regras é desconhecido: os 430 min estão, por estimativa, cerca de 5\% acima dele, e o primeiro plano do Fast Downward fica de 7\% a 45\% acima. A rota é escolhida só pela distância, sem considerar as regras, e voltar da UBS à casa não desfaz preparos como a higienização. Os dados são sintéticos e cada configuração foi executada uma vez.
 
 % ------------------------------------------------------------------------------
 \section{Análise de Impacto e Transferência Tecnológica}
