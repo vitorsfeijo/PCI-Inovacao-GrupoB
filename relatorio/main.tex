@@ -223,7 +223,7 @@ R7 algodão         & 12 & 41 & 389 & +3 & 0,6 \\ \bottomrule
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lrrccc@{}}
 \toprule
-\textbf{Regras} & \textbf{Combinações sem poda} & \textbf{Ações com poda} & \textbf{A* com $h_{add}$} & \textbf{FD, 1º plano} & \textbf{FD ótimo (LM-cut)} \\ \midrule
+\textbf{Regras} & \textbf{Combinações} & \textbf{Ações com poda} & \textbf{A* com $h_{add}$} & \textbf{FD, 1º plano} & \textbf{FD ótimo (LM-cut)} \\ \midrule
 nenhuma          & 33.325          & 266    & 427 min, 0,1\,s  & 412 min, 0,1\,s & 386 min, 0,2\,s \\
 R1               & 1.777.177       & 1.188  & 444 min, 0,5\,s  & 415 min, 0,1\,s & 389 min, 0,6\,s \\
 R1--R4           & 1.780.564       & 1.263  & 537 min, 6,1\,s  & 429 min, 0,1\,s & 401 min, 31\,s \\
@@ -255,22 +255,17 @@ Esta seção avalia o valor gerado além do laboratório. Como a solução compu
 
 \subsection{Análise Multidimensional de Impacto}
 \begin{itemize}
-    \item \textbf{Impacto Social e Cidadania:} De que forma a solução melhora o serviço prestado, a qualidade de vida da comunidade ou a transparência pública? Quem são os beneficiários diretos e indiretos?
-    \item \textbf{Impacto Econômico e Eficiência Operacional:} Quais ganhos de produtividade, otimização de tempo ou redução de custos a automação/algoritmo proporciona em comparação aos processos manuais ou legados?
-    \item \textbf{Dimensão Ética, Legal e Governança de Dados (LGPD):}
-    \begin{itemize}
-        \item Há uso de dados pessoais ou sensíveis? Como a privacidade e a anonimização foram tratadas em conformidade com a LGPD?
-        \item Há riscos de viés, discriminação algorítmica ou exclusão decorrentes da forma como os dados foram coletados ou ponderados?
-        \item A solução garante rastreabilidade e explicabilidade das decisões/saídas geradas?
-    \end{itemize}
-    \item \textbf{Impacto Ambiental:} Há contribuição direta ou indireta para sustentabilidade (ex.: redução de emissões por otimização logística, uso eficiente de energia e recursos computacionais)?
+    \item \textbf{Impacto Social:} beneficia diretamente o ACS e a equipe de Saúde da Família, que mantêm as próprias regras sem depender de quem programa, e indiretamente os pacientes, visitados conforme a lei e os protocolos.
+    \item \textbf{Impacto Econômico:} o roteiro substitui o planejamento manual, e o acréscimo de cada regra (1 a 9 minutos) explicita o custo de um protocolo antes de adotá-lo; o ganho frente ao processo manual não foi medido.
+    \item \textbf{Ética, Legal e LGPD:} dados de saúde são sensíveis, e todos os dados usados são fictícios. O sistema roda localmente; a tradução por modelo de linguagem recebe apenas o texto da regra, nunca dados de pacientes, e um SLM local evita enviá-lo a terceiros. Cada ação legal cita seu dispositivo, e o plano é conferível passo a passo. Os critérios de seleção dos pacientes devem ser validados pela equipe, para não excluir ninguém indevidamente.
+    \item \textbf{Impacto Ambiental:} indireto, ao evitar idas desnecessárias à UBS, com processamento leve.
 \end{itemize}
 
 \subsection{Viabilidade de Implantação e Transferência Tecnológica}
 \begin{itemize}
-    \item \textbf{Aderência ao Setor de Aplicação:} A solução possui potencial de ser adotada por órgãos públicos (prefeituras, secretarias municipais), empresas ou organizações da sociedade civil? Quem seriam os parceiros naturais para transferência de tecnologia?
-    \item \textbf{Desafios para Ambiente de Produção:} Quais são os requisitos mínimos de infraestrutura (servidores, bancos de dados, conectividade) e os gargalos para migrar o protótipo experimental para um sistema contínuo em operação?
-    \item \textbf{Manutenibilidade e Sustentabilidade da Base:} Como os dados devem ser atualizados e higienizados periodicamente para garantir que a solução permaneça útil ao longo do tempo?
+    \item \textbf{Aderência ao Setor:} os parceiros naturais são as secretarias municipais de saúde e o e-SUS Território, que registra visitas, mas não planeja rotas nem verifica conformidade normativa.
+    \item \textbf{Desafios para Produção:} o protótipo está entre os níveis 3 e 4 de maturidade tecnológica; falta integrar o cadastro do e-SUS, usar distâncias pelas ruas em servidor próprio e operar sem conexão no dispositivo do ACS.
+    \item \textbf{Manutenibilidade:} a planilha se atualiza pelo cadastro a cada ciclo de visitas, as regras são revistas quando os protocolos mudam, e o domínio legal, só com a lei.
 \end{itemize}
 
 % ------------------------------------------------------------------------------
