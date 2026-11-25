@@ -19,4 +19,4 @@
 - Resumo, Formulação das Hipóteses e Implementação da Solução do Tech Report feitos
 
 25/11/2026
-- Versão preeliminar do Tech Report finalizado
+- Versão preliminar do Tech Report finalizado

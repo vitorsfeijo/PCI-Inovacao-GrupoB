@@ -14,6 +14,11 @@
 \usepackage{fancyhdr}
 \usepackage[most]{tcolorbox}
 \usepackage{hyperref}
+\usepackage{soulutf8}
+
+% --- Destaque de pendências (remover antes da entrega) ---
+\sethlcolor{yellow}
+\newcommand{\pendente}[1]{\hl{#1}}
 
 % --- Configurações de Cores e Links ---
 \definecolor{primary}{RGB}{16, 54, 98}      % Azul institucional
@@ -74,8 +79,8 @@
 }
 
 \author{
-    \textbf{Luis} (Cartão: 000000) -- \texttt{aluno1@inf.ufrgs.br}\\
-    \textbf{Manuela} (Cartão: 000000) -- \texttt{aluno2@inf.ufrgs.br}\\
+    \colorbox{yellow}{\textbf{Luis} (Cartão: 000000) -- \texttt{aluno1@inf.ufrgs.br}}\\ % TODO: dados do autor
+    \colorbox{yellow}{\textbf{Manuela} (Cartão: 000000) -- \texttt{aluno2@inf.ufrgs.br}}\\ % TODO: dados do autor
     \textbf{Vítor Feijó} (Cartão: 588403) -- \texttt{vsfeijo@inf.ufrgs.br}\\[0.3cm]
     \normalsize Instituto de Informática -- Universidade Federal do Rio Grande do Sul (UFRGS)\\
     \normalsize Disciplina: Projeto em Ciência e Inovação (2026/2)\\
@@ -98,7 +103,7 @@
 \begin{instrucao}
 O resumo deve sintetizar o ciclo completo de P\&D (máximo de 250 palavras): (1) O problema real investigado; (2) As hipóteses centrais de solução; (3) A implementação computacional (estruturas de dados e algoritmos); e (4) A metodologia experimental, com os principais resultados e conclusões obtidas.
 \end{instrucao}
-O planejamento das visitas domiciliares do Agente Comunitário de Saúde (ACS) precisa conciliar a ordem das visitas, as condições da Lei 11.350/2006 e materiais finitos, repostos apenas na Unidade Básica de Saúde. Este relatório apresenta um sistema que modela essas condições em PDDL, de modo que o planejamento automatizado incorpore regras novas sem alterar código. Como escrever cada regra exige dominar PDDL, a hipótese central é que regras descritas em cinco modelos fixos (recurso, preparo, pré-requisito, consumo e exigência por paciente), acrescidos de alternativas (``ou'') e de restrições de horário (turnos da manhã e da noite), podem ser compiladas de forma determinística em PDDL equivalente ao escrito à mão, com menos esforço e sem inviabilizar o planejamento. Implementou-se um compilador que estende um domínio legal travado, instanciação com poda, planejamento por janelas com o Fast Downward e uma interface web para escrever regras e visualizar o roteiro. Na avaliação, com regras e pacientes sintéticos, três regras escritas à mão em PDDL, reescritas como modelos, reproduziram o domínio original em 24 de 24 instâncias; sete regras novas exigiram de 7 a 18 linhas de TOML, contra 13 a 60 linhas de PDDL, e acrescentaram de 1 a 9 minutos a um turno ótimo de 386 minutos. Com as sete regras e 10 pacientes, o roteiro é obtido em cerca de 30 segundos. Também se propõe a opção de um modelo de linguagem, pequeno (SLM) ou grande (LLM), traduzir regras em linguagem natural diretamente para PDDL.
+O planejamento das visitas domiciliares do Agente Comunitário de Saúde (ACS) precisa conciliar a ordem das visitas, as condições da Lei 11.350/2006 e materiais finitos, repostos apenas na Unidade Básica de Saúde. Este relatório apresenta um sistema que modela essas condições em PDDL, de modo que o planejamento automatizado incorpore regras novas sem alterar código. Como escrever cada regra exige dominar PDDL, a hipótese central é que regras descritas em cinco modelos fixos (recurso, preparo, pré-requisito, consumo e exigência por paciente), \pendente{acrescidos de alternativas (``ou'') e de restrições de horário (turnos da manhã e da noite),} podem ser compiladas de forma determinística em PDDL equivalente ao escrito à mão, com menos esforço e sem inviabilizar o planejamento. Implementou-se um compilador que estende um domínio legal travado, instanciação com poda, planejamento por janelas com o Fast Downward e uma interface web para escrever regras e visualizar o roteiro. Na avaliação, com regras e pacientes sintéticos, três regras escritas à mão em PDDL, reescritas como modelos, reproduziram o domínio original em 24 de 24 instâncias; sete regras novas exigiram de 7 a 18 linhas de TOML, contra 13 a 60 linhas de PDDL, e acrescentaram de 1 a 9 minutos a um turno ótimo de 386 minutos. Com as sete regras e 10 pacientes, o roteiro é obtido em cerca de 30 segundos. \pendente{Também se propõe a opção de um modelo de linguagem, pequeno (SLM) ou grande (LLM), traduzir regras em linguagem natural diretamente para PDDL.}
 \\[0.3cm]
 \textbf{Palavras-chave:} Agentes Comunitários de Saúde; Atenção Primária à Saúde; Planejamento Automatizado; PDDL; Compilação de Regras; Modelos de Linguagem.
 \end{abstract}
@@ -137,7 +142,7 @@ Uma hipótese em computação experimental deve ser mensurável, precisa e pass�
     \item \textbf{Hipótese Principal ($H_1$, correção):} regras descritas nos cinco modelos fixos e compiladas de forma determinística sobre o domínio legal produzem um domínio equivalente ao escrito à mão em PDDL, em estrutura e em comportamento, em todas as instâncias de teste.
     \item \textbf{Hipótese Secundária ($H_2$, esforço):} descrever uma regra nos modelos exige menos linhas do que as alterações correspondentes no domínio PDDL.
     \item \textbf{Hipótese Secundária ($H_3$, viabilidade):} com as regras ativas, o sistema gera um roteiro válido para um turno de 10 pacientes dentro do limite de 120\,s por busca.
-    \item \textbf{Hipótese de Extensão ($H_4$):} alternativas (``ou'') e restrições de horário podem ser incorporadas aos modelos preservando $H_1$ a $H_3$, e um modelo de linguagem consegue traduzir regras descritas em linguagem natural em regras equivalentes às escritas por uma pessoa.
+    \item \textbf{Hipótese de Extensão ($H_4$):} \pendente{alternativas (``ou'') e restrições de horário podem ser incorporadas aos modelos preservando $H_1$ a $H_3$, e um modelo de linguagem consegue traduzir regras descritas em linguagem natural em regras equivalentes às escritas por uma pessoa.}
 \end{itemize}
 
 \subsection{Métricas de Sucesso}
@@ -145,7 +150,7 @@ Uma hipótese em computação experimental deve ser mensurável, precisa e pass�
     \item \textbf{Equivalência ($H_1$):} igualdade de predicados e, em cada ação, de parâmetros, precondições, efeitos e custo; e, em cada instância, mesmo custo ótimo nos dois domínios, com o plano de um válido no outro. Como controle negativo, regras alteradas de propósito devem ser acusadas.
     \item \textbf{Esforço ($H_2$):} linhas escritas no arquivo de regras, sem comentários, contra linhas alteradas no domínio PDDL.
     \item \textbf{Custo e escala ($H_3$):} acréscimo em minutos ao turno ótimo e tempo até o roteiro, variando de 1 a 10 pacientes e de nenhuma a sete regras.
-    \item \textbf{Tradução ($H_4$):} proporção de regras geradas pelo modelo de linguagem que compilam e coincidem com um gabarito, desconsiderando os nomes escolhidos.
+    \item \textbf{Tradução ($H_4$):} \pendente{proporção de regras geradas pelo modelo de linguagem que compilam e coincidem com um gabarito, desconsiderando os nomes escolhidos.}
 \end{itemize}
 
 % ------------------------------------------------------------------------------
@@ -240,7 +245,7 @@ R1--R7 + 3 regras & 565.907.493.560 & 90.545 & $>$ 120\,s      & 550 min, 0,2\,s
     \item \textbf{$H_1$ confirmada:} estrutura igual e 24 de 24 instâncias equivalentes; as oito alterações propositais foram acusadas pela comparação estrutural, enquanto a comportamental só as revela quando a instância exercita a regra.
     \item \textbf{$H_2$ confirmada:} 7 a 18 linhas de TOML contra 13 a 60 de PDDL; cada linha escrita evita, em média, 3,1 linhas de PDDL espalhadas por até nove ações.
     \item \textbf{$H_3$ confirmada com o Fast Downward:} o primeiro plano sai em até 0,2\,s em todos os casos, e as janelas ($k=3$) dão 430 min em 16\,s com as sete regras; sem ele, a busca não termina a partir de seis regras.
-    \item \textbf{$H_4$:} ainda não avaliada.
+    \item \textbf{$H_4$:} \pendente{ainda não avaliada.}
     \item \textbf{Complexidade empírica:} as combinações crescem multiplicativamente com os parâmetros, e a poda as torna tratáveis; a busca ótima salta de 31\,s para mais de 120\,s ao passar de quatro para cinco regras, e $k=4$ leva dez vezes mais que $k=3$, como esperado para custo exponencial.
 \end{itemize}
 
@@ -258,7 +263,7 @@ Esta seção avalia o valor gerado além do laboratório. Como a solução compu
 \begin{itemize}
     \item \textbf{Impacto Social:} beneficia diretamente o ACS e a equipe de Saúde da Família, que mantêm as próprias regras sem depender de quem programa, e indiretamente os pacientes, visitados conforme a lei e os protocolos.
     \item \textbf{Impacto Econômico:} o roteiro substitui o planejamento manual, e o acréscimo de cada regra (1 a 9 minutos) explicita o custo de um protocolo antes de adotá-lo; o ganho frente ao processo manual não foi medido.
-    \item \textbf{Ética, Legal e LGPD:} dados de saúde são sensíveis~\cite{lgpd}, e todos os dados usados são fictícios. O sistema roda localmente; a tradução por modelo de linguagem recebe apenas o texto da regra, nunca dados de pacientes, e um SLM local evita enviá-lo a terceiros. Cada ação legal cita seu dispositivo, e o plano é conferível passo a passo. Os critérios de seleção dos pacientes devem ser validados pela equipe, para não excluir ninguém indevidamente.
+    \item \textbf{Ética, Legal e LGPD:} dados de saúde são sensíveis~\cite{lgpd}, e todos os dados usados são fictícios. O sistema roda localmente; \pendente{a tradução por modelo de linguagem recebe apenas o texto da regra, nunca dados de pacientes, e um SLM local evita enviá-lo a terceiros.} Cada ação legal cita seu dispositivo, e o plano é conferível passo a passo. Os critérios de seleção dos pacientes devem ser validados pela equipe, para não excluir ninguém indevidamente.
     \item \textbf{Impacto Ambiental:} indireto, ao evitar idas desnecessárias à UBS, com processamento leve.
 \end{itemize}
 
@@ -320,23 +325,23 @@ CROES, G. A. A method for solving traveling-salesman problems. \textbf{Operation
 \bibitem{fikes}
 FIKES, R. E.; NILSSON, N. J. STRIPS: a new approach to the application of theorem proving to problem solving. \textbf{Artificial Intelligence}, v.~2, n.~3-4, p.~189-208, 1971. DOI: 10.1016/0004-3702(71)90010-5.
 
+\bibitem{pddl}
+GHALLAB, M.; HOWE, A.; KNOBLOCK, C.; McDERMOTT, D.; RAM, A.; VELOSO, M. \textit{et al.} \textbf{PDDL: the Planning Domain Definition Language}. Technical Report CVC TR-98-003/DCS TR-1165. New Haven: Yale Center for Computational Vision and Control, out. 1998.
+
 \bibitem{helmert2006}
 HELMERT, M. The Fast Downward planning system. \textbf{Journal of Artificial Intelligence Research}, v.~26, p.~191-246, 2006. DOI: 10.1613/jair.1705.
 
 \bibitem{lmcut}
 HELMERT, M.; DOMSHLAK, C. Landmarks, critical paths and abstractions: what's the difference anyway? In: \textbf{International Conference on Automated Planning and Scheduling (ICAPS)}, v.~19, p.~162-169, 2009. DOI: 10.1609/icaps.v19i1.13370.
 
-\bibitem{pddl}
-McDERMOTT, D. \textit{et al.} \textbf{PDDL: the Planning Domain Definition Language}. Technical Report CVC TR-98-003. New Haven: Yale Center for Computational Vision and Control, 1998.
-
 \bibitem{nakhost}
-NAKHOST, H.; MÜLLER, M. Action elimination and plan neighborhood graph search: two algorithms for plan improvement. In: \textbf{International Conference on Automated Planning and Scheduling (ICAPS)}, v.~20, p.~121-128, 2010.
+NAKHOST, H.; MÜLLER, M. Action elimination and plan neighborhood graph search: two algorithms for plan improvement. In: \textbf{International Conference on Automated Planning and Scheduling (ICAPS)}, v.~20, p.~121-128, 2010. DOI: 10.1609/icaps.v20i1.13402.
 
 \bibitem{osrm}
 PROJECT OSRM. \textbf{Open Source Routing Machine}. Disponível em: \url{https://project-osrm.org}. Acesso em: 28 set. 2026.
 
 \bibitem{lama}
-RICHTER, S.; WESTPHAL, M. The LAMA planner: guiding cost-based anytime planning with landmarks. \textbf{Journal of Artificial Intelligence Research}, v.~39, p.~127-177, 2010. DOI: 10.1613/jair.3075.
+RICHTER, S.; WESTPHAL, M. The LAMA planner: guiding cost-based anytime planning with landmarks. \textbf{Journal of Artificial Intelligence Research}, v.~39, p.~127-177, 2010. DOI: 10.1613/jair.2972.
 
 \bibitem{rosenkrantz}
 ROSENKRANTZ, D. J.; STEARNS, R. E.; LEWIS, P. M. An analysis of several heuristics for the traveling salesman problem. \textbf{SIAM Journal on Computing}, v.~6, n.~3, p.~563-581, 1977. DOI: 10.1137/0206041.
@@ -350,7 +355,7 @@ Este trabalho foi desenvolvido em dois ciclos da disciplina Projeto em Ciência 
 
 \begin{itemize}
     \item \textbf{Ciclo 2:} Gabriel Pieruccini Knopp, Arthur Andrade da Silva e Izadora Candotti de Oliveira desenvolveram o planejador original: a seleção dos pacientes do turno, o roteamento das visitas, os domínios PDDL legal e estendido, o planejador e a planilha de pacientes. Esse código está preservado na pasta \texttt{PCI-Saude-GroupB} do repositório.
-    \item \textbf{Ciclo 3:} Luis Henrique Caselani Macedo Junior, Manuela Cristina Zen Dalmonte e Vítor Santana Feijó desenvolveram o compilador de regras, a instanciação com poda, o planejamento por janelas com o Fast Downward, a interface web e a avaliação experimental, além das extensões para alternativas, restrições de horário e tradução de regras por modelos de linguagem.
+    \item \textbf{Ciclo 3:} Luis Henrique Caselani Macedo Junior, Manuela Cristina Zen Dalmonte e Vítor Santana Feijó desenvolveram o compilador de regras, a instanciação com poda, o planejamento por janelas com o Fast Downward, a interface web e a avaliação experimental, \pendente{além das extensões para alternativas, restrições de horário e tradução de regras por modelos de linguagem.}
 \end{itemize}
 
 % ------------------------------------------------------------------------------
