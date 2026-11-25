@@ -113,7 +113,7 @@ O planejamento das visitas domiciliares do Agente Comunitário de Saúde (ACS) p
 Apresente o cenário prático real que motivou a investigação e a formalização computacional do problema.
 \end{instrucao}
 
-Na Atenção Primária à Saúde do SUS, cada Agente Comunitário de Saúde (ACS) responde por uma microárea e tem na visita domiciliar sua atividade central. Planejar um turno de visitas não se reduz a escolher um percurso: procedimentos como aferir a pressão e medir a glicemia exigem curso técnico, equipamento e assistência de profissional de nível superior (art.~3º, §~4º, da Lei 11.350/2006), e os insumos consumidos só são repostos na Unidade Básica de Saúde (UBS). Cada equipe adota ainda regras próprias, como higienizar as mãos antes dos procedimentos ou usar máscara N95 com pacientes com suspeita de tuberculose. Modeladas como um domínio PDDL, as condições legais são cumpridas pelo planejador sem código específico, mas cada regra nova exige editar o domínio em vários pontos, o que restringe sua manutenção a quem programa.
+Na Atenção Primária à Saúde do SUS, cada Agente Comunitário de Saúde (ACS) responde por uma microárea e tem na visita domiciliar sua atividade central~\cite{pnab}. Planejar um turno de visitas não se reduz a escolher um percurso: procedimentos como aferir a pressão e medir a glicemia exigem curso técnico, equipamento e assistência de profissional de nível superior (art.~3º, §~4º, da Lei 11.350/2006~\cite{lei11350,lei13595}), e os insumos consumidos só são repostos na Unidade Básica de Saúde (UBS). Cada equipe adota ainda regras próprias, como higienizar as mãos antes dos procedimentos ou usar máscara N95 com pacientes com suspeita de tuberculose. Modeladas como um domínio PDDL~\cite{pddl}, as condições legais são cumpridas pelo planejador sem código específico, mas cada regra nova exige editar o domínio em vários pontos, o que restringe sua manutenção a quem programa.
 
 Como dados clínicos reais são sensíveis, usou-se uma planilha sintética de 10 pacientes fictícios, com marcas como gestante e suspeita de tuberculose; só as coordenadas são reais.
 
@@ -155,14 +155,14 @@ Descreva a realização técnica: como as entidades reais foram mapeadas em estr
 \end{instrucao}
 
 \subsection{Modelagem Computacional e Arquitetura}
-O sistema é um \textit{pipeline}: seleção dos pacientes, roteamento (vizinho mais próximo com 2-opt), compilação das regras, busca do plano, limpeza e geração do roteiro. As regras, em TOML, são aplicadas sobre o domínio legal, que nunca é alterado. Na busca, uma tabela \textit{hash} dá a cada fato um inteiro; um estado é um conjunto imutável desses inteiros, e cada ação instanciada guarda precondições, adições e remoções como conjuntos. Estoques viram níveis discretos encadeados por um predicado de sucessor, mantendo o domínio em STRIPS sem números.
+O sistema é um \textit{pipeline}: seleção dos pacientes, roteamento (vizinho mais próximo~\cite{rosenkrantz} com 2-opt~\cite{croes}), compilação das regras, busca do plano, limpeza e geração do roteiro. As regras, em TOML, são aplicadas sobre o domínio legal, que nunca é alterado. Na busca, uma tabela \textit{hash} dá a cada fato um inteiro; um estado é um conjunto imutável desses inteiros, e cada ação instanciada guarda precondições, adições e remoções como conjuntos. Estoques viram níveis discretos encadeados por um predicado de sucessor, mantendo o domínio em STRIPS~\cite{fikes} sem números.
 
 \subsection{Algoritmos e Análise de Custo/Complexidade}
 \begin{itemize}
     \item \textbf{Compilação:} cada modelo acrescenta predicados, ações ou precondições, com custo linear no número de regras e de ações, exceto $k$ exigências sobre um mesmo procedimento, que geram $2^k$ versões dele.
     \item \textbf{Instanciação com poda:} em vez de enumerar o produto cartesiano dos parâmetros, liga-os um a um e descarta a combinação assim que uma precondição estática falha. Com sete regras, 4,7 bilhões de combinações viram 9.449 ações.
-    \item \textbf{Busca:} A* com $h_{max}$ (admissível) ou Fast Downward com LM-cut, ambos sobre fila de prioridade. Como o planejamento STRIPS é PSPACE-completo, o planejamento por janelas resolve de forma ótima as próximas $k$ visitas e avança uma por vez: custo linear no número de visitas e exponencial só em $k$.
-    \item \textbf{Limpeza:} remove ações redundantes, sem aumentar o custo.
+    \item \textbf{Busca:} A* com $h_{max}$ (admissível)~\cite{bonet} ou Fast Downward~\cite{helmert2006} com LM-cut~\cite{lmcut}, ambos sobre fila de prioridade. Como o planejamento STRIPS é PSPACE-completo~\cite{bylander}, o planejamento por janelas resolve de forma ótima as próximas $k$ visitas e avança uma por vez: custo linear no número de visitas e exponencial só em $k$.
+    \item \textbf{Limpeza:} remove ações redundantes~\cite{nakhost}, sem aumentar o custo.
 \end{itemize}
 
 \subsection{Tratamento e Pré-processamento dos Dados}
@@ -178,7 +178,7 @@ Descreva com rigor o protocolo experimental para assegurar a reprodutibilidade d
 \subsection{Ambiente Experimental e Variáveis}
 \begin{itemize}
     \item \textbf{Ambiente:} Intel Core Ultra 5 245KF (14 núcleos), 16\,GB de RAM, Windows 11, Python 3.14 e Fast Downward pelo pacote \texttt{up-fast-downward}.
-    \item \textbf{Variáveis Independentes:} o conjunto de regras ativas (nenhuma, cada uma sozinha ou acumuladas), o número de pacientes (1 a 10), a capacidade dos recursos e a estratégia de busca (A* com $h_{max}$ ou $h_{add}$, Fast Downward com LM-cut ou LAMA e janelas com $k$ de 1 a 4).
+    \item \textbf{Variáveis Independentes:} o conjunto de regras ativas (nenhuma, cada uma sozinha ou acumuladas), o número de pacientes (1 a 10), a capacidade dos recursos e a estratégia de busca (A* com $h_{max}$ ou $h_{add}$, Fast Downward com LM-cut ou LAMA~\cite{lama} e janelas com $k$ de 1 a 4).
     \item \textbf{Variáveis Dependentes:} a equivalência estrutural e comportamental, as linhas de TOML e de PDDL alterado, o custo do turno em minutos, o número de ações instanciadas e o tempo de busca.
     \item \textbf{Variáveis de Controle:} a mesma planilha, a mesma rota em todas as execuções, sementes fixas e, nas medições, limite de 120\,s por busca.
 \end{itemize}
@@ -257,14 +257,14 @@ Esta seção avalia o valor gerado além do laboratório. Como a solução compu
 \begin{itemize}
     \item \textbf{Impacto Social:} beneficia diretamente o ACS e a equipe de Saúde da Família, que mantêm as próprias regras sem depender de quem programa, e indiretamente os pacientes, visitados conforme a lei e os protocolos.
     \item \textbf{Impacto Econômico:} o roteiro substitui o planejamento manual, e o acréscimo de cada regra (1 a 9 minutos) explicita o custo de um protocolo antes de adotá-lo; o ganho frente ao processo manual não foi medido.
-    \item \textbf{Ética, Legal e LGPD:} dados de saúde são sensíveis, e todos os dados usados são fictícios. O sistema roda localmente; a tradução por modelo de linguagem recebe apenas o texto da regra, nunca dados de pacientes, e um SLM local evita enviá-lo a terceiros. Cada ação legal cita seu dispositivo, e o plano é conferível passo a passo. Os critérios de seleção dos pacientes devem ser validados pela equipe, para não excluir ninguém indevidamente.
+    \item \textbf{Ética, Legal e LGPD:} dados de saúde são sensíveis~\cite{lgpd}, e todos os dados usados são fictícios. O sistema roda localmente; a tradução por modelo de linguagem recebe apenas o texto da regra, nunca dados de pacientes, e um SLM local evita enviá-lo a terceiros. Cada ação legal cita seu dispositivo, e o plano é conferível passo a passo. Os critérios de seleção dos pacientes devem ser validados pela equipe, para não excluir ninguém indevidamente.
     \item \textbf{Impacto Ambiental:} indireto, ao evitar idas desnecessárias à UBS, com processamento leve.
 \end{itemize}
 
 \subsection{Viabilidade de Implantação e Transferência Tecnológica}
 \begin{itemize}
-    \item \textbf{Aderência ao Setor:} os parceiros naturais são as secretarias municipais de saúde e o e-SUS Território, que registra visitas, mas não planeja rotas nem verifica conformidade normativa.
-    \item \textbf{Desafios para Produção:} o protótipo está entre os níveis 3 e 4 de maturidade tecnológica; falta integrar o cadastro do e-SUS, usar distâncias pelas ruas em servidor próprio e operar sem conexão no dispositivo do ACS.
+    \item \textbf{Aderência ao Setor:} os parceiros naturais são as secretarias municipais de saúde e o e-SUS Território~\cite{esus}, que registra visitas, mas não planeja rotas nem verifica conformidade normativa.
+    \item \textbf{Desafios para Produção:} o protótipo está entre os níveis 3 e 4 de maturidade tecnológica; falta integrar o cadastro do e-SUS, usar distâncias pelas ruas~\cite{osrm} em servidor próprio e operar sem conexão no dispositivo do ACS.
     \item \textbf{Manutenibilidade:} a planilha se atualiza pelo cadastro a cada ciclo de visitas, as regras são revistas quando os protocolos mudam, e o domínio legal, só com a lei.
 \end{itemize}
 
@@ -292,16 +292,53 @@ A tese inicial, de que o planejamento encontraria planos que um programa procedu
 % ------------------------------------------------------------------------------
 \begin{thebibliography}{99}
 
-\bibitem{dadosabertos}
-[Nome da Base / Portal de Dados Abertos]. 
-\textit{[Título do Conjunto de Dados Utilizado]}. Disponível em: \url{https://dados.gov.br}. Acesso em: \today.
+\bibitem{bonet}
+BONET, B.; GEFFNER, H. Planning as heuristic search. \textbf{Artificial Intelligence}, v.~129, n.~1-2, p.~5-33, 2001. DOI: 10.1016/S0004-3702(01)00108-4.
 
-\bibitem{cormen}
-T. H. Cormen, C. E. Leiserson, R. L. Rivest, and C. Stein. 
-\textit{Introduction to Algorithms}. 3rd ed. MIT Press, 2009.
+\bibitem{lei11350}
+BRASIL. \textbf{Lei nº 11.350, de 5 de outubro de 2006}. Brasília, 2006. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11350.htm}. Acesso em: 1 out. 2026.
 
-\bibitem{metodologia}
-[Referência Metodológica de Computação Experimental / Métodos Científicos].
+\bibitem{lei13595}
+BRASIL. \textbf{Lei nº 13.595, de 5 de janeiro de 2018}. Altera a Lei nº 11.350, de 5 de outubro de 2006. Brasília, 2018. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13595.htm}. Acesso em: 22 set. 2026.
+
+\bibitem{lgpd}
+BRASIL. \textbf{Lei nº 13.709, de 14 de agosto de 2018}. Lei Geral de Proteção de Dados Pessoais (LGPD). Brasília, 2018. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm}. Acesso em: 25 nov. 2026.
+
+\bibitem{pnab}
+BRASIL. Ministério da Saúde. \textbf{Portaria GM/MS nº 2.436, de 21 de setembro de 2017}. Aprova a Política Nacional de Atenção Básica. Brasília: Diário Oficial da União, 2017. Disponível em: \url{https://www.in.gov.br/materia/-/asset_publisher/Kujrw0TZC2Mb/content/id/19308123}. Acesso em: 22 set. 2026.
+
+\bibitem{esus}
+BRASIL. Ministério da Saúde. \textbf{e-SUS Atenção Primária à Saúde: Manual de Uso do Aplicativo e-SUS Território, Versão 3.1}. Brasília: Ministério da Saúde, 2020. Disponível em: \url{https://sisaps.saude.gov.br/esus/upload/docs/manual_utilizacao_aplicativo_esus_aps_territorio.pdf}. Acesso em: 28 set. 2026.
+
+\bibitem{bylander}
+BYLANDER, T. The computational complexity of propositional STRIPS planning. \textbf{Artificial Intelligence}, v.~69, n.~1-2, p.~165-204, 1994. DOI: 10.1016/0004-3702(94)90081-7.
+
+\bibitem{croes}
+CROES, G. A. A method for solving traveling-salesman problems. \textbf{Operations Research}, v.~6, n.~6, p.~791-812, 1958. DOI: 10.1287/opre.6.6.791.
+
+\bibitem{fikes}
+FIKES, R. E.; NILSSON, N. J. STRIPS: a new approach to the application of theorem proving to problem solving. \textbf{Artificial Intelligence}, v.~2, n.~3-4, p.~189-208, 1971. DOI: 10.1016/0004-3702(71)90010-5.
+
+\bibitem{helmert2006}
+HELMERT, M. The Fast Downward planning system. \textbf{Journal of Artificial Intelligence Research}, v.~26, p.~191-246, 2006. DOI: 10.1613/jair.1705.
+
+\bibitem{lmcut}
+HELMERT, M.; DOMSHLAK, C. Landmarks, critical paths and abstractions: what's the difference anyway? In: \textbf{International Conference on Automated Planning and Scheduling (ICAPS)}, v.~19, p.~162-169, 2009. DOI: 10.1609/icaps.v19i1.13370.
+
+\bibitem{pddl}
+McDERMOTT, D. \textit{et al.} \textbf{PDDL: the Planning Domain Definition Language}. Technical Report CVC TR-98-003. New Haven: Yale Center for Computational Vision and Control, 1998.
+
+\bibitem{nakhost}
+NAKHOST, H.; MÜLLER, M. Action elimination and plan neighborhood graph search: two algorithms for plan improvement. In: \textbf{International Conference on Automated Planning and Scheduling (ICAPS)}, v.~20, p.~121-128, 2010.
+
+\bibitem{osrm}
+PROJECT OSRM. \textbf{Open Source Routing Machine}. Disponível em: \url{https://project-osrm.org}. Acesso em: 28 set. 2026.
+
+\bibitem{lama}
+RICHTER, S.; WESTPHAL, M. The LAMA planner: guiding cost-based anytime planning with landmarks. \textbf{Journal of Artificial Intelligence Research}, v.~39, p.~127-177, 2010. DOI: 10.1613/jair.3075.
+
+\bibitem{rosenkrantz}
+ROSENKRANTZ, D. J.; STEARNS, R. E.; LEWIS, P. M. An analysis of several heuristics for the traveling salesman problem. \textbf{SIAM Journal on Computing}, v.~6, n.~3, p.~563-581, 1977. DOI: 10.1137/0206041.
 
 \end{thebibliography}
 
