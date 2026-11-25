@@ -276,16 +276,16 @@ Sintetize os aprendizados do ciclo de P\&D: o que deu certo, o que não funciono
 \end{instrucao}
 
 \subsection{Síntese dos Resultados Técnicos}
-Regras descritas em modelos fixos podem ser compiladas em PDDL equivalente ao escrito à mão, com cerca de um terço das linhas e sem afrouxar a lei. O planejamento continua viável com muitas regras, desde que se use um planejador de referência e o planejamento por janelas, ao custo de abrir mão da garantia de ótimo.
+Regras descritas em modelos fixos podem ser compiladas em PDDL equivalente ao escrito à mão, com cerca de um terço das linhas e sem afrouxar a lei. O planejamento continua viável com muitas regras, com um planejador de referência e o planejamento por janelas, mas sem garantia de ótimo.
 
 \subsection{O Que Funcionou vs. O Que Não Funcionou}
 A tese inicial, de que o planejamento encontraria planos que um programa procedural não encontra, foi refutada: corrigido, o procedural acha os mesmos planos. O que se sustentou foi o custo de manutenção: diante de regras novas, a correção procedural falha, e o domínio PDDL se adapta sem mudar código. Isso motivou o compilador. Também foram reformulados: a instanciação, que não terminava com sete regras; a heurística padrão $h_{add}$, que gerava turnos até 35\% mais longos; e o planejamento só por janelas, que podia esgotar a supervisão antes da última visita.
 
 \subsection{Próximos Passos de Pesquisa e Desenvolvimento}
 \begin{itemize}
-    \item \textbf{Alternativas (``ou''):} uma versão da ação para cada alternativa, controlando o crescimento das combinações.
-    \item \textbf{Restrições de horário (manhã e noite):} um relógio discreto no domínio, um planejador temporal ou a ordenação das visitas pelo roteirizador.
-    \item \textbf{Tradução por modelo de linguagem:} um SLM ou LLM traduzindo regras em linguagem natural para PDDL, avaliado contra gabaritos.
+    \item \textbf{Conflitos entre regras:} detectar, por alcançabilidade relaxada, regras que tornam um paciente impossível de atender ou que não têm efeito.
+    \item \textbf{Replanejamento durante o turno:} reagir a paciente ausente, visita urgente ou falta de material a partir do estado atual, medindo tempo de resposta e perda de qualidade.
+    \item \textbf{Estudo com dados reais:} com uma UBS parceira, dados anonimizados e aprovação ética, medir o ganho frente ao planejamento manual.
     \item \textbf{Teste com usuários} que não programam, cujo material já está pronto, e a escolha da rota considerando as regras.
 \end{itemize}
 
