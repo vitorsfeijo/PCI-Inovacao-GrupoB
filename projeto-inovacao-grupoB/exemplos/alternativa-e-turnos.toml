@@ -1,0 +1,23 @@
+# Exemplo sintético de alternativa de preparo e visitas restritas à manhã. Use a planilha Avaliação.
+
+[[preparo]]
+nome = "conferir-aparelho"
+estado = "aparelho-conferido"
+custo = 1
+texto = "Conferir o aparelho antes da medição"
+
+[[preparo]]
+nome = "conferir-kit"
+estado = "kit-conferido"
+custo = 2
+texto = "Fazer a conferência pelo checklist do kit"
+
+[[alternativa]]
+nome = "conferencia-do-aparelho"
+preparos = ["conferir-aparelho", "conferir-kit"]
+antes_de = ["pressao"]
+
+[[periodo]]
+nome = "gestantes-pela-manha"
+marca = "gestante"
+turnos = ["manha"]

@@ -36,6 +36,18 @@
       <button class="botao botao--primario" id="botao-baixar" type="button" disabled>Baixar regras.toml</button>
     </div>
 
+    <details class="painel tradutor">
+      <summary>Traduzir descrição em regra</summary>
+      <div class="campo">
+        <label for="descricao-regra">Descreva a regra da equipe</label>
+        <textarea id="descricao-regra" rows="3" maxlength="2000"
+          placeholder="Ex.: pacientes marcados como gestante só podem ser visitados pela manhã."></textarea>
+        <p class="campo__ajuda">A descrição é enviada ao provedor configurado. Use regras gerais, sem dados de pacientes.</p>
+        <button type="button" class="botao" id="traduzir-regra">Criar regras no rascunho</button>
+        <div id="resultado-traducao" role="status"></div>
+      </div>
+    </details>
+
     <div class="regras">
       <section class="painel" aria-labelledby="titulo-lista">
         <h2 id="titulo-lista">Regras da equipe</h2>
@@ -104,6 +116,9 @@
 
         <fieldset class="secao">
           <legend>3. Turno</legend>
+          <label class="opcao"><input type="checkbox" name="dois_turnos">
+            <span>Planejar manhã e tarde</span></label>
+          <div id="turno-unico">
           <div class="linha">
             <label>Início <input type="time" name="inicio" value="08:00"></label>
             <label>Duração (min) <input type="number" name="orcamento" min="1" placeholder="sem limite"></label>
@@ -111,6 +126,22 @@
           </div>
           <p class="campo__ajuda">Com duração ou máximo, os pacientes mais prioritários entram
             no turno e os demais ficam para outro dia.</p>
+          </div>
+          <div id="dois-turnos" class="oculto">
+            <div class="linha">
+              <strong>Manhã</strong>
+              <label>Início <input type="time" name="inicio_manha" value="08:00"></label>
+              <label>Duração (min) <input type="number" name="duracao_manha" min="1" value="240"></label>
+              <label>Máx. de pacientes <input type="number" name="max_manha" min="1" placeholder="automático"></label>
+            </div>
+            <div class="linha">
+              <strong>Tarde</strong>
+              <label>Início <input type="time" name="inicio_tarde" value="13:00"></label>
+              <label>Duração (min) <input type="number" name="duracao_tarde" min="1" value="240"></label>
+              <label>Máx. de pacientes <input type="number" name="max_tarde" min="1" placeholder="automático"></label>
+            </div>
+            <p class="campo__ajuda">Cada turno sai da UBS com estoque cheio e retorna à UBS.</p>
+          </div>
         </fieldset>
 
         <details class="avancadas">

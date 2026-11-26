@@ -41,6 +41,19 @@ export function pedidoDe(formulario) {
     if (formulario[chave] && formulario[chave] !== "padrao") opcoes[chave] = formulario[chave];
   }
   for (const chave of OPCOES_SIM_NAO) if (formulario[chave]) opcoes[chave] = true;
+  if (formulario.turnos) {
+    const turnos = {};
+    for (const [id, rotulo] of [["manha", "Manhã"], ["tarde", "Tarde"]]) {
+      const { inicio, duracao: bruta, max_pacientes: maximo } = formulario.turnos[id];
+      const duracao = inteiro(bruta, `${rotulo} — duração`);
+      const max = inteiro(maximo, `${rotulo} — máximo de pacientes`);
+      if (!inicio || !duracao || max === 0) {
+        throw new Error(`${rotulo} precisa de horário e duração positiva. O máximo, se informado, deve ser positivo.`);
+      }
+      turnos[id] = { inicio, duracao, ...(max !== undefined ? { max_pacientes: max } : {}) };
+    }
+    opcoes.turnos = turnos;
+  }
   if (Object.keys(opcoes).length) pedido.opcoes = opcoes;
   return pedido;
 }
@@ -124,6 +137,9 @@ export function explicarFalha(tarefa) {
   const falha = tarefa.resultado?.falha ?? { tipo: "erro", mensagens: [] };
   const mensagens = falha.mensagens.filter((m) => !m.startsWith("Motivo informado"));
   switch (falha.tipo) {
+    case "orcamento":
+      return { titulo: "O roteiro excede a duração do turno", itens: mensagens,
+               dica: "Revise a duração disponível e a seleção de pacientes." };
     case "interrompida":
       return { titulo: "A busca parou no limite de tempo",
                itens: mensagens.slice(0, 1),

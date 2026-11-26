@@ -254,6 +254,71 @@ compilação.
 
 ## Planejando o turno e gerando o roteiro do ACS
 
+### Testar OR, manhã e tarde e a tradução
+
+Abra a interface com `python acs.py web`. Na aba **Regras**, abra o exemplo
+**alternativa-e-turnos**. Na aba **Planejar**, selecione a planilha de exemplo
+**Avaliação**, marque **Planejar manhã e tarde** e mantenha as regras da equipe
+selecionadas. Cada roteiro mostra o horário, as visitas e a rota do turno.
+O exemplo exige um de dois preparos por medição de pressão e restringe a
+paciente marcada como gestante à manhã. As alternativas são inclusivas.
+Blocos diferentes valem ao mesmo tempo, inclusive as demais exigências.
+
+O mesmo cenário no terminal:
+
+```powershell
+python acs.py planejar exemplos/alternativa-e-turnos.toml --dados exemplos/avaliacao/microarea-avaliacao.csv --manha 08:00 240 --tarde 13:00 240 --planejador ciclo2 --estrategia gbfs
+```
+
+Os dois números `240` são as durações em minutos. A manhã termina até 12:00
+e a tarde começa a partir de 12:00. Para limitar as visitas por turno, use
+`--max-pacientes-manha` e `--max-pacientes-tarde`. A seleção mantém a
+proteção aos pacientes inadiáveis. Cada saída começa na UBS com os recursos
+iniciais do turno (incluindo a cota de supervisão), e o retorno conta na
+duração. A alocação usa uma estimativa de vagas e confere o custo do plano
+encontrado. Um paciente sem alocação aparece com o motivo. Regras de
+período exigem o modo de dois turnos.
+
+A tradução é opcional. Para testar com o **Gemini**, crie uma chave em
+[Google AI Studio](https://aistudio.google.com/apikey), escolha um projeto
+no plano gratuito e rode no PowerShell, com o servidor anterior encerrado:
+
+```powershell
+$env:ACS_LLM_PROVEDOR = "gemini"
+$env:ACS_LLM_MODELO = "gemini-3.5-flash-lite"
+$env:GEMINI_API_KEY = Read-Host -MaskInput "Chave do Gemini"
+python acs.py web
+```
+
+Esse modelo aceita texto dentro da [cota gratuita do Gemini](https://aistudio.google.com/docs/pricing#gemini-3.5-flash-lite).
+O modo Gemini usa a chave `GEMINI_API_KEY` e o endereço oficial do Google.
+
+Para usar **OpenAI**, configure estas variáveis antes de iniciar o servidor:
+
+```powershell
+$env:ACS_LLM_PROVEDOR = "chat-completions"
+$env:ACS_LLM_MODELO = "gpt-5.4-mini"
+$env:ACS_LLM_CHAVE = Read-Host -MaskInput "Chave da API"
+python acs.py web
+```
+
+Para outro provedor, use `ACS_LLM_PROVEDOR=chat-completions` e defina
+`ACS_LLM_URL` como a URL base da API
+compatível com Chat Completions em modo JSON, por exemplo
+`http://127.0.0.1:11434/v1` para um servidor local compatível. Use
+`ACS_LLM_CHAVE` se o servidor exigir autenticação. Na aba **Regras**, comece
+com um rascunho vazio e abra **Traduzir descrição em regra**. Experimente
+“Pacientes marcados como gestante só podem ser visitados pela manhã”.
+Clique em **Criar regras no rascunho**. Os blocos válidos entram na lista,
+onde você pode editar os campos ou desfazer a adição logo após criar.
+O tradutor normaliza nomes e referências. Quando a duração é omitida, ele
+usa um valor inicial editável de 0 min para o preparo e 3 min para a
+reposição de um recurso, com aviso na tela.
+Use descrições gerais e mantenha dados pessoais fora do texto. O servidor
+envia a descrição, o catálogo e os nomes de recursos e preparos ao provedor.
+
+### Planejar um turno
+
 ```bash
 python acs.py planejar exemplos/sinteticas-ciclo2.toml --orcamento 240
 ```

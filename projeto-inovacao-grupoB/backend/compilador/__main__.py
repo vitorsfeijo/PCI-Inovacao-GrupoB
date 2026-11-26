@@ -88,6 +88,9 @@ def main(argv: list[str] | None = None) -> int:
         dominio = compilar_dominio(_ler_pddl(args.dominio), regras, nome=args.nome)
         problema = None
         if args.problema:
+            if regras.periodos:
+                raise ErroRegra("as regras de período precisam alocar pacientes em dois turnos. "
+                                "Use 'acs.py planejar' com --manha e --tarde")
             marcados = None
             if regras.exigencias and args.dados:
                 dados = ciclo2.ler_dados(args.dados,
@@ -111,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
         f"  preparos: {', '.join(p.nome for p in regras.preparos) or '-'}",
         f"  consumos: {', '.join(f'{c.procedimento}->{c.recurso}' for c in regras.consumos) or '-'}",
         f"  exigencias: {', '.join(e.nome for e in regras.exigencias) or '-'}",
+        f"  alternativas: {', '.join(a.nome for a in regras.alternativas) or '-'}",
+        f"  períodos (aplicados ao planejar o dia): {', '.join(p.nome for p in regras.periodos) or '-'}",
     ]
     aviso = "ARQUIVO GERADO pelo compilador de regras. Nao editar a mao."
     texto_dominio = escrever_pddl(

@@ -19,6 +19,7 @@ export class TelaRegras {
     this.aoMudar = aoMudar ?? (() => {});
     this.estado = estadoVazio();
     this.selecionado = null;              // { modelo, id }
+    this.revisao = 0;
     this.validacao = { ok: null, problemas: [], avisos: [], toml: null };
     this.validarDepois = adiar(() => this.validar(), 300);
     this.$ = (seletor) => raiz.querySelector(seletor);
@@ -57,6 +58,70 @@ export class TelaRegras {
       await this.abrirToml(toml, `${id}.toml`);
     });
     this.$("#botao-baixar").addEventListener("click", () => this.baixar());
+    this.$("#traduzir-regra").addEventListener("click", () => this.traduzir());
+    this.$("#descricao-regra").addEventListener("input", () =>
+      this.$("#resultado-traducao").replaceChildren());
+  }
+
+  async traduzir() {
+    const entrada = this.$("#descricao-regra");
+    const botao = this.$("#traduzir-regra");
+    const saida = this.$("#resultado-traducao");
+    const descricao = entrada.value.trim();
+    const regras = dadosParaApi(this.estado);
+    const instantaneo = JSON.stringify(regras);
+    const atual = () => entrada.value.trim() === descricao
+      && JSON.stringify(dadosParaApi(this.estado)) === instantaneo;
+    if (!descricao) {
+      saida.textContent = "Descreva o que deve acontecer para criar a regra.";
+      entrada.focus();
+      return;
+    }
+    botao.disabled = true;
+    saida.textContent = "Traduzindo…";
+    try {
+      const resposta = await api.traduzirRegra(descricao, regras);
+      if (!atual()) {
+        saida.textContent = "A descrição ou o rascunho mudou durante a tradução. Tente novamente.";
+      } else if (resposta.status === "candidata") {
+        const novos = estadoDe(resposta.regras);
+        const ids = new Set(Object.values(novos).flat().map((bloco) => bloco._id));
+        const anterior = this.selecionado;
+        for (const modelo of MODELOS) this.estado[modelo].push(...novos[modelo]);
+        const primeiro = MODELOS.find((modelo) => novos[modelo].length);
+        this.selecionado = { modelo: primeiro, id: novos[primeiro][0]._id };
+        this.desenharTudo();
+        this.mudou();
+
+        const revisao = this.revisao;
+        const desfazer = () => {
+          if (revisao !== this.revisao) {
+            saida.textContent = "O rascunho já foi editado. Remova os blocos pela lista se precisar.";
+            return;
+          }
+          for (const modelo of MODELOS) {
+            this.estado[modelo] = this.estado[modelo].filter((bloco) => !ids.has(bloco._id));
+          }
+          this.selecionado = anterior;
+          this.desenharTudo();
+          this.mudou();
+          saida.textContent = "Os blocos adicionados pelo tradutor foram removidos.";
+        };
+        const detalhes = resposta.observacoes ?? [];
+        saida.replaceChildren(
+          el("p", {}, `${ids.size} ${ids.size === 1 ? "bloco adicionado" : "blocos adicionados"} ao rascunho. Revise na lista de regras.`),
+          detalhes.length ? el("ul", { class: "lista-problemas" },
+            detalhes.map((texto) => el("li", {}, texto))) : null,
+          el("button", { class: "botao", type: "button", onclick: desfazer }, "Desfazer adição"));
+      } else {
+        saida.textContent = resposta.mensagem ?? resposta.problemas?.join(" · ")
+          ?? "Não foi possível traduzir a descrição.";
+      }
+    } catch (erro) {
+      saida.textContent = erro.message;
+    } finally {
+      botao.disabled = false;
+    }
   }
 
   temRegras() {
@@ -101,18 +166,25 @@ export class TelaRegras {
   // ---- estado: mudancas, validacao, rascunho ------------------------------
 
   mudou() {
+    this.revisao++;
+    this.validacao = { ok: null, problemas: [], avisos: [], toml: null };
+    this.desenharSituacao();
     this.salvarRascunho();
     this.validarDepois();
     this.aoMudar(this);
   }
 
   async validar() {
+    const revisao = this.revisao;
     if (!this.temRegras()) {
       this.validacao = { ok: null, problemas: [], avisos: [], toml: null };
     } else {
       try {
-        this.validacao = await api.validarRegras(dadosParaApi(this.estado));
+        const validacao = await api.validarRegras(dadosParaApi(this.estado));
+        if (revisao !== this.revisao) return;
+        this.validacao = validacao;
       } catch (erro) {
+        if (revisao !== this.revisao) return;
         this.mostrarErroGeral(`O servidor não respondeu: ${erro.message}`);
         return;
       }
@@ -361,14 +433,24 @@ export class TelaRegras {
           el("input", { type: "checkbox", id, checked: bloco[campo.id] ?? campo.padrao ?? false,
                         onchange: (e) => aplicar(e.target.checked) }), "Sim");
         break;
-      case "procedimentos": {
+      case "procedimentos":
+      case "referencias":
+      case "opcoes": {
+        const opcoes = campo.tipo === "referencias"
+          ? this.estado[campo.modelo].filter((b) => b.nome).map((b) => [b.nome, b.texto || b.nome])
+          : Object.entries(campo.tipo === "opcoes" ? campo.opcoes : this.procedimentos);
         const marcados = new Set(bloco[campo.id] ?? []);
+        if (campo.tipo === "referencias") {
+          for (const nome of marcados) {
+            if (!opcoes.some(([id]) => id === nome)) opcoes.push([nome, `${nome} (preparo ausente)`]);
+          }
+        }
         controle = el("div", { class: "opcoes", role: "group", "aria-labelledby": `${id}-rotulo` },
-          Object.entries(this.procedimentos).map(([pid, descricao]) => el("label", { class: "opcao" },
+          opcoes.map(([pid, descricao]) => el("label", { class: "opcao" },
             el("input", { type: "checkbox", value: pid, checked: marcados.has(pid),
                           onchange: (e) => {
                             e.target.checked ? marcados.add(pid) : marcados.delete(pid);
-                            aplicar(Object.keys(this.procedimentos).filter((p) => marcados.has(p)));
+                            aplicar(opcoes.map(([id]) => id).filter((id) => marcados.has(id)));
                           } }),
             descricao)));
         break;
@@ -402,7 +484,7 @@ export class TelaRegras {
           oninput: (e) => { aplicar(e.target.value); conferir(bloco[campo.id]); },
           onchange: renomeado });
     }
-    const temRotuloProprio = ["procedimentos"].includes(campo.tipo);
+    const temRotuloProprio = ["procedimentos", "referencias", "opcoes"].includes(campo.tipo);
     caixa.append(
       temRotuloProprio ? el("span", { class: "campo__rotulo", id: `${id}-rotulo` }, rotulo)
                        : el("label", { for: id }, rotulo),

@@ -98,6 +98,22 @@ await rodarCenario(async ({ avaliar, ate, capturar, abrir, largura, temaEscuro, 
   await ate("document.querySelectorAll('.cartao').length === 7", "o rascunho voltar");
   relato.passos.push("rascunho");
 
+  // O servidor do teste devolve uma resposta simulada com nomes não normalizados.
+  await avaliar(`${AJUDANTES};
+    document.querySelector('.tradutor').open = true;
+    document.getElementById('descricao-regra').value =
+      'Deve ser levado termômetro para atender pacientes com diabetes';
+    document.getElementById('traduzir-regra').click(); true`);
+  await ate("document.querySelectorAll('.cartao').length === 9 && __e2e.previa().includes('levar-termometro')",
+            "a tradução criar e validar os dois blocos direto no rascunho");
+  relato.toml_traduzido = await avaliar("__e2e.previa()");
+  relato.mensagem_traducao = await avaliar("document.getElementById('resultado-traducao').textContent");
+  await avaliar("document.querySelector('#resultado-traducao button').click(); true");
+  await ate("document.querySelectorAll('.cartao').length === 7 && __e2e.selo().includes('válidas')",
+            "desfazer com as regras anteriores intactas");
+  relato.toml_apos_desfazer = await avaliar("__e2e.previa()");
+  await avaliar("document.querySelector('.tradutor').open = false; true");
+
   // 7. tema escuro do sistema
   await temaEscuro(true);
   await avaliar("__e2e = undefined; true");

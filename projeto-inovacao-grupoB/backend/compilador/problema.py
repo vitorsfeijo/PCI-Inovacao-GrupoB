@@ -185,6 +185,17 @@ def gerar_problema_com_regras(dados: dict, roteamento: dict, regras: Regras,
         gerar_problema(dados, roteamento, caminho_legal, dominio="legal")
         arvore = ciclo2.planejador().ler_sexp(caminho_legal)
 
+    if not dados["pacientes"]:
+        # Sem visitas, o ACS permanece na UBS e o plano vazio satisfaz o objetivo.
+        objetos = _secao(arvore, ":objects")
+        indice = next(i for i in range(1, len(objetos))
+                      if objetos[i:i + 2] == ["-", "paciente"])
+        del objetos[indice:indice + 2]
+        init = _secao(arvore, ":init")
+        init[:] = [fato for fato in init if not isinstance(fato, list)
+                   or fato[0] != "proxima-parada"]
+        _secao(arvore, ":goal")[1] = ["and", ["em", dados["agente"]["id"], dados["ubs"]["id"]]]
+
     compilado = compilar_problema(arvore, regras, nome_dominio=nome_dominio,
                                   marcados=marcas_dos_dados(dados, regras))
     texto = escrever_pddl(compilado, [

@@ -19,6 +19,7 @@ export const api = {
   validarCampo: (modelo, campo, valor) => pedir("/api/regras/campo", { modelo, campo, valor }),
   validarRegras: (regras) => pedir("/api/regras/validar", { regras }),
   lerToml: (toml) => pedir("/api/regras/ler", { toml }),
+  traduzirRegra: (descricao, regras) => pedir("/api/regras/traduzir", { descricao, regras }),
   planejar: (pedido) => pedir("/api/planejar", pedido),
   tarefa: (id) => pedir(`/api/tarefas/${encodeURIComponent(id)}`),
 };

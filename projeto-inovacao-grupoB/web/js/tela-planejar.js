@@ -53,6 +53,9 @@ export class TelaPlanejar {
     this.form.querySelector(`input[name=regras][value=${usar ? "equipe" : "nenhuma"}]`).checked = true;
 
     const fonte = this.form.elements.fonte.value;
+    const dois = this.form.elements.dois_turnos.checked;
+    this.$("#turno-unico").classList.toggle("oculto", dois);
+    this.$("#dois-turnos").classList.toggle("oculto", !dois);
     for (const detalhe of this.raiz.querySelectorAll("[data-fonte]")) {
       detalhe.classList.toggle("oculto", detalhe.dataset.fonte !== fonte);
     }
@@ -86,8 +89,11 @@ export class TelaPlanejar {
       csv: this.csv,
       pacientes_sinteticos: f.pacientes_sinteticos.value,
       semente_sintetica: f.semente_sintetica.value,
-      orcamento: f.orcamento.value,
-      max_pacientes: f.max_pacientes.value,
+      orcamento: f.dois_turnos.checked ? undefined : f.orcamento.value,
+      max_pacientes: f.dois_turnos.checked ? undefined : f.max_pacientes.value,
+      turnos: f.dois_turnos.checked ? Object.fromEntries(["manha", "tarde"].map((t) =>
+        [t, { inicio: f[`inicio_${t}`].value, duracao: f[`duracao_${t}`].value,
+              max_pacientes: f[`max_${t}`].value }])) : null,
       limite: f.limite.value,
       semente: f.semente.value,
       estrategia: f.estrategia.value,
@@ -116,7 +122,10 @@ export class TelaPlanejar {
                            : "planilha da equipe (nenhum arquivo escolhido)"),
       sintetica: () => `${f.pacientes_sinteticos.value} pacientes inventados (semente ${f.semente_sintetica.value || 0})`,
     }[f.fonte.value]();
-    const turno = [f.orcamento.value && `turno de ${f.orcamento.value} min`,
+    const turno = f.dois_turnos.checked
+      ? [`Manhã ${f.inicio_manha.value} (${f.duracao_manha.value} min)`,
+         `Tarde ${f.inicio_tarde.value} (${f.duracao_tarde.value} min)`]
+      : [f.orcamento.value && `turno de ${f.orcamento.value} min`,
                    f.max_pacientes.value && `até ${f.max_pacientes.value} pacientes`,
                    f.inicio.value && `início ${f.inicio.value}`].filter(Boolean);
     return [pacientes, ...turno].join(" · ");
@@ -171,18 +180,46 @@ export class TelaPlanejar {
   mostrarTarefa(tarefa, inicio) {
     this.$("#progresso").classList.add("oculto");
     const saida = this.$("#resultado");
-    if (tarefa.estado === "pronta" && tarefa.resultado?.codigo === 0) {
+    if (tarefa.estado === "pronta" && tarefa.resultado?.turnos) {
+      this.mostrarDia(tarefa, saida);
+    } else if (tarefa.estado === "pronta" && tarefa.resultado?.codigo === 0) {
       this.ultimo = { resultado: tarefa.resultado, inicio };
       saida.replaceChildren(...this.roteiro(tarefa.resultado, inicio, tarefa.mensagens));
       this.aoPlanejar(this.ultimo);
+      saida.dataset.estado = "roteiro";
     } else {
       saida.replaceChildren(this.falha(tarefa));
+      saida.dataset.estado = "falha";
     }
-    saida.dataset.estado = tarefa.estado === "pronta" && tarefa.resultado?.codigo === 0
-      ? "roteiro" : "falha";                                  // usado pelos testes
     if (window.matchMedia("(max-width: 899px)").matches) {
       saida.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  }
+
+  mostrarDia(tarefa, saida) {
+    const dia = tarefa.resultado;
+    const primeiro = dia.turnos.find((t) => t.codigo === 0 && t.paradas.length);
+    this.ultimo = primeiro ? { resultado: primeiro, inicio: primeiro.inicio } : null;
+    this.aoPlanejar(this.ultimo);
+    const blocos = dia.turnos.flatMap((turno) => {
+      if (turno.codigo === 0 && turno.paradas.length) return this.roteiro(turno, turno.inicio, []);
+      return el("section", { class: "painel" },
+        el("h2", {}, `${turno.rotulo} · ${turno.inicio}`),
+        turno.codigo === 0 ? el("p", {}, "Nenhuma visita neste turno.")
+          : this.falha({ ...tarefa, resultado: turno, mensagens: [] }));
+    });
+    const pendentes = dia.nao_alocados.length
+      ? el("div", { class: "painel" }, el("h3", {}, "Pacientes sem alocação no dia"),
+          el("ul", { class: "lista-problemas" }, dia.nao_alocados.map((p) =>
+            el("li", {}, `${p.nome}${p.inadiavel ? " (inadiável)" : ""} — ${p.motivo}`))))
+      : null;
+    saida.replaceChildren(...[
+      el("div", { class: "painel" }, el("h2", {}, "Planejamento do dia"),
+        el("button", { class: "botao roteiro__acoes", type: "button",
+          onclick: () => baixar(dia.texto + "\n", "roteiro-do-dia.txt") }, "Baixar o dia (.txt)")),
+      ...blocos, pendentes, this.mensagens(tarefa.mensagens, false),
+    ].filter(Boolean));
+    saida.dataset.estado = dia.turnos.some((t) => t.codigo === 0) ? "roteiro" : "falha";
   }
 
   // ---- desenho do resultado -------------------------------------------------
@@ -241,15 +278,22 @@ export class TelaPlanejar {
     return [el("div", { class: "painel roteiro" },
       el("div", { class: "roteiro__topo" },
         el("div", {},
-          el("h2", {}, "Roteiro do turno"),
+          el("h2", {}, r.rotulo ? `${r.rotulo} · ${inicio}` : "Roteiro do turno"),
           el("p", { class: "campo__ajuda" },
              r.regras ? "Com as regras da equipe" : "Só com as normas da lei", " · ", resumo.busca)),
         el("div", { class: "roteiro__acoes" },
-          this.verNoMapa ? el("button", { class: "botao", type: "button", id: "ver-no-mapa",
-                                          onclick: () => this.verNoMapa() }, "Ver no mapa") : null,
+          this.verNoMapa && (!r.turno || r.paradas.length)
+            ? el("button", { class: "botao", type: "button",
+                             id: r.turno ? `ver-no-mapa-${r.turno}` : "ver-no-mapa",
+                             onclick: () => {
+                               this.ultimo = { resultado: r, inicio };
+                               this.aoPlanejar(this.ultimo);
+                               this.verNoMapa();
+                             } }, "Ver no mapa") : null,
           el("button", { class: "botao", type: "button", onclick: () => window.print() }, "Imprimir"),
           el("button", { class: "botao", type: "button",
-                         onclick: () => baixar(r.texto + "\n", "roteiro.txt") }, "Baixar (.txt)"))),
+                         onclick: () => baixar(r.texto + "\n",
+                           r.turno ? `roteiro-${r.turno}.txt` : "roteiro.txt") }, "Baixar (.txt)"))),
       numeros, avisos, paradas, adiados,
       this.mensagens(mensagens, false))];
   }

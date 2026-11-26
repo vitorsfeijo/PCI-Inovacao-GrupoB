@@ -24,8 +24,10 @@ programa consegue acrescentar regras.
 ## A proposta
 
 A equipe descreve a regra preenchendo **modelos fixos**, e um **compilador** a
-transforma em PDDL de forma determinística, sem LLM. As normas (o domínio
-legal) ficam travadas; as regras da equipe são aplicadas por cima.
+transforma em PDDL de forma determinística. A interface pode usar uma LLM
+opcional para criar blocos no rascunho a partir de uma descrição em português.
+A equipe revisa e edita os blocos no formulário. As normas (o domínio legal) ficam
+travadas e as regras da equipe são aplicadas por cima.
 
 ```
 assistente interativo  ──gera──▶  regras.toml  ──compilador──▶  domínio e problema PDDL
@@ -44,6 +46,8 @@ mapa.
 | **C. Pré-requisito** | higienizar as mãos antes de aferir a pressão |
 | **D. Consumo** | cada glicemia gasta 2 bolas de algodão |
 | **E. Exigência por paciente** | quem tem suspeita de tuberculose exige N95 para iniciar a visita, ou luvas antes de um procedimento |
+| **F. Alternativa (OU)** | um de dois preparos deve estar válido antes da medição |
+| **G. Período** | pacientes com uma marca só podem ser visitados de manhã ou à tarde |
 
 ## Estado e resultados
 

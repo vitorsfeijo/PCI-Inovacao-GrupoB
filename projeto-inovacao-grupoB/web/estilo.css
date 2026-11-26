@@ -105,10 +105,14 @@ main { max-width: 1200px; margin: 0 auto; padding: 16px; }
 .botao--pequeno { padding: 3px 9px; font-size: .82rem; }
 .botao--texto { border-color: transparent; background: none; color: var(--destaque); padding: 3px 6px; }
 
-select, input[type="text"], input[type="number"], input[type="time"] {
+select, input[type="text"], input[type="number"], input[type="time"], textarea {
   font: inherit; color: var(--texto); background: var(--superficie);
   border: 1px solid var(--borda); border-radius: 6px; padding: 6px 8px;
 }
+.tradutor { margin-bottom: 1rem; }
+.tradutor summary { cursor: pointer; font-weight: 600; }
+.tradutor textarea { display: block; width: 100%; resize: vertical; }
+.tradutor pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .selo {
   display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;

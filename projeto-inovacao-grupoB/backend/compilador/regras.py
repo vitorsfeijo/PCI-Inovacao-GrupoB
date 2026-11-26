@@ -11,6 +11,8 @@ Modelos suportados:
     E. [[exigencia]]  pacientes com uma marca so podem ter a visita iniciada
                       (ou, com `antes_de`, certos procedimentos feitos) com
                       um preparo valendo
+    F. [[alternativa]] pelo menos um dos preparos deve valer no procedimento
+    G. [[periodo]]     turnos permitidos para pacientes com uma marca
 
 Validacao em tres niveis:
 
@@ -56,6 +58,12 @@ DESCRICAO_PROCEDIMENTOS = {
 # Explicacao curta de cada campo: usada nas perguntas do assistente e nos
 # comentarios do TOML que ele grava.
 DESCRICAO_CAMPOS = {
+    ("alternativa", "nome"): "nome da regra de alternativa",
+    ("alternativa", "preparos"): "preparos alternativos (pelo menos um deve valer)",
+    ("alternativa", "antes_de"): "procedimentos que exigem um dos preparos",
+    ("periodo", "nome"): "nome da regra de período",
+    ("periodo", "marca"): "marca do paciente (coluna da planilha)",
+    ("periodo", "turnos"): "turnos permitidos para a visita",
     ("recurso", "nome"): "nome do estoque",
     ("recurso", "capacidade"): "unidades por carga",
     ("recurso", "custo_reposicao"): "minutos para repor na UBS",
@@ -90,6 +98,8 @@ DESCRICAO_MODELOS = {
     "exigencia": ("Exigência", "pacientes com uma marca exigem um preparo, para iniciar "
                                "a visita ou antes de certos procedimentos "
                                "(ex.: máscara para quem exige proteção respiratória)"),
+    "alternativa": ("Alternativa (OU)", "um dos preparos deve valer no momento do procedimento"),
+    "periodo": ("Período", "visitar pacientes com uma marca apenas nos turnos permitidos"),
 }
 
 # Tipo de cada campo, para interfaces montarem o formulario certo:
@@ -121,6 +131,12 @@ TIPOS_CAMPOS = {
     ("exigencia", "antes_de"): {"tipo": "procedimentos"},
     ("exigencia", "custo"): {"tipo": "inteiro", "minimo": 0, "padrao": 1},
     ("exigencia", "texto"): {"tipo": "texto", "padrao": "Conferir {nome} antes de entrar"},
+    ("alternativa", "nome"): {"tipo": "nome"},
+    ("alternativa", "preparos"): {"tipo": "referencias", "modelo": "preparo"},
+    ("alternativa", "antes_de"): {"tipo": "procedimentos"},
+    ("periodo", "nome"): {"tipo": "nome"},
+    ("periodo", "marca"): {"tipo": "nome"},
+    ("periodo", "turnos"): {"tipo": "opcoes", "opcoes": {"manha": "Manhã", "tarde": "Tarde"}},
 }
 
 # Campos de cada modelo, na ordem em que aparecem: nome -> obrigatorio?
@@ -132,6 +148,8 @@ CAMPOS = {
     "consumo": {"procedimento": True, "recurso": True, "quantidade": False},
     "exigencia": {"nome": True, "marca": True, "preparo": True, "custo": False,
                   "texto": False, "antes_de": False},
+    "alternativa": {"nome": True, "preparos": True, "antes_de": True},
+    "periodo": {"nome": True, "marca": True, "turnos": True},
 }
 
 # Tamanho maximo do texto mostrado no roteiro.
@@ -244,15 +262,36 @@ class Exigencia:
 
 
 @dataclass(frozen=True)
+class Alternativa:
+    nome: str
+    preparos: tuple[str, ...]
+    antes_de: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class Periodo:
+    nome: str
+    marca: str
+    turnos: tuple[str, ...]
+
+    @property
+    def campo_paciente(self) -> str:
+        return self.marca.replace("-", "_")
+
+
+@dataclass(frozen=True)
 class Regras:
     recursos: tuple[Recurso, ...] = ()
     preparos: tuple[Preparo, ...] = ()
     consumos: tuple[Consumo, ...] = ()
     exigencias: tuple[Exigencia, ...] = ()
+    alternativas: tuple[Alternativa, ...] = ()
+    periodos: tuple[Periodo, ...] = ()
 
     @property
     def vazia(self) -> bool:
-        return not (self.recursos or self.preparos or self.consumos or self.exigencias)
+        return not (self.recursos or self.preparos or self.consumos or self.exigencias
+                    or self.alternativas or self.periodos)
 
 
 def nomes_gerados_por(modelo: str, campos: dict) -> list[str]:
@@ -271,7 +310,7 @@ def nomes_gerados_por(modelo: str, campos: dict) -> list[str]:
 def validar_nome(valor: Any) -> str | None:
     if not isinstance(valor, str):
         return f"deve ser um texto entre aspas, como \"maos-higienizadas\". Recebido: {valor!r}"
-    if not _NOME_VALIDO.match(valor):
+    if not _NOME_VALIDO.fullmatch(valor):
         dica = ""
         sugestao = sugerir_nome(valor)
         if sugestao and sugestao != valor:
@@ -301,7 +340,7 @@ def validar_texto(valor: Any) -> str | None:
         return f"deve ser um texto entre aspas, como \"Higienizar as mãos\". Recebido: {valor!r}"
     if len(valor) > TEXTO_MAXIMO:
         return f"deve ter no máximo {TEXTO_MAXIMO} caracteres (tem {len(valor)})"
-    if "\n" in valor:
+    if any(ord(c) < 32 or ord(c) == 127 for c in valor):
         return "deve caber em uma linha"
     return None
 
@@ -313,7 +352,7 @@ def validar_procedimentos_nao_vazio(valor: Any) -> str | None:
 
 
 def validar_procedimento(valor: Any) -> str | None:
-    if valor not in PROCEDIMENTOS:
+    if not isinstance(valor, str) or valor not in PROCEDIMENTOS:
         return (f"o procedimento {valor!r} não existe. "
                 f"Os aceitos são: {', '.join(PROCEDIMENTOS)}")
     return None
@@ -323,7 +362,7 @@ def validar_procedimentos(valor: Any) -> str | None:
     if not isinstance(valor, list):
         return (f"deve ser uma lista entre colchetes, como [\"pressao\", \"glicemia\"]. "
                 f"Recebido: {valor!r}")
-    invalidos = [p for p in valor if p not in PROCEDIMENTOS]
+    invalidos = [p for p in valor if not isinstance(p, str) or p not in PROCEDIMENTOS]
     if invalidos:
         nomes = ", ".join(repr(p) for p in invalidos)
         return (f"procedimento(s) inexistente(s): {nomes}. "
@@ -331,6 +370,26 @@ def validar_procedimentos(valor: Any) -> str | None:
     repetidos = sorted({p for p in valor if valor.count(p) > 1})
     if repetidos:
         return f"procedimento(s) repetido(s): {', '.join(repetidos)}"
+    return None
+
+
+def validar_preparos(valor: Any) -> str | None:
+    if not isinstance(valor, list) or len(valor) < 2:
+        return "escolha pelo menos dois preparos alternativos"
+    for nome in valor:
+        if erro := validar_nome(nome):
+            return erro
+    if len(set(valor)) != len(valor):
+        return "os preparos não podem se repetir"
+    return None
+
+
+def validar_turnos(valor: Any) -> str | None:
+    if (not isinstance(valor, list) or not 1 <= len(valor) <= 2
+            or any(t not in ("manha", "tarde") for t in valor)):
+        return 'escolha "manha", "tarde" ou ambos'
+    if len(set(valor)) != len(valor):
+        return "os turnos não podem se repetir"
     return None
 
 
@@ -361,6 +420,8 @@ VALIDADORES = {
     "antes_de": validar_procedimentos_nao_vazio,
     "procedimento": validar_procedimento,
     "texto": validar_texto,
+    "preparos": validar_preparos,
+    "turnos": validar_turnos,
 }
 
 
@@ -369,6 +430,7 @@ VALIDADORES = {
 # ============================================================================
 
 def _rotulo(modelo: str, indice: int, tabela: dict) -> str:
+    modelo = "período" if modelo == "periodo" else modelo
     nome = tabela.get("nome")
     if isinstance(nome, str) and nome:
         return f"{modelo} \"{nome}\""
@@ -465,6 +527,14 @@ def _conferir_entre_si(regras: Regras, recursos_declarados: list[str],
             lista = ", ".join(preparos_declarados) or "nenhum"
             erros.append(f"exigência \"{e.nome}\": exige o preparo \"{e.preparo}\", "
                          f"mas não há preparo com esse nome. Preparos declarados: {lista}")
+    for modelo, blocos in (("alternativa", regras.alternativas), ("período", regras.periodos)):
+        for bloco in blocos:
+            dono = f'{modelo} "{bloco.nome}"'
+            reservar(bloco, [bloco.nome], dono, f"pela regra de {dono}")
+    for alternativa in regras.alternativas:
+        for nome in alternativa.preparos:
+            if nome not in preparos_declarados:
+                erros.append(f'alternativa "{alternativa.nome}": não há preparo "{nome}"')
 
 
 def ler_regras(dados: dict) -> Regras:
@@ -494,6 +564,10 @@ def ler_regras(dados: dict) -> Regras:
                                    t.get("custo", CUSTO_CONFERENCIA_PADRAO),
                                    t.get("texto"), tuple(t.get("antes_de", [])))
                          for t in validos["exigencia"]),
+        alternativas=tuple(Alternativa(t["nome"], tuple(t["preparos"]), tuple(t["antes_de"]))
+                           for t in validos["alternativa"]),
+        periodos=tuple(Periodo(t["nome"], t["marca"], tuple(t["turnos"]))
+                      for t in validos["periodo"]),
     )
     # custo e texto sao da conferencia na porta, que so existe no inicio da visita
     for t in validos["exigencia"]:
@@ -569,6 +643,11 @@ def regras_para_dados(regras: Regras) -> dict:
             if e.texto:
                 campos["texto"] = e.texto
         dados["exigencia"].append(campos)
+    for a in regras.alternativas:
+        dados["alternativa"].append({"nome": a.nome, "preparos": list(a.preparos),
+                                     "antes_de": list(a.antes_de)})
+    for p in regras.periodos:
+        dados["periodo"].append({"nome": p.nome, "marca": p.marca, "turnos": list(p.turnos)})
     return {m: blocos for m, blocos in dados.items() if blocos}
 
 
@@ -589,7 +668,8 @@ def avisos(regras: Regras) -> list[str]:
             resultado.append(f"recurso \"{r.nome}\": nenhum preparo ou procedimento o "
                              f"consome, então ele não muda nenhum plano")
 
-    exigidos = {e.preparo for e in regras.exigencias}
+    exigidos = ({e.preparo for e in regras.exigencias}
+                | {p for a in regras.alternativas for p in a.preparos})
     for p in regras.preparos:
         usado = bool(p.exigido_antes_de) or p.nome in exigidos
         if not usado:

@@ -16,6 +16,7 @@ import subprocess
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 from compilador import ciclo2
 from servidor.http import criar_servidor
@@ -109,6 +110,16 @@ class TestTelaDeRegras(CenarioNoNavegador):
 
     CENARIO = "e2e-regras.mjs"
 
+    @classmethod
+    def setUpClass(cls):
+        resposta = {"status": "candidata", "regras": {
+            "preparo": [{"nome": "levar termometro", "estado": "termômetro em mãos",
+                         "texto": "Levar termômetro"}],
+            "exigencia": [{"nome": "termômetro", "marca": "diabetes", "preparo": "levar-termometro"}],
+        }}
+        with patch("servidor.tradutor.consultar_modelo", return_value=resposta):
+            super().setUpClass()
+
     def test_percorreu_todos_os_passos(self):
         self.assertEqual(self.relato["passos"],
                          ["recurso", "preparo", "renomear", "erro", "exemplo", "rascunho"])
@@ -148,6 +159,13 @@ class TestTelaDeRegras(CenarioNoNavegador):
         self.assertEqual(self.relato["fundo_escuro"], "rgb(18, 22, 28)")
         self.assertFalse(self.relato["rolagem_horizontal"])
         self.assertLess(self.relato["altura_exemplos_celular"], 60)
+
+    def test_tradutor_cria_blocos_no_rascunho_e_desfaz(self):
+        self.assertIn('nome = "levar-termometro"', self.relato["toml_traduzido"])
+        self.assertIn('preparo = "levar-termometro"', self.relato["toml_traduzido"])
+        self.assertIn("2 blocos adicionados", self.relato["mensagem_traducao"])
+        self.assertIn("0 min", self.relato["mensagem_traducao"])
+        self.assertEqual(self.relato["toml_apos_desfazer"], self.relato["previa_exemplo"])
 
 
 class TestTelaDePlanejamento(CenarioNoNavegador):

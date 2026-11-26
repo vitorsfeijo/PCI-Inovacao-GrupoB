@@ -78,6 +78,8 @@ class Assistente:
             self._reservar(p.nomes_gerados, f"pelo preparo \"{p.nome}\"")
         for e in self.existentes.exigencias:
             self._reservar(e.nomes_gerados, f"pela exigência \"{e.nome}\"")
+        for regra in (*self.existentes.alternativas, *self.existentes.periodos):
+            self._reservar([regra.nome], f'pela regra "{regra.nome}"')
 
     # ------------------------------------------------------------------
     #  perguntas basicas
@@ -335,6 +337,34 @@ class Assistente:
             campos["texto"] = texto
         return campos
 
+    def nova_alternativa(self) -> dict | None:
+        preparos = self._preparos_disponiveis()
+        if len(preparos) < 2:
+            self._erro("declare pelo menos dois preparos antes da alternativa")
+            return None
+        nome = self.pedir_nome("Nome da regra de alternativa", lambda n: [n])
+        primeiro = self.pedir_opcao("Primeiro preparo", [(p, p) for p in preparos])
+        segundo = self.pedir_opcao("Segundo preparo", [(p, p) for p in preparos if p != primeiro])
+        escolhidos = [primeiro, segundo]
+        while restantes := [p for p in preparos if p not in escolhidos]:
+            preparo = self.pedir_opcao("Quer incluir outra opção?", [
+                ("", "Não"), *((p, p) for p in restantes)])
+            if not preparo:
+                break
+            escolhidos.append(preparo)
+        procedimentos = self.pedir_procedimentos(obrigatorio=True)
+        self._reservar([nome], f'pela alternativa "{nome}"')
+        return {"nome": nome, "preparos": escolhidos, "antes_de": procedimentos}
+
+    def novo_periodo(self) -> dict:
+        nome = self.pedir_nome("Nome da regra de período", lambda n: [n])
+        marca = self.pedir_nome("Marca do paciente (use hífen no lugar de _)", lambda n: [])
+        turno = self.pedir_opcao("Turnos em que a visita é permitida", [
+            ("manha", "Só de manhã"), ("tarde", "Só à tarde"), ("ambos", "Nos dois turnos")])
+        self._reservar([nome], f'pelo período "{nome}"')
+        return {"nome": nome, "marca": marca,
+                "turnos": ["manha", "tarde"] if turno == "ambos" else [turno]}
+
     # ------------------------------------------------------------------
     #  fluxo principal
     # ------------------------------------------------------------------
@@ -354,12 +384,15 @@ class Assistente:
                 ("consumo", "um consumo (procedimento que gasta um recurso)"),
                 ("exigencia", "uma exigência (pacientes marcados exigem um preparo)"),
                 ("fim", "terminar"),
+                ("alternativa", "uma alternativa (qualquer um dos preparos é suficiente)"),
+                ("periodo", "um período (manhã ou tarde para pacientes marcados)"),
             ])
             if escolha == "fim":
                 return self.blocos
             campos = {"recurso": self.novo_recurso, "preparo": self.novo_preparo,
                       "consumo": self.novo_consumo,
-                      "exigencia": self.nova_exigencia}[escolha]()
+                      "exigencia": self.nova_exigencia, "alternativa": self.nova_alternativa,
+                      "periodo": self.novo_periodo}[escolha]()
             if campos is None:
                 continue
             self.blocos.append((escolha, campos))

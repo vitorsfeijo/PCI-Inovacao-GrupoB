@@ -11,6 +11,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from compilador import ciclo2
 from compilador.regras import CAMPOS, TIPOS_CAMPOS, carregar_regras, ler_regras
@@ -69,7 +70,8 @@ class TestServidor(unittest.TestCase):
             self.assertEqual([c["id"] for c in modelo["campos"]], list(CAMPOS[modelo["id"]]))
             for campo in modelo["campos"]:
                 self.assertIn(campo["tipo"], ("nome", "inteiro", "booleano", "texto",
-                                              "procedimento", "procedimentos", "referencia"))
+                                              "procedimento", "procedimentos", "referencia",
+                                              "referencias", "opcoes"))
         self.assertEqual(len(corpo["procedimentos"]), 6)
 
     def test_todo_campo_tem_tipo(self):
@@ -131,6 +133,31 @@ class TestServidor(unittest.TestCase):
     def test_toml_quebrado(self):
         _, resposta = self.pedir("POST", "/api/regras/ler", {"toml": "[[recurso]\n"})
         self.assertFalse(resposta["ok"])
+
+    def test_traduzir_regra_http(self):
+        periodo = {"nome": "cedo", "marca": "gestante", "turnos": ["manha"]}
+        with patch("servidor.tradutor.consultar_modelo", return_value={
+                "status": "candidata", "regras": {"periodo": [periodo]}}):
+            status, resposta = self.pedir("POST", "/api/regras/traduzir",
+                                         {"descricao": "Gestantes só pela manhã"})
+        self.assertEqual(status, 200)
+        self.assertEqual(resposta["status"], "candidata")
+        self.assertEqual(resposta["regras"]["periodo"], [periodo])
+        self.assertIn('turnos = ["manha"]', resposta["toml"])
+
+    def test_planejar_dia_http(self):
+        tarefa = self.planejar({"planilha": {"sintetica": [2, 1]}, "opcoes": {
+            "planejador": "ciclo2", "estrategia": "gbfs", "turnos": {
+                "manha": {"inicio": "08:00", "duracao": 240, "max_pacientes": 1},
+                "tarde": {"inicio": "13:00", "duracao": 240, "max_pacientes": 1},
+            },
+        }})
+        self.assertEqual(tarefa["estado"], "pronta", tarefa)
+        r = tarefa["resultado"]
+        self.assertEqual(r["codigo"], 0)
+        self.assertEqual([t["turno"] for t in r["turnos"]], ["manha", "tarde"])
+        self.assertEqual([len(t["paradas"]) for t in r["turnos"]], [1, 1])
+        self.assertFalse(r["nao_alocados"])
 
     # -- planejar --------------------------------------------------------------
 

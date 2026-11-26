@@ -181,6 +181,10 @@ def _conferir(arvore: list, regras: Regras) -> None:
         for procedimento in e.antes_de:
             acao_existe(PROCEDIMENTOS[procedimento], dono,
                         f"ligada ao procedimento \"{procedimento}\"")
+    for a in regras.alternativas:
+        for procedimento in a.antes_de:
+            acao_existe(PROCEDIMENTOS[procedimento], f'alternativa "{a.nome}"',
+                        f'ligada ao procedimento "{procedimento}"')
     if erros:
         raise ErroRegra(erros)
 
@@ -333,99 +337,84 @@ def compilar_dominio(arvore: list, regras: Regras, *, nome: str | None = None) -
     posicao = _posicao_apos_ultima_acao(saida)
     saida[posicao:posicao] = novas_acoes
 
-    # E com antes_de: por ultimo, para que as versoes herdem pre-requisitos
-    # (C) e consumos (D) ja aplicados ao procedimento
-    versoes: dict[str, list[str]] = {}
-    for e in regras.exigencias:
-        for procedimento in e.antes_de:
-            base = PROCEDIMENTOS[procedimento]
-            nomes = versoes.setdefault(base, [base])
-            nomes.extend(_dividir_procedimento(saida, list(nomes), e,
-                                               preparos[e.preparo].estado))
+    variantes = _variantes_de_procedimentos(regras)
+    reservados = set(_acoes(saida)) | {p[0] for p in predicados[1:]}
+    for base, versoes in variantes.items():
+        for nome, _, _ in versoes:
+            if nome == base:
+                continue
+            if nome in reservados:
+                raise ErroRegra(f'o nome gerado "{nome}" já está em uso no domínio')
+            reservados.add(nome)
+
+    # As versões herdam pré-requisitos, consumos, efeitos e custo da ação base.
+    for base, versoes in variantes.items():
+        acao = acoes[base]
+        agente = _variavel_do_tipo(acao, "agente")
+        paciente = _variavel_do_tipo(acao, "paciente")
+        compiladas = []
+        for nome, marcas, exigidos in versoes:
+            variante = copy.deepcopy(acao)
+            variante[1] = nome
+            for marca, presente in marcas:
+                literal = [marca, paciente]
+                _acrescentar_precondicao(variante, literal if presente else ["not", literal])
+            for preparo in exigidos:
+                _acrescentar_precondicao(variante, [preparos[preparo].estado, agente])
+            compiladas.append(variante)
+        indice = saida.index(acao)
+        saida[indice:indice + 1] = compiladas
     return saida
 
 
-def _dividir_procedimento(arvore: list, nomes: list[str], e, estado: str) -> list[str]:
-    """
-    Exigencia por paciente num procedimento (modelo E com `antes_de`).
-
-    Cada versao atual do procedimento (a original e as criadas por exigencias
-    anteriores) se divide em duas:
-
-        <versao>            so para pacientes SEM a marca
-        <versao>-<nome>     so para pacientes COM a marca, e com o estado do
-                            preparo valendo no momento do procedimento
-
-    Checar o estado no proprio procedimento, e nao numa conferencia feita
-    antes, fecha uma brecha: sair da casa (por exemplo, para repor material
-    na UBS) desfaz o preparo, e uma conferencia antiga continuaria valendo.
-    Com k exigencias no mesmo procedimento, surgem 2^k versoes dele.
-    Devolve os nomes das versoes novas.
-    """
-    novos = []
-    for nome in nomes:
-        indice = next(i for i, item in enumerate(arvore)
-                      if isinstance(item, list) and item[:2] == [":action", nome])
-        acao = arvore[indice]
-        paciente = _variavel_do_tipo(acao, "paciente")
-        agente = _variavel_do_tipo(acao, "agente")
-        com_marca = copy.deepcopy(acao)
-        com_marca[1] = f"{nome}-{e.nome}"
-        _acrescentar_precondicao(com_marca, [e.marca, paciente])
-        _acrescentar_precondicao(com_marca, [estado, agente])
-        _acrescentar_precondicao(acao, ["not", [e.marca, paciente]])
-        arvore.insert(indice + 1, com_marca)
-        novos.append(com_marca[1])
-    return novos
-
-
-def versoes_detalhadas(regras: Regras) -> dict[str, tuple[str, frozenset[str]]]:
-    """
-    Cada versao de procedimento -> (acao original, exigencias que ela cumpre).
-    Inclui a propria acao original, com o conjunto vazio. Segue a mesma ordem
-    de `compilar_dominio`.
-    """
-    versoes: dict[str, list[tuple[str, frozenset[str]]]] = {}
-    for e in regras.exigencias:
-        for procedimento in e.antes_de:
+def _variantes_de_procedimentos(regras: Regras) -> dict:
+    """Para cada ação base, gera seus nomes, condições de marca e preparos."""
+    variantes = {}
+    limite = 128
+    for regra in (*regras.exigencias, *regras.alternativas):
+        for procedimento in regra.antes_de:
             base = PROCEDIMENTOS[procedimento]
-            lista = versoes.setdefault(base, [(base, frozenset())])
-            lista.extend([(f"{nome}-{e.nome}", cumpre | {e.nome})
-                          for nome, cumpre in list(lista)])
-    return {nome: (base, cumpre)
-            for base, lista in versoes.items() for nome, cumpre in lista}
+            anteriores = variantes.get(base, [(base, (), ())])
+            alternativas = getattr(regra, "preparos", None)
+            quantidade = len(alternativas) if alternativas is not None else 2
+            if len(anteriores) * quantidade > limite:
+                raise ErroRegra(f'o procedimento "{procedimento}" passaria do limite '
+                                f'de {limite} versões. Reduza as exigências ou alternativas.')
+            novas = []
+            for nome, marcas, preparos in anteriores:
+                if alternativas is None:
+                    novas.extend([
+                        (nome, (*marcas, (regra.marca, False)), preparos),
+                        (f"{nome}-{regra.nome}", (*marcas, (regra.marca, True)),
+                         (*preparos, regra.preparo)),
+                    ])
+                else:
+                    novas.extend((f"{nome}-{regra.nome}-opcao-{i}", marcas,
+                                  (*preparos, preparo))
+                                 for i, preparo in enumerate(alternativas, 1))
+            variantes[base] = novas
+    return variantes
 
 
 def versoes_de_procedimentos(regras: Regras) -> dict[str, str]:
-    """
-    Nome de cada versao criada por exigencias com `antes_de` -> acao original.
-    O roteiro usa para mostrar todas as versoes com o texto do original.
-    """
-    return {nome: base for nome, (base, _) in versoes_detalhadas(regras).items()
-            if nome != base}
+    """Cada variante aponta para a ação original usada no texto do roteiro."""
+    return {nome: base for base, versoes in _variantes_de_procedimentos(regras).items()
+            for nome, _, _ in versoes if nome != base}
 
 
 def acoes_que_exigem(regras: Regras) -> dict[str, set[str]]:
-    """
-    Preparo -> acoes do dominio compilado que exigem o estado dele: os
-    procedimentos do pre-requisito (C), em todas as versoes; a conferencia na
-    porta das exigencias de visita; e as versoes de procedimento das
-    exigencias com `antes_de` que o cumprem.
-    """
-    detalhes = versoes_detalhadas(regras)
-    versoes_de: dict[str, list[str]] = {}
-    for nome, (base, _) in detalhes.items():
-        versoes_de.setdefault(base, []).append(nome)
-
+    """Mapeia cada preparo às ações que precisam do seu estado."""
+    variantes = _variantes_de_procedimentos(regras)
     exigem: dict[str, set[str]] = {p.nome: set() for p in regras.preparos}
     for p in regras.preparos:
         for procedimento in p.exigido_antes_de:
             base = PROCEDIMENTOS[procedimento]
-            exigem[p.nome].update(versoes_de.get(base, [base]))
+            exigem[p.nome].update(nome for nome, _, _ in variantes.get(base, [(base, (), ())]))
     for e in regras.exigencias:
         if e.no_inicio_da_visita:
             exigem[e.preparo].add(e.acao_exigida)
-        else:
-            exigem[e.preparo].update(nome for nome, (_, cumpre) in detalhes.items()
-                                     if e.nome in cumpre)
+    for versoes in variantes.values():
+        for nome, _, preparos in versoes:
+            for preparo in preparos:
+                exigem[preparo].add(nome)
     return exigem

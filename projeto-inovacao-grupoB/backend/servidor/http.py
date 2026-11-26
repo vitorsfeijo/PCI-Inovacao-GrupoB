@@ -16,6 +16,7 @@ Rotas da API (JSON):
     POST /api/regras/campo             valida um campo {modelo, campo, valor}
     POST /api/regras/validar           valida o conjunto {regras}
     POST /api/regras/ler               le um TOML {toml}
+    POST /api/regras/traduzir          sugere regras a partir de uma descrição
     POST /api/planejar                 inicia um planejamento -> {id}
     GET  /api/tarefas/<id>             progresso e resultado
 
@@ -37,14 +38,14 @@ from urllib.parse import unquote, urlparse
 
 from compilador import ciclo2
 
-from . import api
+from . import api, tradutor
 from .tarefas import Gerenciador
 
 PASTA_WEB = ciclo2.PROJETO / "web"
 TAMANHO_MAXIMO = 3_000_000           # bytes por requisicao (planilha de ate 2 MB)
 HOSTS_LOCAIS = ("127.0.0.1", "localhost")
 # O navegador so carrega o que vem deste servidor; a unica excecao sao as
-# imagens das ruas do OpenStreetMap, no mapa. Nada mais sai do computador.
+# imagens das ruas do OpenStreetMap. A tradução opcional sai pelo servidor.
 POLITICA_DE_CONTEUDO = "; ".join([
     "default-src 'self'",
     "img-src 'self' data: https://tile.openstreetmap.org",
@@ -65,6 +66,7 @@ ROTAS_POST = {
     "/api/regras/campo": api.validar_campo,
     "/api/regras/validar": api.validar_regras,
     "/api/regras/ler": api.ler_toml,
+    "/api/regras/traduzir": tradutor.traduzir,
 }
 
 
@@ -153,6 +155,9 @@ class Manipulador(BaseHTTPRequestHandler):
             return
         caminho = urlparse(self.path).path
         try:
+            if (caminho == "/api/regras/traduzir"
+                    and self.headers.get_content_type() != "application/json"):
+                return self._erro(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "envie a descrição em JSON")
             if caminho in ROTAS_POST:
                 return self._json(HTTPStatus.OK, ROTAS_POST[caminho](self._corpo()))
             if caminho == "/api/planejar":

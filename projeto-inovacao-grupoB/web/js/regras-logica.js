@@ -4,7 +4,7 @@
 // exigencia: [...] }, cada regra um objeto com os campos do TOML e um `_id`
 // interno (so para a interface saber qual cartao e qual formulario).
 
-export const MODELOS = ["recurso", "preparo", "consumo", "exigencia"];
+export const MODELOS = ["recurso", "preparo", "consumo", "exigencia", "alternativa", "periodo"];
 
 let proximoId = 1;
 export function novoId() {
@@ -35,6 +35,8 @@ export function valorDoCampo(campo, bruto) {
     case "booleano":
       return Boolean(bruto);
     case "procedimentos":
+    case "referencias":
+    case "opcoes":
       return Array.isArray(bruto) && bruto.length ? [...bruto] : undefined;
     default: {
       const texto = typeof bruto === "string" ? bruto.trim() : bruto;
@@ -60,14 +62,15 @@ export function blocoLimpo(modelo, bloco) {
 }
 
 export function dadosParaApi(estado) {
-  return Object.fromEntries(MODELOS.map((m) => [m, estado[m].map((b) => blocoLimpo(m, b))]));
+  return Object.fromEntries(MODELOS.filter((m) => estado[m].length)
+    .map((m) => [m, estado[m].map((b) => blocoLimpo(m, b))]));
 }
 
 // Rotulo da regra como o compilador escreve nas mensagens de erro, para
 // achar os problemas de cada cartao.
 export function rotuloNasMensagens(modelo, bloco) {
   if (modelo === "consumo") return `consumo de "${bloco.recurso}" por "${bloco.procedimento}"`;
-  const palavra = { recurso: "recurso", preparo: "preparo", exigencia: "exigência" }[modelo];
+  const palavra = { exigencia: "exigência", periodo: "período" }[modelo] ?? modelo;
   return `${palavra} "${bloco.nome}"`;
 }
 
@@ -99,6 +102,10 @@ export function resumo(modelo, bloco, descricaoProcedimento = (p) => p) {
       return [`marca ${bloco.marca ?? "?"}`, `exige ${bloco.preparo ?? "?"}`,
               bloco.antes_de?.length ? `antes de: ${lista(bloco.antes_de)}` : "no início da visita"]
         .join(" · ");
+    case "alternativa":
+      return `${(bloco.preparos ?? []).join(" ou ")} · antes de ${lista(bloco.antes_de)}`;
+    case "periodo":
+      return `marca ${bloco.marca ?? "?"} · ${(bloco.turnos ?? []).map((t) => t === "manha" ? "manhã" : "tarde").join(" ou ")}`;
   }
   return "";
 }
@@ -113,13 +120,17 @@ export function tituloDoCartao(modelo, bloco, descricaoProcedimento = (p) => p) 
 // Campos de outras regras que apontam para um recurso ou preparo.
 const REFERENCIAS = {
   recurso: [["preparo", "consome"], ["consumo", "recurso"]],
-  preparo: [["exigencia", "preparo"]],
+  preparo: [["exigencia", "preparo"], ["alternativa", "preparos"]],
 };
+
+function referencia(valor, nome) {
+  return Array.isArray(valor) ? valor.includes(nome) : valor === nome;
+}
 
 export function quemUsa(estado, modelo, nome) {
   if (!nome) return [];
   return (REFERENCIAS[modelo] ?? []).flatMap(([outro, campo]) =>
-    estado[outro].filter((b) => b[campo] === nome).map((b) => ({ modelo: outro, bloco: b })));
+    estado[outro].filter((b) => referencia(b[campo], nome)).map((b) => ({ modelo: outro, bloco: b })));
 }
 
 // Ao renomear um recurso ou preparo, quem o referencia acompanha.
@@ -128,8 +139,9 @@ export function propagarNome(estado, modelo, antigo, novo) {
   let trocas = 0;
   for (const [outro, campo] of REFERENCIAS[modelo] ?? []) {
     for (const bloco of estado[outro]) {
-      if (bloco[campo] === antigo) {
-        bloco[campo] = novo;
+      if (referencia(bloco[campo], antigo)) {
+        bloco[campo] = Array.isArray(bloco[campo])
+          ? bloco[campo].map((n) => n === antigo ? novo : n) : novo;
         trocas++;
       }
     }

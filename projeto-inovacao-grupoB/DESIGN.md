@@ -43,7 +43,7 @@ o Ciclo 2 é usado como está.
 
 ## Decisões de implementação
 
-### Modelos fixos, compilação determinística, sem LLM
+### Modelos fixos e compilação determinística
 
 Acrescentar uma regra ao domínio do Ciclo 2 exige saber PDDL, e uma regra que
 se explica em uma frase espalha mudanças: a regra sintética da máscara ocupa
@@ -53,16 +53,19 @@ início de visita, e ainda em trechos do gerador de problema e do carregador
 da planilha.
 
 A equipe descreve a regra preenchendo **modelos fixos**, e o compilador a
-transforma em PDDL de forma determinística. Sem LLM: o mesmo arquivo de
+transforma em PDDL de forma determinística. O mesmo arquivo de
 regras sempre gera o mesmo domínio, e o erro aparece num formulário legível,
 não em PDDL. A expressividade fica limitada aos modelos, de propósito; o que
 não cabe neles continua exigindo PDDL escrito à mão.
 
 O **assistente** pergunta campo a campo e grava um TOML; o **compilador** só
 conhece o TOML. Isso mantém o compilador simples de testar, e a regra fica
-salva, versionável e editável à mão.
+salva, versionável e editável à mão. Na aba Regras, um tradutor opcional
+gera candidatos JSON com o catálogo de modelos. O servidor normaliza os
+identificadores, valida os blocos junto das regras existentes e permite
+que a interface os adicione ao rascunho para revisão.
 
-### Os cinco modelos
+### Os cinco modelos iniciais
 
 Os modelos saíram da comparação entre o `dominio-legal.pddl` e o
 `dominio-estendido.pddl` do Ciclo 2: o estendido é exatamente o legal
@@ -626,20 +629,14 @@ algoritmo genético faz isso mudando a semente), planejar o turno com as
 regras em cada uma e ficar com o menor turno total. Com o Fast Downward e as
 janelas, cada rota custa segundos.
 
-**Duas classes de regra ficam fora deste ciclo.** Nenhuma é impossível em
-PDDL; o que muda é o custo de implementar:
-
-- **Alternativas** ("higienizar as mãos *ou* usar luvas"). Em STRIPS, o "ou"
-  vira uma versão da ação para cada alternativa, como em `iniciar-visita`. O
-  custo é duplicar o procedimento, e as cópias se multiplicam quando várias
-  alternativas se combinam.
-- **Horário do dia** ("visitar gestantes pela manhã"). O planejador aceita
-  STRIPS com custos, e o custo acumulado não pode ser usado como condição.
-  Caminhos: um planejador temporal (PDDL 2.1/2.2, com ações com duração e
-  janelas de tempo); um relógio discreto no domínio, em blocos de tempo, ao
-  custo de um espaço de busca muito maior; ou tratar a regra como ordem
-  ("gestantes antes dos demais"), que o domínio sabe verificar (como a
-  urgência) mas que precisa ser produzida pelo roteirizador.
+**Extensões.** O bloco `[[alternativa]]` cria uma versão STRIPS da ação para
+cada preparo possível. As versões preservam as outras precondições,
+consumos, custos e efeitos. O compilador limita as combinações a 128
+versões por procedimento. O bloco `[[periodo]]` restringe os horários
+permitidos a pacientes com uma marca. O modo manhã/tarde aloca pacientes
+antes de gerar dois problemas PDDL independentes. Horários específicos
+dentro de um turno exigiriam um planejador temporal ou uma extensão
+adicional ao modelo.
 
 ---
 

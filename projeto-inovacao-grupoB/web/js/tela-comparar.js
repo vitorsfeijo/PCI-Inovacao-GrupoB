@@ -16,6 +16,7 @@ export class TelaComparar {
     this.planejar = planejar;
     this.rodando = false;
     this.comparacao = null;
+    this.comparacoesDoDia = null;
     this.$ = (seletor) => raiz.querySelector(seletor);
     this.$("#botao-comparar").addEventListener("click", () => this.comparar());
     this.$("#comparar-ir-regras").addEventListener("click", () => irPara("regras"));
@@ -88,7 +89,18 @@ export class TelaComparar {
   mostrarResultado(antes, depois) {
     const saida = this.$("#comparacao");
     const ok = (t) => t.estado === "pronta" && t.resultado?.codigo === 0;
-    if (ok(antes) && ok(depois)) {
+    this.comparacoesDoDia = null;
+    if (antes.resultado?.turnos && depois.resultado?.turnos) {
+      this.comparacao = null;
+      this.comparacoesDoDia = depois.resultado.turnos.map((d) => {
+        const a = antes.resultado.turnos.find((t) => t.turno === d.turno);
+        return { rotulo: d.rotulo, inicio: d.inicio,
+                 comparacao: a.codigo === 0 && d.codigo === 0 ? compararResultados(a, d) : null,
+                 falhas: [["Antes", a], ["Depois", d]].filter(([, t]) => t.codigo !== 0) };
+      });
+      saida.dataset.estado = "comparacao";
+      this.desenharComparacao();
+    } else if (ok(antes) && ok(depois)) {
       this.comparacao = compararResultados(antes.resultado, depois.resultado);
       saida.dataset.estado = "comparacao";
       this.desenharComparacao();
@@ -97,7 +109,7 @@ export class TelaComparar {
       saida.dataset.estado = "falha";
       saida.replaceChildren(el("div", { class: "painel" },
         ...[["antes", "Só com as normas da lei", antes], ["depois", "Com as regras da equipe", depois]]
-          .filter(([, , t]) => !ok(t))
+          .filter(([, , t]) => !ok(t) && !t.resultado?.turnos)
           .map(([, rotulo, t]) => {
             const { titulo, itens, dica } = explicarFalha(t);
             return el("div", { class: "caixa caixa--erro" },
@@ -114,8 +126,19 @@ export class TelaComparar {
   // ---- desenho ------------------------------------------------------------
 
   desenharComparacao() {
-    const c = this.comparacao;
-    if (!c) return;
+    const saida = this.$("#comparacao");
+    if (this.comparacoesDoDia) {
+      saida.replaceChildren(...this.comparacoesDoDia.map((t) => t.comparacao
+        ? this.painelComparacao(t.comparacao, t.inicio, t.rotulo)
+        : el("section", { class: "painel" }, el("h2", {}, t.rotulo),
+            ...t.falhas.map(([lado, r]) => el("p", {},
+              `${lado} — ${r.falha.mensagens[0]}`)))));
+    } else if (this.comparacao) {
+      saida.replaceChildren(this.painelComparacao(this.comparacao, this.inicio, "Antes × depois"));
+    }
+  }
+
+  painelComparacao(c, inicio, titulo) {
     const soMudancas = this.$("#so-mudancas").checked;
     const m = c.minutos;
     const folga = (minutos) => (c.orcamento === null ? null : c.orcamento - minutos);
@@ -150,16 +173,16 @@ export class TelaComparar {
           el("p", { class: "caixa__dica" }, "Talvez nenhum paciente selecionado tenha os " +
              "procedimentos ou as marcas a que as regras se aplicam."));
 
-    const paradas = el("ol", { class: "paradas" }, c.paradas.map((p) => this.parada(p, soMudancas)));
+    const paradas = el("ol", { class: "paradas" }, c.paradas.map((p) => this.parada(p, soMudancas, inicio)));
 
-    this.$("#comparacao").replaceChildren(el("div", { class: "painel" },
-      el("h2", {}, "Antes × depois"),
+    return el("div", { class: "painel" },
+      el("h2", {}, titulo),
       el("p", { class: "campo__ajuda" }, "Antes: só as normas da lei. Depois: com as regras da equipe."),
       numeros, novas,
       el("div", { class: "legenda" },
         el("span", { class: "tarefa--nova" }, "+ tarefa nova"),
         el("span", { class: "tarefa--saiu" }, "− tarefa que saiu")),
-      paradas));
+      paradas);
   }
 
   numero(rotulo, valor, detalhe, extra = null, alerta = false) {
@@ -169,8 +192,8 @@ export class TelaComparar {
       extra ? el("small", {}, extra) : null);
   }
 
-  parada(p, soMudancas) {
-    const hora = (min) => horario(this.inicio, min) ?? `${min} min`;
+  parada(p, soMudancas, inicio) {
+    const hora = (min) => horario(inicio, min) ?? `${min} min`;
     const chegada = p.chegadaAntes === null
       ? `chegada ≈ ${hora(p.chegadaDepois)}`
       : p.atraso === 0 ? `chegada ≈ ${hora(p.chegadaDepois)} (igual)`

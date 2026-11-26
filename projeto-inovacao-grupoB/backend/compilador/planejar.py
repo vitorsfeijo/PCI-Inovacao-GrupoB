@@ -38,6 +38,7 @@ from .dominio import NOME_PADRAO, compilar_dominio
 from .pddl import escrever_pddl
 from .problema import gerar_problema_com_regras
 from .regras import ErroRegra, Regras, avisos, carregar_regras
+from .turnos import configurar_turnos, planejar_dia
 
 # Estrategia padrao: "auto". Tenta o otimo em 1/4 do limite; se nao terminar,
 # calcula o plano por janelas e um plano global rapido e fica com o melhor
@@ -73,6 +74,11 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument("--orcamento", type=int, metavar="MIN",
                    help="orçamento do turno em minutos")
     p.add_argument("--max-pacientes", type=int)
+    for turno in ("manha", "tarde"):
+        p.add_argument(f"--{turno}", nargs=2, metavar=("INICIO", "MIN"),
+                       help=f"início (HH:MM) e duração do turno da {turno}; use os dois turnos juntos")
+        p.add_argument(f"--max-pacientes-{turno}", type=int,
+                       help=f"máximo de visitas no turno da {turno}")
     p.add_argument("--sem-selecao", action="store_true",
                    help="todos os pacientes entram no turno")
     p.add_argument("--sem-precedencia", action="store_true",
@@ -230,17 +236,18 @@ def executar(args: argparse.Namespace) -> dict:
     """
     ciclo2.garantir_caminho()
     from acsplan.dados import gerador
-    from acsplan.geo import roteirizador
-    from acsplan.selecao import politica
 
     try:
         regras = carregar_regras(args.regras) if args.regras else Regras()
+        turnos = configurar_turnos(args)
+        if regras.periodos and not turnos:
+            raise ErroRegra("as regras de período exigem o planejamento de manhã e tarde")
         if args.instancia_sintetica:
             dados = gerador.gerar(*args.instancia_sintetica)
             origem = "instância sintética n={} semente={}".format(*args.instancia_sintetica)
         else:
             dados = ciclo2.ler_dados(args.dados,
-                                     [e.campo_paciente for e in regras.exigencias])
+                                     [r.campo_paciente for r in (*regras.exigencias, *regras.periodos)])
             origem = args.dados
         dominio = compilar_dominio(ciclo2.planejador().ler_sexp(str(ciclo2.DOMINIO_LEGAL)),
                                    regras, nome=NOME_PADRAO)
@@ -254,6 +261,23 @@ def executar(args: argparse.Namespace) -> dict:
     for aviso in lista_avisos:
         _info(f"  Aviso: {aviso}")
     _info(f"Pacientes: {origem}")
+
+    def planejar_turno(opcoes, pacientes):
+        return _planejar_turno(opcoes, pacientes, regras, dominio, origem, lista_avisos)
+
+    if turnos:
+        try:
+            return planejar_dia(args, dados, regras, turnos, planejar_turno, _info)
+        except ErroRegra as erro:
+            for problema in erro.problemas:
+                _info(f"Erro: {problema}")
+            return _falha("erro", erro.problemas)
+    return planejar_turno(args, dados)
+
+
+def _planejar_turno(args, dados, regras, dominio, origem, lista_avisos) -> dict:
+    from acsplan.geo import roteirizador
+    from acsplan.selecao import politica
 
     # [1] selecao
     todos_os_pacientes = list(dados["pacientes"])      # os adiados tambem vao para `pontos`
@@ -384,7 +408,7 @@ def executar(args: argparse.Namespace) -> dict:
 def main(argv: list[str] | None = None) -> int:
     args = construir_parser().parse_args(argv)
     resultado = executar(args)
-    if resultado["codigo"] != 0:
+    if resultado["codigo"] != 0 and "turnos" not in resultado:
         return resultado["codigo"]
     _info("")
     if args.salvar:
@@ -394,10 +418,14 @@ def main(argv: list[str] | None = None) -> int:
         print(resultado["texto"])
 
     if args.mostrar_plano:
-        print("\nPLANO COMPLETO (representação interna)")
-        for numero, passo in enumerate(resultado["plano"], start=1):
-            print(f"  {numero:>3}. {passo}")
-    return 0
+        for turno in resultado.get("turnos", [resultado]):
+            if "plano" not in turno:
+                continue
+            nome = f' — {turno["rotulo"]}' if "rotulo" in turno else ""
+            print(f"\nPLANO COMPLETO (representação interna){nome}")
+            for numero, passo in enumerate(turno["plano"], start=1):
+                print(f"  {numero:>3}. {passo}")
+    return resultado["codigo"]
 
 
 if __name__ == "__main__":

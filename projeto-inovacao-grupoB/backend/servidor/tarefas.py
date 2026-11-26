@@ -21,8 +21,9 @@ import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from compilador import ciclo2
+from compilador import ErroRegra, ciclo2
 from compilador.planejar import com_mensagens, construir_parser, executar
+from compilador.turnos import configurar_turnos
 
 from .api import PedidoInvalido, caminho_da_planilha
 
@@ -68,7 +69,9 @@ def argumentos(pedido: dict, pasta: Path) -> list[str]:
         raise PedidoInvalido("'planilha' deve ter 'exemplo', 'csv' ou 'sintetica'")
 
     opcoes = pedido.get("opcoes") or {}
-    desconhecidas = set(opcoes) - set(OPCOES_VALOR) - set(OPCOES_SIM_NAO)
+    if not isinstance(opcoes, dict):
+        raise PedidoInvalido("'opcoes' deve ser um objeto")
+    desconhecidas = set(opcoes) - set(OPCOES_VALOR) - set(OPCOES_SIM_NAO) - {"turnos"}
     if desconhecidas:
         raise PedidoInvalido(f"opções desconhecidas: {', '.join(sorted(desconhecidas))}")
     for chave, opcao in OPCOES_VALOR.items():
@@ -83,6 +86,18 @@ def argumentos(pedido: dict, pasta: Path) -> list[str]:
     for chave, opcao in OPCOES_SIM_NAO.items():
         if opcoes.get(chave):
             argv.append(opcao)
+    if "turnos" in opcoes:
+        turnos = opcoes["turnos"]
+        if not isinstance(turnos, dict) or set(turnos) != {"manha", "tarde"}:
+            raise PedidoInvalido("'turnos' deve conter manhã e tarde")
+        for nome, turno in turnos.items():
+            if (not isinstance(turno, dict) or not isinstance(turno.get("inicio"), str)
+                    or type(turno.get("duracao")) is not int
+                    or ("max_pacientes" in turno and type(turno["max_pacientes"]) is not int)):
+                raise PedidoInvalido("informe o início e a duração em minutos de cada turno")
+            argv += [f"--{nome}", turno["inicio"], str(turno["duracao"])]
+            if "max_pacientes" in turno:
+                argv += [f"--max-pacientes-{nome}", str(turno["max_pacientes"])]
     return argv
 
 
@@ -101,7 +116,12 @@ def analisar(argv: list[str]):
         raise PedidoInvalido(f"opção inválida: {mensagem}")
 
     analisador.error = recusar
-    return analisador.parse_args(argv)
+    args = analisador.parse_args(argv)
+    try:
+        configurar_turnos(args)
+    except ErroRegra as erro:
+        raise PedidoInvalido(str(erro)) from None
+    return args
 
 
 @dataclass
@@ -154,9 +174,10 @@ class Gerenciador:
             try:
                 args = analisar(argumentos(pedido, Path(pasta)))
                 resultado = executar(args)
-                for chave in ("regras", "origem"):
-                    if isinstance(resultado.get(chave), str):
-                        resultado[chave] = limpar(resultado[chave])
+                for turno in resultado.get("turnos", [resultado]):
+                    for chave in ("regras", "origem"):
+                        if isinstance(turno.get(chave), str):
+                            turno[chave] = limpar(turno[chave]).replace(os.sep, "/")
                 tarefa.resultado = resultado
                 tarefa.estado = "pronta"
             except Exception as erro:     # nao derruba o servidor; vai para a tarefa
