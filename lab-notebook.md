@@ -20,3 +20,6 @@
 
 25/11/2026
 - Versão preliminar do Tech Report finalizado
+
+26/11/2026
+- Slides da pré-apresentação (semana 4) criados, seguindo as seções do Tech Report
